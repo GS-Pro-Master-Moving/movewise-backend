@@ -16,7 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-
+from api.orders.controller.OrderController import OrderController
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('orders/', OrderController.as_view()),
 ]
+

@@ -37,7 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'api',
+    'rest_framework',
+    'api'
 ]
 
 MIDDLEWARE = [
@@ -78,8 +79,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  
         'NAME': 'django_restframework_gs_pro', 
-        'USER': 'admin',  
-        'PASSWORD': 'apiPassword', 
+        'USER': 'root',  
+        'PASSWORD': 'Oracle123', 
         'HOST': 'localhost',  
         'PORT': '3306',  
         'OPTIONS': {
