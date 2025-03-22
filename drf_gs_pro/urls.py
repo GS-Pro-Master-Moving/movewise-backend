@@ -16,7 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from api.order.controllers.ControllerOrder import OrderController
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('orders/', OrderController.as_view({'post': 'create'}), name='order-create'),
 ]
