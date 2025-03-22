@@ -57,17 +57,18 @@ class StatesUSA(models.TextChoices):
 class Order(models.Model):
     
     key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Unique ID for DB
-    key_ref = models.CharField(max_length=50)
-    date = models.DateField()  # Order date
-    distance = models.PositiveIntegerField() # Order income
-    expense = models.DecimalField(max_digits=10, decimal_places=2)
-    income = models.DecimalField(max_digits=10, decimal_places=2) 
-    weight = models.DecimalField(max_digits=10, decimal_places=2)  # Weight of charge
-    status = models.CharField(max_length=50);
-    payStatus = models.SmallIntegerField()
+    key_ref = models.CharField(max_length=50,null=True, blank=True)
+    date = models.DateField(null=True, blank=True)  # Order date
+    distance = models.PositiveIntegerField(null=True, blank=True) # Order income
+    expense = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)
+    income = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True) 
+    weight = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)  # Weight of charge
+    status = models.CharField(max_length=50,null=True, blank=True);
+    payStatus = models.SmallIntegerField(null=True, blank=True)
     state_usa = models.CharField(
         max_length=2, 
-        choices=StatesUSA.choices
+        choices=StatesUSA.choices,
+        null=True, blank=True
     )
     
     person = models.ForeignKey(
