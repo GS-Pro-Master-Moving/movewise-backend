@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from api.person.models.Person import Person
+from api.job.models.Job import Job
 # Possible States from USA
 class StatesUSA(models.TextChoices):
     ALABAMA = "AL", "Alabama"
@@ -70,8 +71,9 @@ class Order(models.Model):
         choices=StatesUSA.choices,
         null=True, blank=True
     )
-    
-    person = models.ForeignKey(
+    # By the moment person its created everytime there is a register
+    # even when the email its registered
+    person = models.ForeignKey( # Person realtion
         Person, 
         related_name='orders', 
         on_delete=models.CASCADE,
@@ -79,3 +81,9 @@ class Order(models.Model):
     )
 
 
+    job = models.ForeignKey(  # Job realtion
+        Job, 
+        related_name="orders", 
+        on_delete=models.CASCADE,
+        db_column="id_job"
+    )
