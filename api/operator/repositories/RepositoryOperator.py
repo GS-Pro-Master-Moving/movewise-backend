@@ -1,6 +1,12 @@
 from api.operator.models.Operator import Operator
-from api.operator.repositories import IRepositoryOperator
+from api.operator.repositories.IRepositoryOperator import IRepositoryOperator
 
-class OperatorRepository(IRepositoryOperator):
+class RepositoryOperator(IRepositoryOperator):
     def create(self, data):
         return Operator.objects.create(**data)
+
+    def update_name_t_shift(self, operator_id: int, new_name_t_shift: str):
+        Operator.objects.filter(id_operator=operator_id).update(name_t_shift=new_name_t_shift)
+
+    def update_size_t_shift(self, operator_id: int, new_size_t_shift: str):
+        Operator.objects.filter(id_operator=operator_id).update(size_t_shift=new_size_t_shift)

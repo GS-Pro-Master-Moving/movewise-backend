@@ -1,9 +1,15 @@
-from api.operator.repositories import OperatorRepository
+from api.operator.repositories.RepositoryOperator import RepositoryOperator
 from api.operator.services.IServicesOperator import IServiceOperator  
 
-class OperatorService(IServiceOperator):
+class ServiceOperator(IServiceOperator):
     def __init__(self, repository=None):
-        self.repository = repository or OperatorRepository()
+        self.repository = repository or RepositoryOperator()
 
     def create_operator(self, data):
         return self.repository.create(data)
+
+    def update_name_t_shift(self, operator_id: int, new_name_t_shift: str):
+        self.repository.update_name_t_shift(operator_id, new_name_t_shift)
+
+    def update_size_t_shift(self, operator_id: int, new_size_t_shift: str):
+        self.repository.update_size_t_shift(operator_id, new_size_t_shift)
