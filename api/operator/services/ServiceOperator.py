@@ -4,10 +4,13 @@ from api.operator.services.IServicesOperator import IServiceOperator
 class ServiceOperator(IServiceOperator):
     def __init__(self, repository=None):
         self.repository = repository or RepositoryOperator()
-
+        
     def create_operator(self, data):
         return self.repository.create(data)
-
+    
+    def get_all_assigns(self):
+        return self.repository.get_all_assigns()
+    
     def update_name_t_shift(self, operator_id: int, new_name_t_shift: str):
         self.repository.update_name_t_shift(operator_id, new_name_t_shift)
 

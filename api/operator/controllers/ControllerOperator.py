@@ -1,10 +1,15 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, pagination 
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from api.operator.serializers.SerializerOperator import SerializerOperator
 from api.operator.serializers.SerializerUpdateOperator import SerializerOperatorUpdate
 from api.operator.services.ServiceOperator import ServiceOperator
 
+class CustomPagination(pagination.PageNumberPagination):
+    page_size = 10  # Puedes ajustar el número de elementos por página
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+    
 class ControllerOperator(viewsets.ViewSet):
     """
     Controller for managing Operator entities.
@@ -17,13 +22,22 @@ class ControllerOperator(viewsets.ViewSet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.service = ServiceOperator()
-
+        self.paginator = CustomPagination()
+        
+    def list(self, request):
+        """List operators with pagination"""
+        operators = self.service.get_all_operators()
+        paginated_queryset = self.paginator.paginate_queryset(operators, request)
+        serializer = SerializerOperator(paginated_queryset, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
+    
     @extend_schema(
         summary="Create a new operator",
         description="Creates an operator with the given data and returns the created entity.",
         request=SerializerOperator,
         responses={201: SerializerOperator, 400: {"error": "Invalid data"}}
     )
+    
     def create(self, request):
         """
         Create a new operator.
