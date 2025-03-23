@@ -19,4 +19,4 @@ class Operator(models.Model):
     assign = models.ManyToManyField(Order, through="Assign", related_name="assigned_operators",db_column="id_assign")
 
     def __str__(self):
-        return f"Operator {self.id_operator} - {self.id_person}"
+        return f"Operator {self.id_operator} - {self.person.id_person if self.person else 'No Person Assigned'}"

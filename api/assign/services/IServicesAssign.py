@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
+from uuid import UUID  # Importar UUID
 from api.assign.models.Assign import Assign
 
 class IServicesAssign(ABC):
 
     @abstractmethod
-    def create_assign(self, operator_id: int, order_id: int) -> Assign:
+    def create_assign(self, operator_id: int, order_id: UUID) -> Assign: 
         """Creates a new assignment between an operator and an order"""
         pass
 
@@ -20,7 +21,7 @@ class IServicesAssign(ABC):
         pass
 
     @abstractmethod
-    def get_assigns_by_order(self, order_id: int) -> List[Assign]:
+    def get_assigns_by_order(self, order_id: UUID) -> List[Assign]:  
         """Retrieves all assignments for a specific order"""
         pass
 

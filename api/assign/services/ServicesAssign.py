@@ -1,4 +1,5 @@
 from typing import List, Optional
+from uuid import UUID  # Importar UUID
 from api.assign.models.Assign import Assign
 from api.assign.repositories.RepositoryAssign import RepositoryAssign
 from api.assign.services.IServicesAssign import IServicesAssign
@@ -7,7 +8,7 @@ class ServicesAssign(IServicesAssign):
     def __init__(self):
         self.repository = RepositoryAssign()
 
-    def create_assign(self, operator_id: int, order_id: int) -> Assign:
+    def create_assign(self, operator_id: int, order_id: UUID) -> Assign:
         """Creates a new assignment between an operator and an order"""
         return self.repository.create_assign(operator_id, order_id)
 
@@ -19,7 +20,7 @@ class ServicesAssign(IServicesAssign):
         """Retrieves all assignments for a specific operator"""
         return self.repository.get_assigns_by_operator(operator_id)
 
-    def get_assigns_by_order(self, order_id: int) -> List[Assign]:
+    def get_assigns_by_order(self, order_id: UUID) -> List[Assign]:  
         """Retrieves all assignments for a specific order"""
         return self.repository.get_assigns_by_order(order_id)
 
