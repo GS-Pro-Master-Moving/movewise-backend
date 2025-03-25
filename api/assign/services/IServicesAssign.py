@@ -6,7 +6,7 @@ from api.assign.models.Assign import Assign
 class IServicesAssign(ABC):
 
     @abstractmethod
-    def create_assign(self, operator_id: int, order_id: UUID) -> Assign: 
+    def create_assign(self, operator_id: int, truck_id: int, order_id: UUID) -> Assign: 
         """Creates a new assignment between an operator and an order"""
         pass
 

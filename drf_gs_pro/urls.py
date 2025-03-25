@@ -27,5 +27,5 @@ urlpatterns = [
     
     # Trucks
     path('trucks/', ControllerTruck.as_view({'get': 'get_disponibles', 'post': 'create'}), name='truck-list-create'),
-    path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'toggle_status'}), name='truck-toggle-status'),
+    path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
 ]

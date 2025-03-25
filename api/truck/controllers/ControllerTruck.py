@@ -1,6 +1,7 @@
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, pagination
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+
 from api.truck.services.ServicesTruck import ServicesTruck
 from api.truck.serializers.SerializerTruck import SerializerTruck
 from api.truck.models.Truck import Truck
@@ -12,15 +13,34 @@ class ControllerTruck(viewsets.ViewSet):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.truck_service = ServicesTruck()  # Service instance
+        self.truck_service = ServicesTruck()  # Instancia del servicio
 
-    def list(self, request):
+    def get_disponibles(self, request):
         """
-        Returns a list of available (active) trucks.
+        Returns a paginated list of available (active) trucks.
         """
-        trucks = self.truck_service.get_disponibles()
-        serializer = SerializerTruck(trucks, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            trucks = self.truck_service.get_disponibles()
+
+            # Paginación manual con PageNumberPagination
+            paginator = pagination.PageNumberPagination()
+            paginator.page_size = request.query_params.get("page_size", 10)  # Tamaño configurable
+            paginated_trucks = paginator.paginate_queryset(trucks, request)
+
+            return paginator.get_paginated_response({
+                "status": "success",
+                "messDev": "Available trucks fetched",
+                "messUser": "Camiones disponibles obtenidos",
+                "data": SerializerTruck(paginated_trucks, many=True).data
+            })
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching available trucks: {str(e)}",
+                "messUser": "No se pudieron obtener los camiones disponibles",
+                "data": None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request):
         """
@@ -35,12 +55,29 @@ class ControllerTruck(viewsets.ViewSet):
         """
         serializer = SerializerTruck(data=request.data)
         if serializer.is_valid():
-            truck = self.truck_service.create_truck(**serializer.validated_data)
-            return Response(SerializerTruck(truck).data, status=status.HTTP_201_CREATED)
+            try:
+                truck = self.truck_service.create_truck(serializer.validated_data)
+                return Response({
+                    "status": "success",
+                    "messDev": "Truck created successfully",
+                    "messUser": "El camión ha sido registrado",
+                    "data": SerializerTruck(truck).data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({
+                    "status": "error",
+                    "messDev": f"Error creating truck: {str(e)}",
+                    "messUser": "Hubo un problema al registrar el camión",
+                    "data": None
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            "status": "error",
+            "messDev": "Validation error",
+            "messUser": "Datos inválidos",
+            "data": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def partial_update(self, request, pk=None):
+    def update_status(self, request, pk=None):
         """
         Activates or deactivates a truck.
         Expected payload:
@@ -48,11 +85,25 @@ class ControllerTruck(viewsets.ViewSet):
             "status": true  # true for active, false for inactive
         }
         """
-        truck = get_object_or_404(Truck, id_truck=pk)
-        status_value = request.data.get("status")
-
-        if status_value is None:
-            return Response({"error": "Status field is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        updated_truck = self.truck_service.update_status(truck.id_truck, status_value)
-        return Response(SerializerTruck(updated_truck).data, status=status.HTTP_200_OK)
+        try:
+            truck = self.truck_service.update_status(pk, request.data.get("status"))
+            return Response({
+                "status": "success",
+                "messDev": "Truck status updated",
+                "messUser": f"El camión ha sido {'activado' if truck.status else 'desactivado'}",
+                "data": SerializerTruck(truck).data
+            }, status=status.HTTP_200_OK)
+        except Truck.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Truck not found",
+                "messUser": "No se encontró el camión",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error updating truck status: {str(e)}",
+                "messUser": "No se pudo actualizar el estado del camión",
+                "data": None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

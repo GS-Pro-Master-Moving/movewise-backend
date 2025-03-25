@@ -8,9 +8,9 @@ class ServicesAssign(IServicesAssign):
     def __init__(self):
         self.repository = RepositoryAssign()
 
-    def create_assign(self, operator_id: int, order_id: UUID) -> Assign:
-        """Creates a new assignment between an operator and an order"""
-        return self.repository.create_assign(operator_id, order_id)
+    def create_assign(self, operator_id: int, truck_id: int, order_id: UUID) -> Assign:
+        """Creates a new assignment between an operator, a truck, and an order."""
+        return self.repository.create_assign(operator_id, truck_id, order_id)
 
     def get_assign_by_id(self, assign_id: int) -> Optional[Assign]:
         """Retrieves an assignment by ID"""

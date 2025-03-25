@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from api.truck.models.Truck import Truck
 from api.truck.repositories.IRepositoryTruck import IRepositoryTruck
 
@@ -8,14 +8,9 @@ class RepositoryTruck(IRepositoryTruck):
         """Returns a list of available (active) trucks."""
         return Truck.objects.filter(status=True)
 
-    def create_truck(self, number_truck: str, type: str, rol: str, name: str) -> Truck:
-        """Creates a new truck."""
-        return Truck.objects.create(
-            number_truck=number_truck,
-            type=type,
-            rol=rol,
-            name=name
-        )
+    def create_truck(self, truck_data: Dict) -> Truck:
+        """Creates a new truck using a dictionary of data."""
+        return Truck.objects.create(**truck_data)
 
     def update_status(self, id_truck: int, status: bool) -> Optional[Truck]:
         """Activates or deactivates a truck."""
