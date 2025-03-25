@@ -9,7 +9,7 @@ class Tool(models.Model):
     
     job = models.ForeignKey(  # Job realtion
         Job, 
-        related_name="orders", 
+        related_name="tools", 
         on_delete=models.CASCADE,
         db_column="id_job"
     )

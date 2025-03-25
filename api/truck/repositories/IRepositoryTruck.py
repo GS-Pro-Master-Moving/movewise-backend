@@ -1,0 +1,20 @@
+from abc import ABC, abstractmethod
+from typing import List, Optional
+from api.truck.models.Truck import Truck
+
+class IRepositoryTruck(ABC):
+
+    @abstractmethod
+    def get_disponibles(self) -> List[Truck]:
+        """Returns a list of available (active) trucks."""
+        pass
+
+    @abstractmethod
+    def create_truck(self, number_truck: str, type: str, rol: str, name: str) -> Truck:
+        """Creates a new truck."""
+        pass
+
+    @abstractmethod
+    def update_status(self, id_truck: int, status: bool) -> Optional[Truck]:
+        """Activates or deactivates a truck."""
+        pass
