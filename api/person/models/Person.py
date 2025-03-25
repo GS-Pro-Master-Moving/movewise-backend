@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 
 class Person(models.Model):
     id_person = models.AutoField(primary_key=True)
