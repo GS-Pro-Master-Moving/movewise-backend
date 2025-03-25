@@ -5,7 +5,7 @@ from api.assign.services.ServicesAssign import ServicesAssign
 from api.assign.serializers.SerializerAssign import SerializerAssign
 from api.operator.models.Operator import Operator
 from api.order.models.Order import Order
-
+from api.truck.models.Truck import Truck
 class ControllerAssign(viewsets.ViewSet):
     """
     Controller for handling assignments between Operators and Orders.
@@ -20,19 +20,15 @@ class ControllerAssign(viewsets.ViewSet):
 
     def create(self, request):
         """
-        Creates a new assignment between an Operator and an Order.
-
-        - Validates the incoming request data.
-        - Ensures the provided Operator and Order exist.
-        - Calls the service layer to create the assignment.
-        - Returns the created assignment data in the response.
+        Creates a new assignment between an Operator, a Truck, and an Order.
 
         Expected request payload:
         {
             "operator": 1,
+            "truck": 1,
             "order": "26e89b4f0eee4a50896d4781a464c1a1",
             "assigned_at": "2025-03-23T12:00:00Z",
-            "status": "pending"
+            "rol": "driver"
         }
         """
 
@@ -40,21 +36,32 @@ class ControllerAssign(viewsets.ViewSet):
         
         if serializer.is_valid():
             operator_id = serializer.validated_data["operator"].id_operator
-            order_id = serializer.validated_data["order"].key 
-            print("\noperator serializer:", serializer.validated_data["operator"])
-            print("\norder serializer:", serializer.validated_data["order"])
-            # Ensure the Operator and Order exist before proceeding
-            operator = get_object_or_404(Operator, id_operator=operator_id)
-            order = get_object_or_404(Order, key=order_id) 
-            print("\noperator id:", operator_id)
-            print("\norder id:", order_id)
-            # Delegate assignment creation to the service layer
-            assign = self.assign_service.create_assign(operator.id_operator, order.key)
+            order_id = serializer.validated_data["order"].key
+            truck_id = serializer.validated_data["truck"].id_truck
 
-            return Response(SerializerAssign(assign).data, status=status.HTTP_201_CREATED)
+            # Ensure the Operator, Truck, and Order exist before proceeding
+            operator = get_object_or_404(Operator, id_operator=operator_id)
+            order = get_object_or_404(Order, key=order_id)
+            truck = get_object_or_404(Truck, id_truck=truck_id)
+
+            # Delegate assignment creation to the service layer
+            assign = self.assign_service.create_assign(operator.id_operator, truck.id_truck, order.key)
+
+            return Response({
+                "status": "success",
+                "messDev": "Assignment created successfully",
+                "messUser": "La asignación ha sido creada",
+                "data": SerializerAssign(assign).data
+            }, status=status.HTTP_201_CREATED)
 
         # Return validation errors if the request is invalid
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            "status": "error",
+            "messDev": "Validation error",
+            "messUser": "Datos inválidos",
+            "data": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
     def retrieve(self, request, pk=None):
         """Gets an assignment by ID"""
         assign = self.assign_service.get_assign_by_id(pk)

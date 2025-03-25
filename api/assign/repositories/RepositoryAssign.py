@@ -2,12 +2,18 @@ from typing import List, Optional
 from uuid import UUID  # Importar UUID
 from api.assign.models.Assign import Assign
 from api.assign.repositories.IRepositoryAssign import IRepositoryAssign
-
+from api.truck.models.Truck import Truck
+from api.operator.models.Operator import Operator
+from api.order.models.Order import Order
 class RepositoryAssign(IRepositoryAssign):
 
-    def create_assign(self, operator_id: int, order_id: UUID) -> Assign:  
-        assign, created = Assign.objects.get_or_create(operator_id=operator_id, order_id=order_id)
-        return assign
+    def create_assign(self, operator_id: int, truck_id: int, order_id: UUID) -> Assign:
+        """Creates a new assignment between an operator, a truck, and an order."""
+        operator = Operator.objects.get(id_operator=operator_id)
+        truck = Truck.objects.get(id_truck=truck_id)
+        order = Order.objects.get(key=order_id)
+        # Creates a new assignment with the keys of the operator, truck, and order
+        return Assign.objects.create(operator=operator, truck=truck, order=order)
 
     def get_assign_by_id(self, assign_id: int) -> Optional[Assign]:
         try:
