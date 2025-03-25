@@ -6,7 +6,7 @@ from api.operator.serializers.SerializerUpdateOperator import SerializerOperator
 from api.operator.services.ServiceOperator import ServiceOperator
 
 class CustomPagination(pagination.PageNumberPagination):
-    page_size = 10  # Puedes ajustar el número de elementos por página
+    page_size = 10  # Default page size
     page_size_query_param = 'page_size'
     max_page_size = 100
     

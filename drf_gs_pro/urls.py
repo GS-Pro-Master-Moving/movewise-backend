@@ -5,6 +5,7 @@ from api.order.controllers.ControllerOrder import OrderController
 from api.job.controllers.ControllerJob import JobController  
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from api.assign.controllers.ControllerAssign import ControllerAssign
+from api.truck.controllers.ControllerTruck import ControllerTruck   
 urlpatterns = [
     path('admin/', admin.site.urls),
     # Docs
@@ -23,4 +24,8 @@ urlpatterns = [
     path('assigns/operator/<int:operator_id>/', ControllerAssign.as_view({'get': 'list_by_operator'}), name='assigns-by-operator'),
     path('assigns/order/<int:order_id>/', ControllerAssign.as_view({'get': 'list_by_order'}), name='assigns-by-order'),
     path('assigns/<int:assign_id>/update-status/', ControllerAssign.as_view({'patch': 'update_status'}), name='assign-update-status'),
+    
+    # Trucks
+    path('trucks/', ControllerTruck.as_view({'get': 'get_disponibles', 'post': 'create'}), name='truck-list-create'),
+    path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'toggle_status'}), name='truck-toggle-status'),
 ]
