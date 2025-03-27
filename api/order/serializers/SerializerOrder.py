@@ -3,7 +3,7 @@ from api.order.models.Order import Order
 from api.person.serializers.PersonCreateFromOrderSerializer import PersonCreateFromOrderSerializer
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class SerializerOrder(serializers.ModelSerializer):
     """
     Serializer for the Order model.
 
