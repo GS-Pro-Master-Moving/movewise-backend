@@ -1,9 +1,7 @@
 from django.db import models
-from api.order.models.Order import Order
 from api.person.models.Person import Person
-class Operator(models.Model):
+class Operator(Person):
     id_operator = models.AutoField(primary_key=True)
-    
     #id_driver = models.IntegerField() by the moment not necesary
     number_licence = models.CharField(max_length=100, null=True, blank=True)
     code = models.CharField(max_length=100, null=True, blank=True)
@@ -15,7 +13,7 @@ class Operator(models.Model):
     status = models.CharField(max_length=50, null=True, blank=True)
     
     # Relations
-    person = models.OneToOneField(Person, on_delete=models.CASCADE, related_name='operator',db_column="id_person")
+    #person = models.OneToOneField(Person, on_delete=models.CASCADE, related_name='operator',db_column="id_person")
 
 
     def __str__(self):
