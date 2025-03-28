@@ -5,7 +5,7 @@ from api.truck.models.Truck import Truck
 class IRepositoryTruck(ABC):
 
     @abstractmethod
-    def get_disponibles(self) -> List[Truck]:
+    def get_avaliable(self) -> List[Truck]:
         """Returns a list of available (active) trucks."""
         pass
 

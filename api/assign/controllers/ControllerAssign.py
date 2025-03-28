@@ -17,7 +17,10 @@ class ControllerAssign(viewsets.ViewSet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.assign_service = ServicesAssign()  # Initialize the Assign service
-
+    def create_all_assign(self, request):
+        
+        return;
+    
     def create(self, request):
         """
         Creates a new assignment between an Operator, a Truck, and an Order.
@@ -33,7 +36,6 @@ class ControllerAssign(viewsets.ViewSet):
         """
 
         serializer = SerializerAssign(data=request.data)
-        
         if serializer.is_valid():
             operator_id = serializer.validated_data["operator"].id_operator
             order_id = serializer.validated_data["order"].key

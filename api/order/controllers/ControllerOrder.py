@@ -4,7 +4,7 @@ from drf_spectacular.utils import extend_schema
 from api.order.serializers.SerializerOrder import SerializerOrder
 from api.order.services.ServicesOrder import ServicesOrder  
 
-class OrderController(viewsets.ViewSet):
+class ControllerOrder(viewsets.ViewSet):
     """
     Controller for managing Order entities.
 
