@@ -95,3 +95,28 @@ class ControllerOperator(viewsets.ViewSet):
                 return Response({ "error": "Invalid field" }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    @extend_schema(
+        summary="Update a specific field of an operator",
+        description="Updates a specific field of the operator with the provided value.",
+        request=SerializerOperatorUpdate,
+        responses={200: {"message": "Field updated successfully"}, 400: {"error": "Invalid field or data"}},
+        parameters=[
+            OpenApiParameter(name="operator_id", description="ID of the operator", required=True, type=int),
+            OpenApiParameter(name="field_name", description="Field to update", required=True, type=str),
+        ]
+    )
+    def get_operator_id(self, request, operator_id):
+        """
+        Get a specific operator.
+
+        Path Parameters:
+        - `operator_id`: The ID of the operator.
+
+        Returns:
+        - 200 OK: If the operator is successfully retrieved.
+        - 404 Not Found: If the operator does not exist.
+        """
+        operator = self.service.get_operator(operator_id)
+        if operator:
+            return Response(SerializerOperator(operator).data, status=status.HTTP_200_OK)
+        return Response({ "error": "Operator not found" }, status=status.HTTP_404_NOT_FOUND)

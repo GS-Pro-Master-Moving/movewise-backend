@@ -16,7 +16,7 @@ urlpatterns = [
     # jobs
     path('jobs/', JobController.as_view({'get': 'list'}), name='job-list'),
     # operators
-    path('operators/', ControllerOperator.as_view({'post': 'create'}), name='operator-create'),
+    path('operators/', ControllerOperator.as_view({'post': 'create', 'get': 'list'}), name='operator-list-create'),
     path('operators/<int:operator_id>/patch/<str:field_name>/',ControllerOperator.as_view({'patch': 'patch_field'}), name='operator-patch-field'),
     # assigns
     path('assigns/', ControllerAssign.as_view({'post': 'create'}), name='assign-create'),

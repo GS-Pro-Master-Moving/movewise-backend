@@ -8,6 +8,9 @@ class ServiceOperator(IServiceOperator):
     def create_operator(self, data):
         return self.repository.create(data)
     
+    def get_all_operators(self):
+        return self.repository.get_all()
+    
     def get_all_assigns(self):
         return self.repository.get_all_assigns()
     

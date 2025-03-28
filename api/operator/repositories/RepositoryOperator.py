@@ -9,6 +9,9 @@ class RepositoryOperator(IRepositoryOperator):
     def get_all_assigns(self):
         return Assign.objects.all()
     
+    def get_all(self):
+        return Operator.objects.all()
+    
     def update_name_t_shift(self, operator_id: int, new_name_t_shift: str):
         Operator.objects.filter(id_operator=operator_id).update(name_t_shift=new_name_t_shift)
 

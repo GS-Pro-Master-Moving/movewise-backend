@@ -14,6 +14,10 @@ class IServiceOperator(ABC):
         pass
     
     @abstractmethod
+    def get_all_operators(self):
+        pass
+    
+    @abstractmethod
     def update_name_t_shift(self, operator_id: int, new_name_t_shift: str):
         pass
 
