@@ -9,7 +9,10 @@ class IRepositoryAssign(ABC):
     def create_assign(self, operator_id: int, order_id: UUID) -> Assign:  
         """Creates a new assignment between an operator and an order"""
         pass
-
+    @abstractmethod
+    def create_bulk(assignments):
+        """Creates multiples assignations to the database"""
+        pass
     @abstractmethod
     def get_assign_by_id(self, assign_id: int) -> Optional[Assign]:
         """Retrieves an assignment by ID"""

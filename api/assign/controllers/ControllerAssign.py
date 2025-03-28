@@ -17,8 +17,14 @@ class ControllerAssign(viewsets.ViewSet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.assign_service = ServicesAssign()  # Initialize the Assign service
-    def create_all_assign(self, request):
         
+    def create_all_assign(self, request):
+        success, message = ServicesAssign.create_assign(request.data)
+
+        if success:
+            return Response({"message": message}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
         return;
     
     def create(self, request):

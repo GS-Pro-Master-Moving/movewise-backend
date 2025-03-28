@@ -1,5 +1,7 @@
 from typing import List, Optional
-from uuid import UUID  # Importar UUID
+from uuid import UUID
+
+from django.db import IntegrityError  # Importar UUID
 from api.assign.models.Assign import Assign
 from api.assign.repositories.IRepositoryAssign import IRepositoryAssign
 from api.truck.models.Truck import Truck
@@ -14,6 +16,16 @@ class RepositoryAssign(IRepositoryAssign):
         order = Order.objects.get(key=order_id)
         # Creates a new assignment with the keys of the operator, truck, and order
         return Assign.objects.create(operator=operator, truck=truck, order=order)
+    
+    @staticmethod
+    def create_bulk(assignments):
+        try:
+            Assign.objects.bulk_create(assignments)
+            return True, None
+        except IntegrityError as e:
+            return False, "Duplicate assignment or constraint violation"
+        except Exception as e:
+            return False, str(e)
 
     def get_assign_by_id(self, assign_id: int) -> Optional[Assign]:
         try:
