@@ -17,6 +17,8 @@ class ControllerOperator(viewsets.ViewSet):
     Provides endpoints for:
     - Creating an operator.
     - Updating specific fields of an operator.
+    - Retrieving an operator by ID.
+    - Listing all operators with pagination.
     """
 
     def __init__(self, **kwargs):
@@ -30,13 +32,6 @@ class ControllerOperator(viewsets.ViewSet):
         paginated_queryset = self.paginator.paginate_queryset(operators, request)
         serializer = SerializerOperator(paginated_queryset, many=True)
         return self.paginator.get_paginated_response(serializer.data)
-    
-    @extend_schema(
-        summary="Create a new operator",
-        description="Creates an operator with the given data and returns the created entity.",
-        request=SerializerOperator,
-        responses={201: SerializerOperator, 400: {"error": "Invalid data"}}
-    )
     
     def create(self, request):
         """
@@ -55,16 +50,6 @@ class ControllerOperator(viewsets.ViewSet):
             return Response(SerializerOperator(operator).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @extend_schema(
-        summary="Update a specific field of an operator",
-        description="Updates a specific field of the operator with the provided value.",
-        request=SerializerOperatorUpdate,
-        responses={200: {"message": "Field updated successfully"}, 400: {"error": "Invalid field or data"}},
-        parameters=[
-            OpenApiParameter(name="operator_id", description="ID of the operator", required=True, type=int),
-            OpenApiParameter(name="field_name", description="Field to update", required=True, type=str),
-        ]
-    )
     def patch_field(self, request, operator_id, field_name):
         """
         Update a specific field of an operator.
@@ -95,16 +80,7 @@ class ControllerOperator(viewsets.ViewSet):
                 return Response({ "error": "Invalid field" }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    @extend_schema(
-        summary="Update a specific field of an operator",
-        description="Updates a specific field of the operator with the provided value.",
-        request=SerializerOperatorUpdate,
-        responses={200: {"message": "Field updated successfully"}, 400: {"error": "Invalid field or data"}},
-        parameters=[
-            OpenApiParameter(name="operator_id", description="ID of the operator", required=True, type=int),
-            OpenApiParameter(name="field_name", description="Field to update", required=True, type=str),
-        ]
-    )
+    
     def get_operator_id(self, request, operator_id):
         """
         Get a specific operator.

@@ -2,12 +2,11 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from api.person.models.Person import Person
 
-class IRepositoryPerson(ABC):
+class IServicesPerson(ABC):
     """
-    Interface for the Person repository.
-
+    Interface for the Person service.
     This interface defines the standard operations (CRUD) for managing Person entities.
-    Implementations should provide the actual database interactions.
+    Implementations should provide the actual business logic and data validation.
     """
 
     @abstractmethod
@@ -38,15 +37,17 @@ class IRepositoryPerson(ABC):
     def get(self, person_id: str) -> Optional[Person]:
         """
         Retrieves a Person by its ID.
+
         Returns:
             The Person object if found, None otherwise.
         """
         pass
-
+    
     @abstractmethod
     def getByEmail(self, email: str) -> Optional[Person]:
         """
         Retrieves a Person by its email.
+
         Returns:
             The Person object if found, None otherwise.
         """

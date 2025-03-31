@@ -16,12 +16,6 @@ class ControllerOrder(viewsets.ViewSet):
         super().__init__(**kwargs)
         self.order_service = ServicesOrder()  
 
-    @extend_schema(
-        summary="Create a new order",
-        description="Creates an order with the given data and returns the created entity.",
-        request=SerializerOrder,
-        responses={201: SerializerOrder, 400: {"error": "Invalid data"}}
-    )
     def create(self, request):
         """
         Create a new order.
