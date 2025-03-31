@@ -10,36 +10,68 @@ class ControllerAssign(viewsets.ViewSet):
     """
     Controller for handling assignments between Operators and Orders.
 
-    This viewset provides an endpoint to create assignments by linking an operator
-    to an order. It verifies the existence of the provided IDs before processing the request.
+    This viewset provides an endpoint to:
+    - Create multiple assignments at once.
+    - Create a new assignment.
+    - Retrieve an assignment by ID.
+    - List assignments by Operator ID or Order ID.
+    - List assignaments by orderKey
+    - Update the status of an assignment.
+    - Delete an assignment.
     """
 
     def __init__(self, **kwargs):
+        """
+        Initializes the ControllerAssign instance.
+
+        This constructor initializes the assignment service, which will be used 
+        to handle assignment-related business logic.
+        """
         super().__init__(**kwargs)
         self.assign_service = ServicesAssign()  # Initialize the Assign service
+        
+    def create_all_assign(self, request):
+        """
+        Creates multiple assignments at once.
 
+        Delegates the request data to the assignment service. If the operation 
+        is successful, it returns a success response; otherwise, it returns an error message.
+
+        Returns:
+            - HTTP 201 Created if successful
+            - HTTP 400 Bad Request if an error occurs
+        """
+        success, message = ServicesAssign.create_assign(request.data)
+
+        if success:
+            return Response({"message": message}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
+    
     def create(self, request):
         """
         Creates a new assignment between an Operator, a Truck, and an Order.
 
-        Expected request payload:
-        {
-            "operator": 1,
-            "truck": 1,
-            "order": "26e89b4f0eee4a50896d4781a464c1a1",
-            "assigned_at": "2025-03-23T12:00:00Z",
-            "rol": "driver"
-        }
-        """
+        The request must contain the following fields:
+        - `operator`: The ID of the operator
+        - `truck`: The ID of the truck
+        - `order`: The unique key of the order
+        - `assigned_at`: The assignment timestamp
+        - `rol`: The role of the operator in the assignment
 
+        If the provided IDs exist, the assignment is created and stored.
+
+        Returns:
+            - HTTP 201 Created if successful
+            - HTTP 400 Bad Request if validation fails
+        """
         serializer = SerializerAssign(data=request.data)
-        
         if serializer.is_valid():
             operator_id = serializer.validated_data["operator"].id_operator
             order_id = serializer.validated_data["order"].key
             truck_id = serializer.validated_data["truck"].id_truck
 
-            # Ensure the Operator, Truck, and Order exist before proceeding
+            # Ensure that the Operator, Truck, and Order exist before proceeding
             operator = get_object_or_404(Operator, id_operator=operator_id)
             order = get_object_or_404(Order, key=order_id)
             truck = get_object_or_404(Truck, id_truck=truck_id)
@@ -63,24 +95,52 @@ class ControllerAssign(viewsets.ViewSet):
         }, status=status.HTTP_400_BAD_REQUEST)
     
     def retrieve(self, request, pk=None):
-        """Gets an assignment by ID"""
+        """
+        Retrieves a specific assignment by its ID.
+
+        If the assignment exists, its details are returned. Otherwise, 
+        an error response is provided.
+
+        Returns:
+            - HTTP 200 OK with the assignment data if found
+            - HTTP 404 Not Found if the assignment does not exist
+        """
         assign = self.assign_service.get_assign_by_id(pk)
         if assign:
             return Response(SerializerAssign(assign).data, status=status.HTTP_200_OK)
         return Response({"error": "Assign not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def list_by_operator(self, request, operator_id):
-        """Gets all assignments for a specific operator"""
+        """
+        Retrieves all assignments associated with a specific operator.
+
+        Returns:
+            - HTTP 200 OK with a list of assignments
+        """
         assigns = self.assign_service.get_assigns_by_operator(operator_id)
         return Response(SerializerAssign(assigns, many=True).data, status=status.HTTP_200_OK)
 
     def list_by_order(self, request, order_id):
-        """Gets all assignments for a specific order"""
+        """
+        Retrieves all assignments linked to a specific order.
+
+        Returns:
+            - HTTP 200 OK with a list of assignments
+        """
         assigns = self.assign_service.get_assigns_by_order(order_id)
         return Response(SerializerAssign(assigns, many=True).data, status=status.HTTP_200_OK)
 
     def update_status(self, request, assign_id):
-        """Updates the status of an assignment"""
+        """
+        Updates the status of an existing assignment.
+
+        The request must contain a `new_status` field. If the update is successful, 
+        the modified assignment is returned.
+
+        Returns:
+            - HTTP 200 OK if the update is successful
+            - HTTP 400 Bad Request if `new_status` is missing
+        """
         new_status = request.data.get("new_status")
         if not new_status:
             return Response({"error": "new_status is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -89,6 +149,17 @@ class ControllerAssign(viewsets.ViewSet):
         return Response(SerializerAssign(assign).data, status=status.HTTP_200_OK)
 
     def delete(self, request, pk=None):
-        """Deletes an assignment"""
-        self.assign_service.delete_assign(pk)
+        """
+        Deletes an existing assignment.
+
+        Once deleted, the assignment cannot be recovered.
+
+        Returns:
+            - HTTP 204 No Content upon successful deletion
+        """
+
+        if not self.assign_service.delete_assign(pk):
+            return Response({"error": "Assign not found"}, status=status.HTTP_404_NOT_FOUND)
+        # If the assignment is successfully deleted, return a 204 No Content response
         return Response({"message": "Assign deleted"}, status=status.HTTP_204_NO_CONTENT)
+

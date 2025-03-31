@@ -1,5 +1,9 @@
+from api.assign.models.Assign import Assign
+from api.operator.models.Operator import Operator
 from api.operator.repositories.RepositoryOperator import RepositoryOperator
-from api.operator.services.IServicesOperator import IServiceOperator  
+from api.operator.services.IServicesOperator import IServiceOperator
+from api.order.models.Order import Order
+from api.truck.models.Truck import Truck  
 
 class ServiceOperator(IServiceOperator):
     def __init__(self, repository=None):
@@ -7,6 +11,8 @@ class ServiceOperator(IServiceOperator):
         
     def create_operator(self, data):
         return self.repository.create(data)
+    def get_all_operators(self):
+        return self.repository.get_all()
     
     def get_all_assigns(self):
         return self.repository.get_all_assigns()

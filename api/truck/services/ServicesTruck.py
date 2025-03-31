@@ -7,9 +7,9 @@ class ServicesTruck(IServicesTruck):
     def __init__(self):
         self.repository = RepositoryTruck()
 
-    def get_disponibles(self) -> List[Truck]:
+    def get_avaliable(self) -> List[Truck]:
         """Returns a list of available (active) trucks."""
-        return self.repository.get_disponibles()
+        return self.repository.get_avaliable()
 
     def create_truck(self, truck_data: Dict) -> Truck:
         """Creates a new truck with the given data."""

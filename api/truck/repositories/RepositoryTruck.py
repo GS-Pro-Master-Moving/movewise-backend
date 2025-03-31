@@ -4,7 +4,7 @@ from api.truck.repositories.IRepositoryTruck import IRepositoryTruck
 
 class RepositoryTruck(IRepositoryTruck):
 
-    def get_disponibles(self) -> List[Truck]:
+    def get_avaliable(self) -> List[Truck]:
         """Returns a list of available (active) trucks."""
         return Truck.objects.filter(status=True)
 

@@ -15,12 +15,12 @@ class ControllerTruck(viewsets.ViewSet):
         super().__init__(**kwargs)
         self.truck_service = ServicesTruck()  # Instancia del servicio
 
-    def get_disponibles(self, request):
+    def get_avaliable(self, request):
         """
         Returns a paginated list of available (active) trucks.
         """
         try:
-            trucks = self.truck_service.get_disponibles()
+            trucks = self.truck_service.get_avaliable()
 
             # Paginación manual con PageNumberPagination
             paginator = pagination.PageNumberPagination()

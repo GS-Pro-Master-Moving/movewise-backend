@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from api.operator.models.Operator import Operator
 from api.person.models.Person import Person
 from api.job.models.Job import Job
 # Possible States from USA
@@ -64,8 +65,8 @@ class Order(models.Model):
     expense = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)
     income = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True) 
     weight = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)  # Weight of charge
-    status = models.CharField(max_length=50,null=True, blank=True);
-    payStatus = models.SmallIntegerField(null=True, blank=True)
+    status = models.CharField(max_length=50,null=True, blank=True)
+    payStatus = models.SmallIntegerField(default=0,null=True, blank=True)
     state_usa = models.CharField(
         max_length=2, 
         choices=StatesUSA.choices,
@@ -87,3 +88,9 @@ class Order(models.Model):
         on_delete=models.CASCADE,
         db_column="id_job"
     )
+    
+    assign = models.ManyToManyField(
+        Operator, 
+        through="Assign", 
+        related_name="assigned_operators",
+        db_column="id_assign")

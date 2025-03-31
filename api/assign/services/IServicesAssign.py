@@ -14,7 +14,10 @@ class IServicesAssign(ABC):
     def get_assign_by_id(self, assign_id: int) -> Optional[Assign]:
         """Retrieves an assignment by ID"""
         pass
-
+    @abstractmethod
+    def create_assignments(data):
+        """Creates multiples assignations to the database"""
+        pass
     @abstractmethod
     def get_assigns_by_operator(self, operator_id: int) -> List[Assign]:
         """Retrieves all assignments for a specific operator"""
