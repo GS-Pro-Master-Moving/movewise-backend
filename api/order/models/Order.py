@@ -3,6 +3,7 @@ from django.db import models
 from api.operator.models.Operator import Operator
 from api.person.models.Person import Person
 from api.job.models.Job import Job
+from api.tool.models.Tool import Tool
 # Possible States from USA
 class StatesUSA(models.TextChoices):
     ALABAMA = "AL", "Alabama"
@@ -94,3 +95,10 @@ class Order(models.Model):
         through="Assign", 
         related_name="assigned_operators",
         db_column="id_assign")
+
+    tool = models.ManyToManyField(
+        Tool, 
+        through="AssignTool", 
+        related_name="order_tools",
+        db_column="id_tool"
+    )

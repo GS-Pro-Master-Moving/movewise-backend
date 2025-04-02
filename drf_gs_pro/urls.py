@@ -5,7 +5,8 @@ from api.order.controllers.ControllerOrder import ControllerOrder
 from api.job.controllers.ControllerJob import JobController  
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from api.assign.controllers.ControllerAssign import ControllerAssign
-from api.truck.controllers.ControllerTruck import ControllerTruck   
+from api.truck.controllers.ControllerTruck import ControllerTruck  
+from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignTool
 urlpatterns = [
     path('admin/', admin.site.urls),
     # Docs
@@ -24,7 +25,10 @@ urlpatterns = [
     path('assigns/operator/<int:operator_id>/', ControllerAssign.as_view({'get': 'list_by_operator'}), name='assigns-by-operator'),
     path('assigns/order/<int:order_id>/', ControllerAssign.as_view({'get': 'list_by_order'}), name='assigns-by-order'),
     path('assigns/<int:assign_id>/update-status/', ControllerAssign.as_view({'patch': 'update_status'}), name='assign-update-status'),
-    
+    # assignTools
+    path('assignTool/', ControllerAssignTool.as_view({'post': 'assign_tool'}), name='assign-tool'),
+    path('unassignTool/', ControllerAssignTool.as_view({'delete': 'unassign_tool'}), name='unassign-tool'),
+    path('assignedTools/', ControllerAssignTool.as_view({'get': 'get_assigned_tools'}), name='assigned-tools'),
     # Trucks
     path('trucks/', ControllerTruck.as_view({'get': 'get_avaliable', 'post': 'create'}), name='truck-list-create'),
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
