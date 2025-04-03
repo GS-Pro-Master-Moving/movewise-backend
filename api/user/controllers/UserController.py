@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from rest_framework.permissions import AllowAny
 
 class UserRegister(APIView):
-    permission_classes = [AllowAny]  # <-- Permite acceso sin autenticación
+    permission_classes = [AllowAny]  
     authentication_classes = []
     @extend_schema(
         summary="Register new user and person",
@@ -62,13 +62,13 @@ class UserRegister(APIView):
         return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserLogin(APIView):
-    permission_classes = [AllowAny]  # <-- Permite acceso sin autenticación
+    permission_classes = [AllowAny] 
     authentication_classes = []
 
     @extend_schema(
         summary="Autenticar usuario",
         description="Requiere email y contraseña. Devuelve token JWT.",
-        request=UserSerializer,  # ✅ Serializer con campos requeridos
+        request=UserSerializer,  
         responses={
             200: OpenApiResponse(
                 description="Token JWT generado",

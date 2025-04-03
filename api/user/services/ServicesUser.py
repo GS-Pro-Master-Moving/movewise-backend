@@ -1,7 +1,9 @@
-from django.contrib.auth.hashers import make_password, check_password
-from api.user.models import User
+from django.contrib.auth.hashers import make_password, check_password  # Importa check_password
 from api.person.models import Person
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
+
+User = get_user_model()  # Obtiene el modelo User activo (custom o default)
 
 class ServicesUser:
     @staticmethod
@@ -9,9 +11,11 @@ class ServicesUser:
         try:
             person = Person.objects.get(email=email)
             user = person.user  # Accede al User desde Person
-            # if not check_password(password, user.password):
-            if not password == user.password:
+            
+            # Verifica la contraseña usando check_password ✅
+            if not user.check_password(password):  # Compara hash vs texto plano
                 raise ValueError("Contraseña incorrecta")
+            
             return user
         except Person.DoesNotExist:
             raise ValueError("Email no registrado")
@@ -20,12 +24,20 @@ class ServicesUser:
 
     @staticmethod
     def create_user(person_data: dict, user_data: dict) -> User:
-        # Hashear la contraseña
-        user_data["password"] = make_password(user_data["password"])
+        raw_password = user_data.pop("password")  # Extrae la contraseña
         
-        # Crear Person y User
+        # Crea laj Persona
         person = Person.objects.create(**person_data)
-        user = User.objects.create(**user_data)
-        person.user = user  # Establece la relación inversa
+            
+        # Crea el User usando el manager personalizado (hashea la contraseña)
+        user = User.objects.create_user(
+            user_name=user_data["user_name"],
+            password=raw_password,  # ✅ set_password() se encarga del hash
+            **user_data
+        )
+            
+        # Relaciona Person con User
+        person.user = user
         person.save()
+            
         return user
