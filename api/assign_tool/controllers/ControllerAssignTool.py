@@ -64,3 +64,33 @@ class ControllerAssignTool(viewsets.ViewSet):
             tools = self.services_assign_tool.get_assigned_tools(order_id)
             return Response(SerializerAssignTool(tools, many=True).data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def get_assigned_tools_by_job(self, request):
+        """
+        Get all tools assigned to a job.
+        
+        Returns:
+        - 200 OK: List of assigned tools.
+        - 400 Bad Request: Invalid input data.
+        """
+        serializer = SerializerAssignTool(data=request.data)
+        if serializer.is_valid():
+            job_id = serializer.validated_data['id_job']
+            print("Job ID:", job_id)
+            tools = self.services_assign_tool.get_assigned_tools_by_job(job_id)
+            return Response(SerializerAssignTool(tools, many=True).data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def bulk_create(self, request):
+        """
+        Create multiple assignments in bulk.
+        
+        Returns:
+        - 201 Created: Assignments created successfully.
+        - 400 Bad Request: Invalid input data.
+        """
+        serializer = SerializerAssignTool(data=request.data, many=True)
+        if serializer.is_valid():
+            tools = self.services_assign_tool.create_assignments(serializer.validated_data)# To review
+            return Response(tools, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

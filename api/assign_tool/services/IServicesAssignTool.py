@@ -46,3 +46,20 @@ class IServicesAssignTool(ABC):
             list: A list of tools assigned to the specified person.
         """
         pass
+    
+    def get_assigned_tools_by_job(self, job_id: int) -> list:
+        """
+        Retrieves a list of tools assigned to a job.
+        
+        Args:
+            job_id (int): The ID of the job whose assigned tools are to be retrieved.
+        
+        Returns:
+            list: A list of tools assigned to the specified job.
+        """
+        pass
+    
+    @abstractmethod
+    def create_assignments(self, data: list[dict]) -> list[dict]:
+        """Creates multiples assignations to the database"""
+        pass

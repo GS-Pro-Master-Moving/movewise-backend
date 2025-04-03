@@ -46,4 +46,28 @@ class RepositoryAssignTool(IRepositoryAssignTool):
         tools = Tool.objects.filter(order=order)
         return list(tools)
     
+    def get_assigned_tools_by_job(self, job_id: int) -> list:
+        try:
+            order = Order.objects.get(id_order=job_id)
+        except Order.DoesNotExist:
+            print("\nOrder not found")
+            return []
+        tools = Tool.objects.filter(order=order)
+        return list(tools)
     
+    def create_assignments(self, data: list[dict]) -> list[dict]:
+        results = []
+        for assign in data:
+            tool_id = assign.get("tool_id")
+            order_id = assign.get("order_id")
+            
+            if not tool_id or not order_id:
+                results.append({"tool_id": tool_id, "order_id": order_id, "status": "error", "message": "Invalid data"})
+                continue
+            
+            success = self.assign_tool(tool_id, order_id)
+            status = "success" if success else "error"
+            message = "Assigned successfully" if success else "Assignment failed"
+            results.append({"tool_id": tool_id, "order_id": order_id, "status": status, "message": message})
+        
+        return results

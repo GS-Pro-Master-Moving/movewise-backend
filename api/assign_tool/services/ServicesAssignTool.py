@@ -14,3 +14,9 @@ class ServicesAssignTool(IServicesAssignTool):
     
     def get_assigned_tools(self, order_id: str) -> list:
         return self.repository.get_assigned_tools(order_id)
+    
+    def get_assigned_tools_by_job(self, job_id: int) -> list:
+        return self.repository.get_assigned_tools_by_tool(job_id)
+    
+    def create_assignments(self, data: list[dict]) -> list[dict]:
+        return self.repository.create_assignments(data)

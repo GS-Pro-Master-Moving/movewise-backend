@@ -30,3 +30,5 @@ class JobController(viewsets.ViewSet):
         """
         jobs = self.job_service.get_all_jobs()  # Calls service to get all jobs
         return Response(SerializerJob(jobs, many=True).data)
+
+    
