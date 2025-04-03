@@ -10,33 +10,31 @@ class ServicesUser:
     def authenticate(email: str, password: str) -> User:
         try:
             person = Person.objects.get(email=email)
-            user = person.user  # Accede al User desde Person
+            user = person.user  
             
-            # Verifica la contraseña usando check_password ✅
-            if not user.check_password(password):  # Compara hash vs texto plano
-                raise ValueError("Contraseña incorrecta")
+            # Check the password using check_password ✅
+            if not user.check_password(password):  
+                raise ValueError("Incorrect password")
             
             return user
         except Person.DoesNotExist:
-            raise ValueError("Email no registrado")
+            raise ValueError("Email not registered")
         except User.DoesNotExist:
-            raise ValueError("Usuario no encontrado")
+            raise ValueError("User not found")
 
     @staticmethod
     def create_user(person_data: dict, user_data: dict) -> User:
-        raw_password = user_data.pop("password")  # Extrae la contraseña
+        raw_password = user_data.pop("password")  
         
-        # Crea laj Persona
         person = Person.objects.create(**person_data)
             
-        # Crea el User usando el manager personalizado (hashea la contraseña)
         user = User.objects.create_user(
             user_name=user_data["user_name"],
-            password=raw_password,  # ✅ set_password() se encarga del hash
+            password=raw_password,  
             **user_data
         )
             
-        # Relaciona Person con User
+        # Relate Person to User
         person.user = user
         person.save()
             
