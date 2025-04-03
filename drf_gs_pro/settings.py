@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'api',
     'drf_spectacular', # Documentation
+    'api.user',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -69,6 +71,11 @@ TEMPLATES = [
     },
 ]
 
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",  # Prioridad a bcrypt
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+
 WSGI_APPLICATION = 'drf_gs_pro.wsgi.application'
 
 
@@ -88,11 +95,20 @@ DATABASES = {
         }
     }
 }
+
+AUTH_USER_MODEL = 'user.User'
+
 # Rest framework config
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,  
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'api.user.authentication.JWTAuthentication',  # Autenticación JWT personalizada
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # Requiere autenticación por defecto
+    ]
 }
 
 

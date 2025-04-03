@@ -7,13 +7,19 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from api.assign.controllers.ControllerAssign import ControllerAssign
 from api.truck.controllers.ControllerTruck import ControllerTruck  
 from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignTool
+from api.user.controllers.UserController import UserRegister, UserLogin
 urlpatterns = [
+    #login
+    path('register/', UserRegister.as_view(), name='user-register'),
+    path('login/', UserLogin.as_view(), name='user-login'),
+
     path('admin/', admin.site.urls),
     # Docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'), 
     # orders
     path('orders/', ControllerOrder.as_view({'post': 'create'}), name='order-create'),
+    path('orders/<str:pk>/', ControllerOrder.as_view({'patch': 'partial_update'}), name='order-update'),
     # jobs
     path('jobs/', JobController.as_view({'get': 'list'}), name='job-list'),
     # operators

@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from api.order.models.Order import Order
 from api.person.serializers.PersonCreateFromOrderSerializer import PersonCreateFromOrderSerializer
+from api.job.models import Job  
 
-
-class SerializerOrder(serializers.ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer):
     """
     Serializer for the Order model.
 
@@ -35,3 +35,32 @@ class SerializerOrder(serializers.ModelSerializer):
         
         order = Order.objects.create(person=person, **validated_data)
         return order  
+    
+    def update(self, instance, validated_data):
+        """
+        Updates an existing Order instance.
+        """
+
+        # Manejar la actualización de 'person'
+        if "person" in validated_data:
+            person_data = validated_data.pop("person")
+            person_serializer = PersonCreateFromOrderSerializer(instance.person, data=person_data, partial=True)
+            if person_serializer.is_valid():
+                person_serializer.save()
+            else:
+                raise serializers.ValidationError(person_serializer.errors)
+
+        # Manejar la actualización de 'job'
+        if "job" in validated_data:
+            job_id = validated_data.pop("job")
+            try:
+                instance.job = Job.objects.get(id=job_id)
+            except Job.DoesNotExist:
+                raise serializers.ValidationError({"job": "Job not found"})
+
+        # Actualizar los demás campos
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
