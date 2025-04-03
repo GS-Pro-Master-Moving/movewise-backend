@@ -15,7 +15,7 @@ class IServicesAssign(ABC):
         """Retrieves an assignment by ID"""
         pass
     @abstractmethod
-    def create_assignments(data):
+    def create_assignments(self, data):
         """Creates multiples assignations to the database"""
         pass
     @abstractmethod
