@@ -7,6 +7,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from api.assign.controllers.ControllerAssign import ControllerAssign
 from api.truck.controllers.ControllerTruck import ControllerTruck   
 from api.user.controllers.UserController import UserRegister, UserLogin
+from api.company.controllers.company_controller import CompanyViewSet
 
 urlpatterns = [
     #login
@@ -35,4 +36,16 @@ urlpatterns = [
     # Trucks
     path('trucks/', ControllerTruck.as_view({'get': 'get_avaliable', 'post': 'create'}), name='truck-list-create'),
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
+
+    # Companies
+    path('companies/', CompanyViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='company-list-create'),
+    path('companies/<int:pk>/', CompanyViewSet.as_view({
+        'get': 'retrieve',
+        'put': 'update',
+        'patch': 'partial_update',
+        'delete': 'destroy'
+    }), name='company-detail'),
 ]
