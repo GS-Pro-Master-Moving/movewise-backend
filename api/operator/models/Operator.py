@@ -1,5 +1,6 @@
 from django.db import models
 from api.person.models.Person import Person
+
 class Operator(Person):
     id_operator = models.AutoField(primary_key=True)
     #id_driver = models.IntegerField() by the moment not necesary

@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from api.person.models.Person import Person
+from api.models import Person
 
-def PersonSerializer(person: Person) -> dict:
-    class meta(serializers.ModelSerializer.Meta):
+class PersonSerializer(serializers.ModelSerializer):
+    class Meta:
         model = Person
-        fields = "__all__"
+        fields = ["email", "name", "last_name", "birth_date", "cell_phone", "address", "id_number", "type_id"]

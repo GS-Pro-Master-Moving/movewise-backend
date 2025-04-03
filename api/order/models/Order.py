@@ -1,7 +1,8 @@
 import uuid
 from django.db import models
 from api.operator.models.Operator import Operator
-from api.person.models.Person import Person
+from api.person.models import Person 
+
 from api.job.models.Job import Job
 # Possible States from USA
 class StatesUSA(models.TextChoices):
