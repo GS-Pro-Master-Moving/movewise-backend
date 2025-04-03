@@ -44,7 +44,7 @@ urlpatterns = [
     }), name='company-list-create'),
     path('companies/<int:pk>/', CompanyViewSet.as_view({
         'get': 'retrieve',
-        'put': 'update',
+        #'put': 'update',
         'patch': 'partial_update',
         'delete': 'destroy'
     }), name='company-detail'),
