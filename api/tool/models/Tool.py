@@ -1,11 +1,14 @@
 from django.db import models
 from api.job.models.Job import Job
 class Tool(models.Model):
-    id = models.IntegerField(primary_key=True, editable=False)  
-    name = models.CharField(
-        max_length=10, 
-        unique=True
+    id = models.AutoField(
+        primary_key=True, 
+        db_column="id_tool"
     )
+    name = models.CharField(
+        max_length=60, 
+        #unique=True
+    )# Ask for name if it is unique or not
     
     job = models.ForeignKey(  # Job realtion
         Job, 

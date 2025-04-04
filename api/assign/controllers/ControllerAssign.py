@@ -41,7 +41,7 @@ class ControllerAssign(viewsets.ViewSet):
             - HTTP 201 Created if successful
             - HTTP 400 Bad Request if an error occurs
         """
-        success, message = ServicesAssign.create_assign(request.data)
+        success, message = ServicesAssign.create_assignments(request.data)
 
         if success:
             return Response({"message": message}, status=status.HTTP_201_CREATED)

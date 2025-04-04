@@ -7,3 +7,5 @@ from api.person.models.Person import Person
 from api.tool.models.Tool import Tool
 from api.order.models.Order import Order
 from api.assign.models.Assign import Assign
+from api.assign_tool.models.AssignTool import AssignTool
+from api.truck.models.Truck import Truck
