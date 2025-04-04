@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path
+from api.company.controllers.ControllerCompany import ControllerCompany
 from api.operator.controllers.ControllerOperator import ControllerOperator
 from api.order.controllers.ControllerOrder import ControllerOrder
 from api.job.controllers.ControllerJob import JobController  
@@ -39,4 +40,9 @@ urlpatterns = [
     # Trucks
     path('trucks/', ControllerTruck.as_view({'get': 'get_avaliable', 'post': 'create'}), name='truck-list-create'),
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
+    # Company
+    path('companies/', ControllerCompany.as_view({'post': 'create', 'get': 'list'}), name='company-list-create'),
+    path('companies/<int:pk>/', ControllerCompany.as_view({'patch': 'update', 'delete': 'delete'}), name='company-update-delete'),
+    path('companies/<str:name>/', ControllerCompany.as_view({'get': 'retrieve_by_name'}), name='company-retrieve-by-name'),
+    path('companies/<int:pk>/patch/<str:field_name>/', ControllerCompany.as_view({'patch': 'patch_field'}), name='company-patch-field'),
 ]
