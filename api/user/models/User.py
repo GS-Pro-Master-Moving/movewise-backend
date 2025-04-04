@@ -6,17 +6,14 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 class UserManager(BaseUserManager):
     def create_user(self, user_name, password=None, **extra_fields):
-        print(f'print en Create_user: {password}')
         if not user_name:
             raise ValueError("El user_name es obligatorio")
         user = self.model(user_name=user_name, **extra_fields)
         if password and not password.startswith('pbkdf2_sha256$'):
-            print('bandera 2')
             password = make_password(password)
         user.password = password
         user.save(using=self._db)
         return user
-
 
     def create_superuser(self, user_name, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
@@ -37,6 +34,10 @@ class User(AbstractBaseUser):
     REQUIRED_FIELDS = []
 
     objects = UserManager()  
+
+    class Meta:
+        app_label = 'api'
+        db_table = 'api_user'  # Especificamos el nombre exacto de la tabla
 
     def __str__(self):
         return self.user_name

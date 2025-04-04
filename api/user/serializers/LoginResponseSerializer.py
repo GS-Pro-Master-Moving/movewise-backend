@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 class LoginResponseSerializer(serializers.Serializer):
     token = serializers.CharField()
-    rol = serializers.IntegerField()
+    isAdmin = serializers.BooleanField()
     
     class Meta:
-        fields = ('token', 'rol') 
+        fields = ('token', 'isAdmin') 
