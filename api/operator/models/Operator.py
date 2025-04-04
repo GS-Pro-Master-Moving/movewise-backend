@@ -16,6 +16,5 @@ class Operator(Person):
     # Relations
     #person = models.OneToOneField(Person, on_delete=models.CASCADE, related_name='operator',db_column="id_person")
 
-
     def __str__(self):
         return f"Operator {self.id_operator} - {self.person.id_person if self.person else 'No Person Assigned'}"
