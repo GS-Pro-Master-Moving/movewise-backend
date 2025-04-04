@@ -138,21 +138,21 @@ class UserLogin(APIView):
 
         try:
             if serializer.validated_data.get('email'):
-                # Autenticación por email/password
-                user = ServicesUser().authenticate(
+                # Autenticación por email/password (admin)
+                user, is_admin = ServicesUser().authenticate(
                     serializer.validated_data['email'],
                     serializer.validated_data['password']
                 )
             else:
-                # Autenticación por id_number
-                user = ServicesUser().authenticate_by_id_number(
+                # Autenticación por id_number (no admin)
+                user, is_admin = ServicesUser().authenticate_by_id_number(
                     serializer.validated_data['id_number']
                 )
 
             token = JWTAuthentication.generate_jwt(user)
             response_data = {
                 "token": token,
-                "rol": user.person.id_rol
+                "isAdmin": is_admin
             }
             
             response_serializer = LoginResponseSerializer(data=response_data)
