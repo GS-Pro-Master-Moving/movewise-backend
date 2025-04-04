@@ -12,15 +12,35 @@ class ServicesUser:
             person = Person.objects.get(email=email)
             user = person.user  
             
+            # Verificar que sea un administrador
+            if person.id_rol != 1:
+                raise ValueError("Este método de autenticación es solo para administradores")
+            
             # Check the password using check_password ✅
             if not user.check_password(password):  
-                raise ValueError("Incorrect password")
+                raise ValueError("Contraseña incorrecta")
             
             return user
         except Person.DoesNotExist:
-            raise ValueError("Email not registered")
+            raise ValueError("Email no registrado")
         except User.DoesNotExist:
-            raise ValueError("User not found")
+            raise ValueError("Usuario no encontrado")
+
+    @staticmethod
+    def authenticate_by_id_number(id_number: int) -> User:
+        try:
+            person = Person.objects.get(id_number=id_number)
+            user = person.user
+
+            # Verificar que no sea un administrador
+            if person.id_rol == 1:
+                raise ValueError("Los administradores deben autenticarse con email y contraseña")
+
+            return user
+        except Person.DoesNotExist:
+            raise ValueError("Número de identificación no registrado")
+        except User.DoesNotExist:
+            raise ValueError("Usuario no encontrado")
 
     @staticmethod
     def create_user(person_data: dict, user_data: dict) -> User:
