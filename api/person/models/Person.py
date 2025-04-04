@@ -11,6 +11,7 @@ class Person(models.Model):
     id_number = models.BigIntegerField(null=True, blank=True)
     type_id = models.CharField(max_length=100, null=True, blank=True)
     email = models.EmailField(max_length=100, unique=True, null=True, blank=True)
+    id_rol = models.IntegerField(default=2)  # 1=admin, 2=operator, 3=leader, 4=driver
 
     def __str__(self):
         return f"{self.name} {self.last_name}"
