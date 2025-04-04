@@ -1,6 +1,8 @@
 
 from abc import ABC, abstractmethod
 
+from api.company.models.Company import Company
+
 
 class IRepositoryCompany(ABC):
     @abstractmethod
@@ -15,7 +17,7 @@ class IRepositoryCompany(ABC):
         pass
 
     @abstractmethod
-    def create(self, company):
+    def create(self, company: Company) -> Company:
         pass
 
     @abstractmethod

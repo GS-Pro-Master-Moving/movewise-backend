@@ -33,7 +33,7 @@ class ControllerCompany(viewsets.ViewSet):
         """
         serializer = SerializerCompany(data=request.data)
         if serializer.is_valid():
-            company = self.company_service.create_company(serializer.validated_data)  
+            company = self.company_service.create(serializer.validated_data)  
             return Response(SerializerCompany(company).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     

@@ -1,3 +1,4 @@
+from api.company.models.Company import Company
 from api.company.repositories.RepositoryCompany import RepositoryCompany
 from api.company.services.IServicesCompany import IServicesCompany
 
@@ -26,11 +27,11 @@ class ServicesCompany(IServicesCompany):
     def get_company_by_name(self, name: str):
         return self.repository.get_by_name(name)
     
-    def create_company(self, company: dict):
-        company_instance = company(**company)  
-        return self.repository.create(company_instance)
+    def create(self, company_data: dict) -> Company:
+        company = Company(**company_data)  # convets dict to Company instance
+        return self.repository.create(company)
     
-    def update_company(self, id: int, company: dict):
+    def update_company(self, id: int):
         # lookup the existing company instance
         company_instance = self.repository.get_by_id(id)
         if not company_instance:

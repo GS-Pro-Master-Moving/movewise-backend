@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+
+from api.company.models.Company import Company
 class IServicesCompany(ABC):
     @abstractmethod
     def get_all_companies(self):
@@ -13,11 +15,11 @@ class IServicesCompany(ABC):
         pass
 
     @abstractmethod
-    def create_company(self, company: dict):
+    def create(self, company_data: dict) -> Company:
         pass
 
     @abstractmethod
-    def update_company(self, id: int, company: dict):
+    def update_company(self, id: int):
         pass
 
     @abstractmethod
