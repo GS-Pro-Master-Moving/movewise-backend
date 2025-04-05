@@ -215,15 +215,27 @@ class ControllerAssign(viewsets.ViewSet):
         }
     )
     def list_by_operator(self, request, operator_id):
-        """
-        Retrieves all assignments associated with a specific operator.
-
-        Returns:
-            - HTTP 200 OK with a list of assignments
-        """
-        assigns = self.assign_service.get_assigns_by_operator(operator_id)
-        return Response(SerializerAssign(assigns, many=True).data, status=status.HTTP_200_OK)
-
+        # First, check if the operator exists
+        try:
+            operator = Operator.objects.get(id_operator=operator_id)
+        except Operator.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Operator not found",
+                "messUser": "Operador no encontrado",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # If the operator exists, retrieve their assignments
+        assignments = Assign.objects.filter(operator=operator)
+        serializer = SerializerAssign(assignments, many=True)
+        
+        return Response({
+            "status": "success",
+            "messDev": "Assignments retrieved successfully",
+            "messUser": "Asignaciones recuperadas con éxito",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
     @extend_schema(
         summary="List assignments by order",
         description="Retrieves all assignments linked to a specific order.",
@@ -235,15 +247,34 @@ class ControllerAssign(viewsets.ViewSet):
         }
     )
     def list_by_order(self, request, order_id):
-        """
-        Retrieves all assignments linked to a specific order.
-
-        Returns:
-            - HTTP 200 OK with a list of assignments
-        """
-        assigns = self.assign_service.get_assigns_by_order(order_id)
-        return Response(SerializerAssign(assigns, many=True).data, status=status.HTTP_200_OK)
-    
+        # Primero, verifica si la orden existe (nota: parece que usas UUID para las órdenes)
+        try:
+            order = Order.objects.get(key=order_id)
+        except Order.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Order not found",
+                "messUser": "Orden no encontrada",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": "Error al recuperar la orden",
+                "messUser": f"{str(e)}",
+                "data": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Si la orden existe, recupera sus asignaciones
+        assignments = Assign.objects.filter(order=order)
+        serializer = SerializerAssign(assignments, many=True)
+        
+        return Response({
+            "status": "success",
+            "messDev": "Assignments retrieved successfully",
+            "messUser": "Asignaciones recuperadas con éxito",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
     @extend_schema(
         summary="Update an existing assignment",
         description="Updates the details of an existing assignment identified by its ID.",
