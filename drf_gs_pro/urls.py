@@ -9,6 +9,7 @@ from api.truck.controllers.ControllerTruck import ControllerTruck
 from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignTool
 from api.user.controllers.UserController import UserRegister, UserLogin
 from api.company.controllers.company_controller import CompanyViewSet
+from api.payment.controllers.ControllerPayment import ControllerPayment
 
 urlpatterns = [
     #login
@@ -32,7 +33,10 @@ urlpatterns = [
     path('assigns/<int:pk>/', ControllerAssign.as_view({'get': 'retrieve', 'delete': 'delete'}), name='assign-detail'),
     path('assigns/operator/<int:operator_id>/', ControllerAssign.as_view({'get': 'list_by_operator'}), name='assigns-by-operator'),
     path('assigns/order/<int:order_id>/', ControllerAssign.as_view({'get': 'list_by_order'}), name='assigns-by-order'),
+    path('assigns/<int:pk>/update/', ControllerAssign.as_view({'patch': 'update'}), name='assign-update'),
     path('assigns/<int:assign_id>/update-status/', ControllerAssign.as_view({'patch': 'update_status'}), name='assign-update-status'),
+    path('assigns/<int:pk>/audit-history/', ControllerAssign.as_view({'get': 'audit_history'}), name='assign-audit-history'),
+    
     # assignTools
     path('assignTool/', ControllerAssignTool.as_view({'post': 'assign_tool'}), name='assign-tool'),
     path('assignTools/', ControllerAssignTool.as_view({'post': 'bulk_create'}), name='assign-tool'),
@@ -53,4 +57,16 @@ urlpatterns = [
         'patch': 'partial_update',
         'delete': 'destroy'
     }), name='company-detail'),
+
+    # Payments
+    path('payments/', ControllerPayment.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='payment-list-create'),
+    path('payments/<int:pk>/', ControllerPayment.as_view({
+        'get': 'retrieve',
+        'patch': 'update',
+        'delete': 'destroy'
+    }), name='payment-detail'),
+   
 ]

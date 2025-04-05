@@ -12,7 +12,7 @@ class Person(models.Model):
     type_id = models.CharField(max_length=100, null=True, blank=True)
     email = models.EmailField(max_length=100, unique=True, null=True, blank=True)
     
-    # Relación con Company
+    # Relationship with Company
     id_company = models.ForeignKey(
         Company,
         related_name='persons',

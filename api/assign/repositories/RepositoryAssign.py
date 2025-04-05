@@ -1,20 +1,20 @@
 from typing import List, Optional
 from uuid import UUID
 
-from django.db import IntegrityError  # Importar UUID
+from django.db import IntegrityError
 from api.assign.models.Assign import Assign
-from api.assign.repositories.IRepositoryAssign import IRepositoryAssign
 from api.truck.models.Truck import Truck
 from api.operator.models.Operator import Operator
 from api.order.models.Order import Order
-class RepositoryAssign(IRepositoryAssign):
+from api.assign.models.Assign import AssignAudit
+
+class RepositoryAssign():
 
     def create_assign(self, operator_id: int, truck_id: int, order_id: UUID) -> Assign:
-        """Creates a new assignment between an operator, a truck, and an order."""
+        """Crea una nueva asignación entre un operador, un camión y un pedido."""
         operator = Operator.objects.get(id_operator=operator_id)
         truck = Truck.objects.get(id_truck=truck_id)
         order = Order.objects.get(key=order_id)
-        # Creates a new assignment with the keys of the operator, truck, and order
         return Assign.objects.create(operator=operator, truck=truck, order=order)
     
     @staticmethod
@@ -22,8 +22,8 @@ class RepositoryAssign(IRepositoryAssign):
         try:
             Assign.objects.bulk_create(assignments)
             return True, None
-        except IntegrityError as e:
-            return False, "Duplicate assignment or constraint violation"
+        except IntegrityError:
+            return False, "Asignación duplicada o violación de restricciones"
         except Exception as e:
             return False, str(e)
 
@@ -50,3 +50,61 @@ class RepositoryAssign(IRepositoryAssign):
         assign = self.get_assign_by_id(assign_id)
         if assign:
             assign.delete()
+
+    def update_assign(self, assign_id: int, assign_data: dict) -> Optional[Assign]:
+        """Actualiza una asignación"""
+        try:
+            assign = Assign.objects.get(id=assign_id)
+            
+            original_values = {}
+            for key in assign_data.keys():
+                if hasattr(assign, key):
+                    original_values[key] = getattr(assign, key)
+                    
+            for key, value in assign_data.items():
+                if hasattr(assign, key):
+                    setattr(assign, key, value)
+            
+            assign.save()
+            return assign
+            
+        except Assign.DoesNotExist:
+            return None
+        except IntegrityError as e:
+            raise IntegrityError(e)
+            
+    def get_assign_audit_history(self, assign_id: int) -> List[dict]:
+        """Recupera el historial de auditoría de una asignación"""
+        try:
+            assign = Assign.objects.get(id=assign_id)
+            audit_records = AssignAudit.objects.filter(assign=assign).order_by('-modified_at')
+            result = []
+            for record in audit_records:
+                result.append({
+                    'id': record.id,
+                    'old_operator': record.old_operator.id_operator if record.old_operator else None,
+                    'new_operator': record.new_operator.id_operator if record.new_operator else None,
+                    'old_order': record.old_order.key if record.old_order else None,
+                    'new_order': record.new_order.key if record.new_order else None,
+                    'old_truck': record.old_truck.id_truck if record.old_truck else None,
+                    'new_truck': record.new_truck.id_truck if record.new_truck else None,
+                    'old_payment': record.old_payment.id if record.old_payment else None,
+                    'new_payment': record.new_payment.id if record.new_payment else None,
+                    'old_assigned_at': record.old_assigned_at,
+                    'new_assigned_at': record.new_assigned_at,
+                    'old_rol': record.old_rol,
+                    'new_rol': record.new_rol,
+                    'modified_at': record.modified_at
+                })
+            return result
+        except Assign.DoesNotExist:
+            return []
+
+    def verify_assign_integrity(self):
+        existing_assign = Assign.objects.filter(
+            operator__id_operator=1001,  # Cambia esto por el ID real
+            order__key="1234567890ABCDEF1234567890ABCDEF",  # Cambia esto por la clave real
+            truck__id_truck=1,  # Cambia esto por el ID real
+            id_pay=2  # Asegúrate de que este ID exista
+        ).first()
+        return existing_assign is not None
