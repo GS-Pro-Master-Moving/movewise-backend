@@ -9,6 +9,7 @@ from api.truck.controllers.ControllerTruck import ControllerTruck
 from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignTool
 from api.user.controllers.UserController import UserRegister, UserLogin
 from api.company.controllers.company_controller import CompanyViewSet
+from api.payment.controllers.ControllerPayment import ControllerPayment
 
 urlpatterns = [
     #login
@@ -53,4 +54,18 @@ urlpatterns = [
         'patch': 'partial_update',
         'delete': 'destroy'
     }), name='company-detail'),
+
+    # Payments
+    path('payments/', ControllerPayment.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='payment-list-create'),
+    path('payments/<int:pk>/', ControllerPayment.as_view({
+        'get': 'retrieve',
+        'patch': 'update',
+        'delete': 'destroy'
+    }), name='payment-detail'),
+    path('payments/<int:pk>/audit/', ControllerPayment.as_view({
+        'get': 'audit_history'
+    }), name='payment-audit'),
 ]
