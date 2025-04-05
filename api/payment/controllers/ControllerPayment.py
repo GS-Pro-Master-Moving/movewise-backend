@@ -4,7 +4,7 @@ from rest_framework.viewsets import ViewSet
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 
 from api.payment.models.Payment import Payment
-from api.payment.serializers.PaymentSerializer import PaymentSerializer, PaymentAuditSerializer
+from api.payment.serializers.PaymentSerializer import PaymentSerializer
 from api.payment.services.ServicesPayment import ServicesPayment
 
 class ControllerPayment(ViewSet):
@@ -267,43 +267,3 @@ class ControllerPayment(ViewSet):
                 "messUser": str(e),
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
-
-    @extend_schema(
-        summary="Get payment audit history",
-        description="Get the record of changes made to a specific payment.",
-        responses={
-            200: OpenApiResponse(
-                response=PaymentAuditSerializer(many=True),
-                description="Audit history retrieved successfully"
-            ),
-            404: OpenApiResponse(
-                description="Payment not found",
-                examples=[
-                    OpenApiExample(
-                        "Error",
-                        value={
-                            "status": "error",
-                            "messDev": "Payment not found",
-                            "messUser": "Payment not found",
-                            "data": None
-                        }
-                    )
-                ]
-            )
-        }
-    )
-    def audit_history(self, request, pk=None):
-        """
-        Get the audit history of a payment.
-        """
-        payment = self.payment_service.get_payment(pk)
-        if not payment:
-            return Response({
-                "status": "error",
-                "messDev": "Payment not found",
-                "messUser": "Payment not found",
-                "data": None
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        history = self.payment_service.get_payment_audit_history(pk)
-        return Response(history)

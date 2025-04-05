@@ -25,7 +25,7 @@ class ServicesPayment:
             raise ValueError(f"Invalid payment status. Valid options: {', '.join(dict(PaymentStatus.choices).keys())}")
 
         # Validates that the amount is positive
-        if float(payment_data.get('Value', 0)) <= 0:
+        if float(payment_data.get('value', 0)) <= 0:
             raise ValueError("The payment amount must be greater than zero")
 
         # If there is a bonus, validates that it is positive
@@ -51,6 +51,7 @@ class ServicesPayment:
         """
         Updates a payment with business validations.
         """
+        print(f'INTO UPDATE PAYMENT ServicesPayment {payment_data}')
         # Gets the existing payment
         existing_payment = self.repository.get(payment_id)
         if not existing_payment:
@@ -83,7 +84,6 @@ class ServicesPayment:
         """
         # Gets the existing payment
         existing_payment = self.repository.get(payment_id)
-        print(f'existing_payment: {existing_payment}')
         if not existing_payment:
             return False
 
@@ -92,9 +92,3 @@ class ServicesPayment:
             raise ValueError("Cannot delete completed payments")
 
         return self.repository.delete(payment_id)
-
-    def get_payment_audit_history(self, payment_id: int) -> List[dict]:
-        """
-        Gets the audit history of a payment.
-        """
-        return self.repository.get_audit_history(payment_id)
