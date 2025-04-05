@@ -236,6 +236,7 @@ class ControllerAssign(viewsets.ViewSet):
             "messUser": "Asignaciones recuperadas con éxito",
             "data": serializer.data
         }, status=status.HTTP_200_OK)
+        
     @extend_schema(
         summary="List assignments by order",
         description="Retrieves all assignments linked to a specific order.",
@@ -247,7 +248,7 @@ class ControllerAssign(viewsets.ViewSet):
         }
     )
     def list_by_order(self, request, order_id):
-        # Primero, verifica si la orden existe (nota: parece que usas UUID para las órdenes)
+        # Primero, verifica si la orden existe
         try:
             order = Order.objects.get(key=order_id)
         except Order.DoesNotExist:
@@ -265,7 +266,6 @@ class ControllerAssign(viewsets.ViewSet):
                 "data": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        # Si la orden existe, recupera sus asignaciones
         assignments = Assign.objects.filter(order=order)
         serializer = SerializerAssign(assignments, many=True)
         
