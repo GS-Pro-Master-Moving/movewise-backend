@@ -4,7 +4,8 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from api.operator.serializers.SerializerOperator import SerializerOperator
 from api.operator.serializers.SerializerUpdateOperator import SerializerOperatorUpdate
 from api.operator.services.ServiceOperator import ServiceOperator
-
+from api.person.services.ServicesPerson import ServicesPerson
+from api.person.serializers.PersonSerializer import PersonSerializer
 class CustomPagination(pagination.PageNumberPagination):
     page_size = 10  # Default page size
     page_size_query_param = 'page_size'
@@ -15,6 +16,7 @@ class ControllerOperator(viewsets.ViewSet):
     Controller for managing Operator entities.
 
     Provides endpoints for:
+    - Creating an operator and its person data.
     - Creating an operator.
     - Updating specific fields of an operator.
     - Retrieving an operator by ID.
@@ -24,6 +26,7 @@ class ControllerOperator(viewsets.ViewSet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.service = ServiceOperator()
+        self.service_person = ServicesPerson()
         self.paginator = CustomPagination()
         
     def list(self, request):
@@ -32,6 +35,24 @@ class ControllerOperator(viewsets.ViewSet):
         paginated_queryset = self.paginator.paginate_queryset(operators, request)
         serializer = SerializerOperator(paginated_queryset, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+    
+    # TODO!! 
+    def create_operator_person(self, request):
+        """
+        Create a new operator (including inherited person fields).
+
+        Expects:
+        - A JSON body with operator details (including person fields).
+
+        Returns:
+        - 201 Created: If the operator is successfully created.
+        - 400 Bad Request: If the request contains invalid data.
+        """
+        serializer = SerializerOperator(data=request.data)
+        if serializer.is_valid():
+            operator = serializer.save()# Seems its better to use the save method of the serializer
+            return Response(SerializerOperator(operator).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def create(self, request):
         """
