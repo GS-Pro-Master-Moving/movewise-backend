@@ -39,18 +39,48 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'api',
     'drf_spectacular', # Documentation
-    'api.user',
     'rest_framework',
+    'corsheaders',  # Agregamos corsheaders
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Agregamos el middleware de CORS
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# Configuración de CORS
+CORS_ALLOW_ALL_ORIGINS = True  # Solo para desarrollo
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React default
+    "http://localhost:8081",  # Nueva URL agregada
+]
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 
 ROOT_URLCONF = 'drf_gs_pro.urls'
@@ -96,7 +126,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = 'user.User'
+AUTH_USER_MODEL = 'api.User'
 
 # Rest framework config
 REST_FRAMEWORK = {

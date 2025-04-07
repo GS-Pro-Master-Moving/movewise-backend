@@ -4,6 +4,8 @@ from rest_framework import status
 from api.person.serializers.PersonSerializer import PersonSerializer
 
 from api.user.serializers.UserSerializer import UserSerializer
+from api.user.serializers.LoginSerializer import LoginSerializer
+from api.user.serializers.LoginResponseSerializer import LoginResponseSerializer
 from api.user.services.ServicesUser import ServicesUser
 from api.user.authentication import JWTAuthentication
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
@@ -67,68 +69,102 @@ class UserLogin(APIView):
 
     @extend_schema(
         summary="Autenticar usuario",
-        description="Requiere email y contraseña. Devuelve token JWT.",
-        request=UserSerializer,  
+        description="""
+        Endpoint para autenticación de usuarios con dos métodos:
+        
+        1. Administradores (rol=1):
+           - Deben autenticarse usando email y password
+           - Ejemplo: {"email": "admin@example.com", "password": "secreto"}
+        
+        2. Otros roles (operador=2, líder=3, conductor=4):
+           - Pueden autenticarse usando solo su número de identificación
+           - Ejemplo: {"id_number": 1234567890}
+        
+        La respuesta incluye el token JWT y el rol del usuario autenticado.
+        """,
+        request=LoginSerializer,
         responses={
             200: OpenApiResponse(
-                description="Token JWT generado",
+                response=LoginResponseSerializer,
+                description="Autenticación exitosa",
                 examples=[
                     OpenApiExample(
-                        "Respuesta exitosa",
+                        "Respuesta Admin",
                         value={
-                            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                        },
-                        media_type="application/json"
+                            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "rol": 1
+                        }
+                    ),
+                    OpenApiExample(
+                        "Respuesta Operador",
+                        value={
+                            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "rol": 2
+                        }
                     )
                 ]
             ),
             400: OpenApiResponse(
-                description="Validación fallida",
+                description="Error de validación",
                 examples=[
                     OpenApiExample(
-                        "Ejemplo error 400",
-                        value={"detail": "Email y contraseña requeridos"},
+                        "Error de campos",
+                        value={"detail": "Debe proporcionar email y password, o id_number"},
                         media_type="application/json"
                     )
                 ]
             ),
             401: OpenApiResponse(
-                description="Credenciales inválidas",
+                description="Error de autenticación",
                 examples=[
                     OpenApiExample(
-                        "Ejemplo error 401",
-                        value={"detail": "Email no registrado"},
+                        "Credenciales inválidas",
+                        value={"detail": "Credenciales inválidas"},
+                        media_type="application/json"
+                    ),
+                    OpenApiExample(
+                        "Rol incorrecto",
+                        value={"detail": "Este método de autenticación es solo para administradores"},
                         media_type="application/json"
                     )
                 ]
             )
-        },
-        examples=[
-            OpenApiExample(
-                "Ejemplo request válido",
-                value={
-                    "email": "maria@example.com",
-                    "password": "password123"
-                },
-                request_only=True,
-                media_type="application/json"
-            )
-        ]
+        }
     )
     def post(self, request):
-        email = request.data.get("email")
-        password = request.data.get("password")
-
-        if not email or not password:
-            return Response(
-                {"detail": "Email y contraseña requeridos"}, 
-                status=400
-            )
+        serializer = LoginSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = ServicesUser().authenticate(email, password)
+            if serializer.validated_data.get('email'):
+                # Autenticación por email/password (admin)
+                user, is_admin = ServicesUser().authenticate(
+                    serializer.validated_data['email'],
+                    serializer.validated_data['password']
+                )
+            else:
+                # Autenticación por id_number (no admin)
+                user, is_admin = ServicesUser().authenticate_by_id_number(
+                    serializer.validated_data['id_number']
+                )
+
             token = JWTAuthentication.generate_jwt(user)
-            return Response({"token": token}, status=200)
+            response_data = {
+                "token": token,
+                "isAdmin": is_admin
+            }
+            
+            response_serializer = LoginResponseSerializer(data=response_data)
+            response_serializer.is_valid(raise_exception=True)
+            
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            return Response({"detail": str(e)}, status=401)
+            return Response(
+                {"detail": "Error en la autenticación"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 

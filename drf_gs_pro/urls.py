@@ -9,6 +9,9 @@ from api.assign.controllers.ControllerAssign import ControllerAssign
 from api.truck.controllers.ControllerTruck import ControllerTruck  
 from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignTool
 from api.user.controllers.UserController import UserRegister, UserLogin
+from api.company.controllers.company_controller import CompanyViewSet
+from api.payment.controllers.ControllerPayment import ControllerPayment
+
 urlpatterns = [
     #login
     path('register/', UserRegister.as_view(), name='user-register'),
@@ -33,7 +36,10 @@ urlpatterns = [
     path('assigns/<int:pk>/', ControllerAssign.as_view({'get': 'retrieve', 'delete': 'delete'}), name='assign-detail'),
     path('assigns/operator/<int:operator_id>/', ControllerAssign.as_view({'get': 'list_by_operator'}), name='assigns-by-operator'),
     path('assigns/order/<int:order_id>/', ControllerAssign.as_view({'get': 'list_by_order'}), name='assigns-by-order'),
+    path('assigns/<int:pk>/update/', ControllerAssign.as_view({'patch': 'update'}), name='assign-update'),
     path('assigns/<int:assign_id>/update-status/', ControllerAssign.as_view({'patch': 'update_status'}), name='assign-update-status'),
+    path('assigns/<int:pk>/audit-history/', ControllerAssign.as_view({'get': 'audit_history'}), name='assign-audit-history'),
+    
     # assignTools
     path('assignTool/', ControllerAssignTool.as_view({'post': 'assign_tool'}), name='assign-tool'),
     path('assignTools/', ControllerAssignTool.as_view({'post': 'bulk_create'}), name='assign-tool'),
@@ -42,9 +48,28 @@ urlpatterns = [
     # Trucks
     path('trucks/', ControllerTruck.as_view({'get': 'get_avaliable', 'post': 'create'}), name='truck-list-create'),
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
-    # Company
-    path('companies/', ControllerCompany.as_view({'post': 'create', 'get': 'list'}), name='company-list-create'),
-    path('companies/<int:pk>/', ControllerCompany.as_view({'patch': 'update', 'delete': 'delete'}), name='company-update-delete'),
-    path('companies/<str:name>/', ControllerCompany.as_view({'get': 'retrieve_by_name'}), name='company-retrieve-by-name'),
-    path('companies/<int:pk>/patch/<str:field_name>/', ControllerCompany.as_view({'patch': 'patch_field'}), name='company-patch-field'),
+
+    # Companies
+    path('companies/', CompanyViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='company-list-create'),
+    path('companies/<int:pk>/', CompanyViewSet.as_view({
+        'get': 'retrieve',
+        #'put': 'update',
+        'patch': 'partial_update',
+        'delete': 'destroy'
+    }), name='company-detail'),
+
+    # Payments
+    path('payments/', ControllerPayment.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='payment-list-create'),
+    path('payments/<int:pk>/', ControllerPayment.as_view({
+        'get': 'retrieve',
+        'patch': 'update',
+        'delete': 'destroy'
+    }), name='payment-detail'),
+   
 ]

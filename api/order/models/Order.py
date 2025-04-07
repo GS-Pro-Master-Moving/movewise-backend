@@ -5,6 +5,8 @@ from api.person.models import Person
 
 from api.job.models.Job import Job
 from api.tool.models.Tool import Tool
+from api.company.models.company import Company
+
 # Possible States from USA
 class StatesUSA(models.TextChoices):
     ALABAMA = "AL", "Alabama"
@@ -77,6 +79,14 @@ class Order(models.Model):
     )
     # By the moment person its created everytime there is a register
     # even when the email its registered
+    id_company = models.ForeignKey(
+        Company,
+        related_name='orders',
+        on_delete=models.CASCADE,
+        db_column='id_company',
+        null=True,
+        blank=True
+    )
     person = models.ForeignKey( # Person realtion
         Person, 
         related_name='orders', 

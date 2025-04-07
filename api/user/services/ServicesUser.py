@@ -1,26 +1,43 @@
-from django.contrib.auth.hashers import make_password, check_password  # Importa check_password
+from django.contrib.auth.hashers import make_password, check_password
 from api.person.models import Person
-from django.contrib.auth import get_user_model
+from api.models import User
 from django.core.exceptions import ObjectDoesNotExist
-
-User = get_user_model()  # Obtiene el modelo User activo (custom o default)
 
 class ServicesUser:
     @staticmethod
-    def authenticate(email: str, password: str) -> User:
+    def authenticate(email: str, password: str) -> tuple[User, bool]:
+        """
+        Autenticación para administradores usando email y password
+        Retorna una tupla (user, is_admin)
+        """
         try:
             person = Person.objects.get(email=email)
             user = person.user  
             
-            # Check the password using check_password ✅
+            # Si se autentica con email y password, es admin
             if not user.check_password(password):  
-                raise ValueError("Incorrect password")
+                raise ValueError("Contraseña incorrecta")
             
-            return user
+            return user, True  # Es admin porque usa email/password
         except Person.DoesNotExist:
-            raise ValueError("Email not registered")
+            raise ValueError("Email no registrado")
         except User.DoesNotExist:
-            raise ValueError("User not found")
+            raise ValueError("Usuario no encontrado")
+
+    @staticmethod
+    def authenticate_by_id_number(id_number: int) -> tuple[User, bool]:
+        """
+        Autenticación para no-administradores usando número de identificación
+        Retorna una tupla (user, is_admin)
+        """
+        try:
+            person = Person.objects.get(id_number=id_number)
+            user = person.user
+            return user, False  # No es admin porque usa id_number
+        except Person.DoesNotExist:
+            raise ValueError("Número de identificación no registrado")
+        except User.DoesNotExist:
+            raise ValueError("Usuario no encontrado")
 
     @staticmethod
     def create_user(person_data: dict, user_data: dict) -> User:

@@ -1,4 +1,5 @@
 from django.db import models
+from api.company.models.company import Company
 
 class Person(models.Model):
     id_person = models.AutoField(primary_key=True)
@@ -11,6 +12,16 @@ class Person(models.Model):
     id_number = models.BigIntegerField(null=True, blank=True)
     type_id = models.CharField(max_length=100, null=True, blank=True)
     email = models.EmailField(max_length=100, unique=True, null=True, blank=True)
+    
+    # Relationship with Company
+    id_company = models.ForeignKey(
+        Company,
+        related_name='persons',
+        on_delete=models.CASCADE,
+        db_column='id_company',
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
