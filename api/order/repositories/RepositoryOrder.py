@@ -7,12 +7,30 @@ class RepositoryOrder(IRepositoryOrder):
     @staticmethod
     def create_order(data):
         return Order.objects.create(**data)
+    @staticmethod
+    def update_status(url, order):
+        # Verify if the order is finalized
+        if order.payStatus == 1:
+            raise Exception("Can't update a finalized order")
 
+        print("url:", url)
+        if url:
+            order.evidence = url
+        else:
+            raise Exception("Evidence not found")
+        
+        print("Evidence found")
+        
+        # Update the status field
+        order.status = "Finished"
+        order.save()  # Save the changes to the database
+
+        return order  # Return the updated order instance
     #edit order
     @staticmethod
     def update_order(order, data):
         # Verificar si la orden ya está finalizada
-        if order.status == "Finalizada":
+        if order.status == "Finished":
             raise Exception("No se pueden modificar órdenes finalizadas")
         
         # Manejo especial para `person`
@@ -39,3 +57,6 @@ class RepositoryOrder(IRepositoryOrder):
         order.save()
         return order
     
+    @staticmethod
+    def get_all_orders():
+        return Order.objects.all()
