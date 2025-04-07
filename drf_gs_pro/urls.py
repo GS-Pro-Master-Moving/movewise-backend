@@ -22,6 +22,7 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'), 
     # orders
+    path('orders-states/', ControllerOrder.as_view({'get': 'get_states'}), name='order-get-states'),
     path('orders/', ControllerOrder.as_view({'post': 'create','get':'list_all' }), name='order-create'),
     path('orders/<str:pk>/', ControllerOrder.as_view({'patch': 'partial_update'}), name='order-update'),
     path('orders/status/<str:pk>/', ControllerOrder.as_view({'patch': 'update_status'}), name='order-update-status'),

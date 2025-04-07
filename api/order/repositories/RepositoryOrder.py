@@ -2,6 +2,7 @@ from api.order.repositories.IRepositoryOrder import IRepositoryOrder
 from api.order.models.Order import Order
 from api.person.models import Person
 from api.job.models import Job
+from api.order.models.Order import StatesUSA
 
 class RepositoryOrder(IRepositoryOrder):
     @staticmethod
@@ -60,3 +61,8 @@ class RepositoryOrder(IRepositoryOrder):
     @staticmethod
     def get_all_orders():
         return Order.objects.all()
+    
+    @staticmethod
+    def get_states():
+        return StatesUSA.objects.all()
+
