@@ -67,8 +67,9 @@ class Order(models.Model):
     expense = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)
     income = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True) 
     weight = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)  # Weight of charge
-    status = models.CharField(max_length=50,null=True, blank=True);
+    status = models.CharField(max_length=50,null=True, blank=True)
     payStatus = models.SmallIntegerField(null=True, blank=True) 
+    evidence = models.URLField(null=True, blank=True)  # URL of evidence
     state_usa = models.CharField(
         max_length=2, 
         choices=StatesUSA.choices,
@@ -102,3 +103,6 @@ class Order(models.Model):
         related_name="order_tools",
         db_column="id_tool"
     )
+    
+    def __str__(self):
+        return f"Order {self.key} - {self.person.id_person if self.person else 'No Person Assigned'}"

@@ -18,6 +18,65 @@ class ControllerOrder(viewsets.ViewSet):
         super().__init__(**kwargs)
         self.order_service = ServicesOrder()  
 
+    def list_all(self, request):
+        """
+        List all orders.
+
+        Returns:
+        - 200 OK: A list of all orders.
+        """
+        try:
+            # Get all orders using the service
+            orders = self.order_service.get_all_orders()
+            # Return the response with the serialized data
+            return Response(OrderSerializer(orders, many=True).data, status=status.HTTP_200_OK) 
+        
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching orders: {str(e)}",
+                "messUser": f"No se pudieron obtener las órdenes: {str(e)}",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+    @extend_schema(
+            summary="Update status of an order and receives an evidence",
+            description="Returns a list of all orders.",
+            responses={200: OrderSerializer(many=True), 400: {"error": "Invalid data or evidence not found"}}
+        )
+    def update_status(self, request, pk=None):
+        try:
+            # Get the order by its key
+            order = Order.objects.get(key=pk)
+            #validation if the order status is finalized it cannot be updated
+            if order.payStatus == 1:
+                return Response({
+                    "status": "error",
+                    "messDev": "Order is finalized and cannot be modified",
+                    "messUser": "No se pueden modificar órdenes finalizadas",
+                    "data": None
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # Update the order using the service
+            updated_order = self.order_service.update_status(request.data["url"], order)
+            
+            # Return the response with the updated data
+            return Response(OrderSerializer(updated_order).data, status=status.HTTP_200_OK) 
+        
+        except Order.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Order not found",
+                "messUser": "No se encontró la orden",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error updating order: {str(e)}",
+                "messUser": f"No se pudo actualizar la orden: {str(e)}",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
     @extend_schema(
         summary="Create a new order",
         description="Creates an order with the given data and returns the created entity.",

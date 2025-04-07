@@ -8,6 +8,13 @@ class ServicesOrder(IServicesOrder):
     def __init__(self):
         self.repository = RepositoryOrder()
 
+    def get_all_orders(self):
+        return self.repository.get_all_orders()
+        
+    def update_status(self, url, order):
+        self.repository.update_status(url,order)
+        return order
+    
     def create_order(self, data):
         person_data = data.pop("person", None)  
         if person_data:
