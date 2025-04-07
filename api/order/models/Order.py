@@ -61,7 +61,6 @@ class StatesUSA(models.TextChoices):
     WYOMING = "WY", "Wyoming"
     
 class Order(models.Model):
-    
     key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Unique ID for DB
     key_ref = models.CharField(max_length=50,null=True, blank=True)
     date = models.DateField(null=True, blank=True)  # Order date
