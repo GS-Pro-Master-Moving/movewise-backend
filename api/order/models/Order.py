@@ -5,7 +5,7 @@ from api.person.models import Person
 
 from api.job.models.Job import Job
 from api.tool.models.Tool import Tool
-from api.company.models.company import Company
+from api.company.models.Company import Company
 
 # Possible States from USA
 class StatesUSA(models.TextChoices):

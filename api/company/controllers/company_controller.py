@@ -1,6 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from api.company.models.company import Company
+from api.company.models.Company import Company
 from api.company.serializers.company_serializer import CompanySerializer
 
 class CompanyViewSet(viewsets.ModelViewSet):

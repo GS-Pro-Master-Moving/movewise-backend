@@ -43,3 +43,6 @@ class ServicesOrder(IServicesOrder):
 
         order.save()
         return order
+    
+    def get_states_usa(self):
+      return [(state.value, state.label) for state in StatesUSA]

@@ -5,6 +5,10 @@ from api.order.serializers.OrderSerializer import OrderSerializer
 from api.order.services.ServicesOrder import ServicesOrder  
 from api.order.models.Order import Order
 from api.job.models.Job import Job
+from api.order.serializers.StatesSerializer import StatesUSASerializer
+from api.order.models.Order import StatesUSA
+from django.http import JsonResponse
+from rest_framework.decorators import action
 
 class ControllerOrder(viewsets.ViewSet):
     """
@@ -161,3 +165,22 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": f"No se pudo actualizar la orden: {str(e)}",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        summary="Get all states in USA",
+        description="Returns a list of all states in USA.",
+        responses={200: StatesUSASerializer(many=True)}
+    )
+    @action(detail=False, methods=['get'], url_path='states')
+    def get_states(self, request):
+        try:
+            states = [{'code': state.value, 'name': state.label} for state in StatesUSA]
+            return JsonResponse(states, safe=False)
+        except Exception as e:
+            error_response = {
+                "status": "error",
+                "messDev": f"Error fetching states: {str(e)}",
+                "messUser": f"No se pudieron obtener los estados: {str(e)}",
+                "data": None
+            }
+            return JsonResponse(error_response, status=400)

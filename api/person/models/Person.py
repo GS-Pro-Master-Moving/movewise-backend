@@ -1,5 +1,5 @@
 from django.db import models
-from api.company.models.company import Company
+from api.company.models.Company import Company
 
 class Person(models.Model):
     id_person = models.AutoField(primary_key=True)
