@@ -1,4 +1,5 @@
 
+from api.assign_tool.models.AssignTool import AssignTool
 from api.tool.models.Tool import Tool
 from api.order.models.Order import Order
 from api.assign_tool.repositories.IRepositoryAssignTool import IRepositoryAssignTool
@@ -18,6 +19,7 @@ class RepositoryAssignTool(IRepositoryAssignTool):
             return False
         tool.order = order
         tool.save()
+        AssignTool.objects.create(id_tool=tool, id_order=order, date=order.date)
         return True
     
     def unassign_tool(self, tool_id: int, order_id: str) -> bool:
