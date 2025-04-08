@@ -24,6 +24,7 @@ class ControllerAssignTool(viewsets.ViewSet):
             print("Tool ID:", tool_id)
             print("Order ID:", order_id)
             result = self.services_assign_tool.assign_tool(tool_id, order_id)
+            print("Result of tool assignation:", result)
             if result:
                 return Response({"success the tool has been assign to the order": result}, status=status.HTTP_200_OK)
             else:
