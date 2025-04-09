@@ -15,7 +15,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ["key_ref", "date", "distance", "expense", "income", "weight", "status", "payStatus", "state_usa", "person", "job"]
+        fields = ["key", "key_ref", "date", "distance", "expense", "income", "weight", "status", "payStatus", "state_usa", "person", "job"]
 
     def create(self, validated_data):
         """
