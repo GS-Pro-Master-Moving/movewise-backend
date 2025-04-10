@@ -13,13 +13,25 @@ class ServicesAssign:
     def __init__(self):
         self.repository = RepositoryAssign()
 
-    def create_assign(self, operator_id: int, truck_id: int, order_id: UUID) -> Assign:
+    # ServicesAssign.py
+    def create_assign(self, operator_id: int, truck_id: Optional[int], order_id: str, additional_costs: float) -> Assign:
         """Creates a new assignment between an operator, a truck, and an order."""
         # Validaciones de negocio
-        if not operator_id or not truck_id or not order_id:
-            raise ValueError("Operator ID, Truck ID, and Order ID must be provided")
+        if not operator_id or not order_id:
+            raise ValueError("Operator ID and Order ID must be provided")
+        
+        # Convertir order_id a UUID si es necesario
+        try:
+            order_uuid = UUID(order_id)
+        except ValueError:
+            raise ValueError("Invalid Order ID format")
 
-        return self.repository.create_assign(operator_id, truck_id, order_id)
+        return self.repository.create_assign(
+            operator_id=operator_id,
+            truck_id=truck_id,
+            order_id=order_uuid,
+            additional_costs=additional_costs
+    )
     
     @staticmethod
     def create_assignments(data):

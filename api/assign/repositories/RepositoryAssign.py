@@ -10,13 +10,17 @@ from api.assign.models.Assign import AssignAudit
 
 class RepositoryAssign():
 
-    def create_assign(self, operator_id: int, truck_id: int, order_id: UUID) -> Assign:
+    def create_assign(self, operator_id: int, truck_id: Optional[int], order_id: UUID, additional_costs: float) -> Assign:
         """Crea una nueva asignación entre un operador, un camión y un pedido."""
         operator = Operator.objects.get(id_operator=operator_id)
-        truck = Truck.objects.get(id_truck=truck_id)
+        truck = Truck.objects.get(id_truck=truck_id) if truck_id else None
         order = Order.objects.get(key=order_id)
-        return Assign.objects.create(operator=operator, truck=truck, order=order)
-    
+        return Assign.objects.create(
+            operator=operator,
+            truck=truck,
+            order=order,
+            additional_costs=additional_costs  # Añade este campo
+    )
     @staticmethod
     def create_bulk(assignments):
         try:

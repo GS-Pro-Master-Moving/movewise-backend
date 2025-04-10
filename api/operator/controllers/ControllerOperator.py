@@ -6,6 +6,8 @@ from api.operator.serializers.SerializerUpdateOperator import SerializerOperator
 from api.operator.services.ServiceOperator import ServiceOperator
 from api.person.services.ServicesPerson import ServicesPerson
 from api.person.serializers.PersonSerializer import PersonSerializer
+from api.operator.models.Operator import Operator 
+from api.person.models.Person import Person
 class CustomPagination(pagination.PageNumberPagination):
     page_size = 10  # Default page size
     page_size_query_param = 'page_size'
@@ -28,21 +30,51 @@ class ControllerOperator(viewsets.ViewSet):
         self.service = ServiceOperator()
         self.service_person = ServicesPerson()
         self.paginator = CustomPagination()
-        
-    def getOperatorById(self, request, operator_id):
-        """
-        Get an operator by ID.
-        """
-        operator = self.service.get_operator(operator_id)
-        return Response(SerializerOperator(operator).data, status=status.HTTP_200_OK)
-    
+
+
     @extend_schema(
-        summary="Get an operator by ID",
-        description="Get an operator by ID.",
+        summary="Get an operator by number_id",
+        description="Get an operator by number_id, including person information.",
         responses={200: SerializerOperator, 404: {"error": "Operator not found"}},
     )
+ 
+    def getOperatorById(self, request, operator_id):
+        """
+        Get an operator by number_id, including specific person information.
+        """
+        try:
+            # Try to find by number_id in the Person table
+            operator = Operator.objects.get(id_number=operator_id)
+            # Get the person_id of the operator
+            person_id = operator.id_person
+            # Query the Person table with the person_id
+            person_data = Person.objects.get(id_person=person_id)
+        except Operator.DoesNotExist:
+            return Response({"error": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Person.DoesNotExist:
+            return Response({"error": "Person not found"}, status=status.HTTP_404_NOT_FOUND)
 
-
+        # Serialize the operator's information and nest only some fields of the person
+        operator_data = {
+            'id_operator': operator.id_operator,
+            'phone': operator.phone,
+            'salary': operator.salary,
+            'number_licence': operator.number_licence,
+            'code': operator.code,
+            'photo': operator.photo,
+            'person': {
+                'id_person': person_data.id_person,
+                'first_name': person_data.first_name,
+                'last_name': person_data.last_name,
+            }
+        }
+        return Response(operator_data, status=status.HTTP_200_OK)
+   
+    @extend_schema(
+        summary="List operators with pagination",
+        description="List operators with pagination.",
+        responses={200: SerializerOperator(many=True)},
+    )
     def list(self, request):
         """List operators with pagination"""
         operators = self.service.get_all_operators()
