@@ -29,6 +29,20 @@ class ControllerOperator(viewsets.ViewSet):
         self.service_person = ServicesPerson()
         self.paginator = CustomPagination()
         
+    def getOperatorById(self, request, operator_id):
+        """
+        Get an operator by ID.
+        """
+        operator = self.service.get_operator(operator_id)
+        return Response(SerializerOperator(operator).data, status=status.HTTP_200_OK)
+    
+    @extend_schema(
+        summary="Get an operator by ID",
+        description="Get an operator by ID.",
+        responses={200: SerializerOperator, 404: {"error": "Operator not found"}},
+    )
+
+
     def list(self, request):
         """List operators with pagination"""
         operators = self.service.get_all_operators()

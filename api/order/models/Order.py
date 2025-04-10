@@ -115,3 +115,4 @@ class Order(models.Model):
     
     def __str__(self):
         return f"Order {self.key} - {self.person.id_person if self.person else 'No Person Assigned'}"
+
