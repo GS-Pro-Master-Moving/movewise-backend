@@ -96,8 +96,8 @@ class ControllerOperator(viewsets.ViewSet):
         """
         serializer = SerializerOperator(data=request.data)
         if serializer.is_valid():
-            operator = serializer.save()# Seems its better to use the save method of the serializer
-            return Response(SerializerOperator(operator).data, status=status.HTTP_201_CREATED)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def create(self, request):
