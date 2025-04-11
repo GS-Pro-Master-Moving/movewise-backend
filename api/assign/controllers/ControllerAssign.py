@@ -676,12 +676,12 @@ class ControllerAssign(viewsets.ViewSet):
     
 
     @extend_schema(
-        summary="Obtener operadores asignados a una orden",
-        description="Devuelve todos los operadores asignados a una orden específica utilizando su clave.",
+        summary="Get assigned operators for an order",
+        description="Returns all operators assigned to a specific order using its key.",
         responses={
             200: SerializerAssign(many=True),
             404: OpenApiResponse(
-                description="Orden no encontrada",
+                description="Order not found",
                 examples=[
                     OpenApiExample(
                         "Not Found",
