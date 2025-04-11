@@ -102,7 +102,11 @@ class ControllerOrder(viewsets.ViewSet):
         if serializer.is_valid():
             order = self.order_service.create_order(serializer.validated_data) 
             return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # En caso de error, se envía un mensaje más detallado en inglés
+        error_messages = serializer.errors
+        detailed_error_message = f"Validation errors: {error_messages}"
+        return Response({"error": detailed_error_message}, status=status.HTTP_400_BAD_REQUEST)
 
     # This decorator customizes the Swagger/OpenAPI documentation for this endpoint.
     # It defines a summary, a detailed description, the type of data expected in the request,

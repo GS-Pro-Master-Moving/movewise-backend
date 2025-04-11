@@ -125,7 +125,7 @@ class ControllerAssign(viewsets.ViewSet):
             )
         }
     )
-    # En tu ControllerAssign.py
+    # In your ControllerAssign.py
     def create(self, request):
         serializer = SerializerAssign(data=request.data)
         if serializer.is_valid():
@@ -133,11 +133,11 @@ class ControllerAssign(viewsets.ViewSet):
             order = serializer.validated_data["order"]
             additional_costs = serializer.validated_data["additional_costs"]
             
-            # Obtener el ID del camión (puede ser None)
+            # Get the truck ID (it can be None)
             truck = serializer.validated_data.get("truck")
             truck_id = truck.id_truck if truck else None
             
-            # Verificar si ya existe la asignación
+            # Check if the assignment already exists
             existing_assign = Assign.objects.filter(
                 operator__id_operator=operator_id, 
                 order__key=order.key, 
@@ -148,27 +148,27 @@ class ControllerAssign(viewsets.ViewSet):
                 return Response({
                     "status": "error",
                     "messDev": "Assignment already exists",
-                    "messUser": "Esta asignación ya existe",
+                    "messUser": "This assignment already exists",
                     "data": SerializerAssign(existing_assign).data
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Obtener objetos completos para validación
+            # Get complete objects for validation
             operator = get_object_or_404(Operator, id_operator=operator_id)
             order_obj = get_object_or_404(Order, key=order.key)
 
-            # Crear la asignación
+            # Create the assignment
             try:
                 assign = self.assign_service.create_assign(
                     operator_id=operator.id_operator,
                     truck_id=truck_id,
-                    order_id=str(order_obj.key),  # Convertir UUID a string si es necesario
+                    order_id=str(order_obj.key),  # Convert UUID to string if necessary
                     additional_costs=additional_costs
                 )
                 
                 return Response({
                     "status": "success",
                     "messDev": "Assignment created successfully",
-                    "messUser": "La asignación ha sido creada",
+                    "messUser": "The assignment has been created",
                     "data": SerializerAssign(assign).data
                 }, status=status.HTTP_201_CREATED)
                 
@@ -176,14 +176,14 @@ class ControllerAssign(viewsets.ViewSet):
                 return Response({
                     "status": "error",
                     "messDev": str(e),
-                    "messUser": "Datos inválidos para la asignación",
+                    "messUser": "Invalid data for the assignment",
                     "data": None
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
             "status": "error",
             "messDev": "Validation error",
-            "messUser": "Datos inválidos",
+            "messUser": "Invalid data",
             "data": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -221,6 +221,18 @@ class ControllerAssign(viewsets.ViewSet):
         if assign:
             return Response(SerializerAssign(assign).data, status=status.HTTP_200_OK)
         return Response({"error": "Assign not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+    @extend_schema(
+        summary="List assignments by truck",
+        description="Retrieves all assignments associated with a specific truck.",
+        responses={
+            200: OpenApiResponse(
+                response=SerializerAssign(many=True),
+                description="List of assignments for the specified truck"
+            )
+        }
+    )   
 
     @extend_schema(
         summary="List assignments by operator",

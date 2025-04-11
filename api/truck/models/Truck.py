@@ -7,5 +7,7 @@ class Truck(models.Model):
     rol = models.CharField(max_length=100)  
     name = models.CharField(max_length=100)  
     status = models.BooleanField(default=True, db_default=True)# True = Active, False = Inactive
+    category = models.CharField(max_length=100)
+    
     def __str__(self):
         return f"{self.name} ({self.number_truck}) - {self.type}"

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from api.truck.services.ServicesTruck import ServicesTruck
 from api.truck.serializers.SerializerTruck import SerializerTruck
 from api.truck.models.Truck import Truck
-
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
 class ControllerTruck(viewsets.ViewSet):
     """
     Controller for managing trucks.
@@ -14,6 +14,39 @@ class ControllerTruck(viewsets.ViewSet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.truck_service = ServicesTruck()  # Instancia del servicio
+
+
+    @extend_schema(
+        summary="Get truck by ID",
+        description="Retrieves a truck by its ID.",
+        responses={
+            200: OpenApiResponse(
+                response=SerializerTruck,   
+                description="Truck retrieved successfully"
+            ),
+            404: OpenApiResponse(
+                description="Truck not found",
+                examples=[
+                    OpenApiExample(
+                        "Not Found",
+                        value={"error": "Truck not found"}
+                    )
+                ]
+            )
+        }
+    )   
+    def get_truck_by_id(self, request, id_truck):
+        try:
+            truck = Truck.objects.get(id_truck=id_truck)
+            return Response(SerializerTruck(truck).data, status=status.HTTP_200_OK)
+        except Truck.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Truck not found",
+                "messUser": "Camión no encontrado",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)    
+        
 
     def get_avaliable(self, request):
         """
