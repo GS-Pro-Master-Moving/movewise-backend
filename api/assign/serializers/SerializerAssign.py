@@ -4,7 +4,7 @@ from api.operator.models.Operator import Operator
 from api.order.models.Order import Order
 from api.truck.models.Truck import Truck
 from api.assign.models.Assign import AssignAudit
-
+from api.payment.models.Payment import Payment
 class SerializerAssignAudit(serializers.ModelSerializer):
     """
     Serializer for AssignAudit model.
@@ -23,10 +23,30 @@ class SerializerAssign(serializers.ModelSerializer):
     operator = serializers.PrimaryKeyRelatedField(queryset=Operator.objects.all())
     order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
     truck = serializers.PrimaryKeyRelatedField(queryset=Truck.objects.all(), allow_null=True, required=False)  # Nueva relación opcional
-    payment = serializers.PrimaryKeyRelatedField(queryset=Truck.objects.all(), allow_null=True, required=False)  # Nueva relación opcional
+    payment = serializers.PrimaryKeyRelatedField(queryset=Payment.objects.all(), allow_null=True, required=False)
     additional_costs = serializers.DecimalField(max_digits=20, decimal_places=2, allow_null=True, required=False)  # Nueva columna de costos adicionales
 
     class Meta:
         model = Assign
         fields = ["id", "operator", "order", "truck", "payment", "assigned_at", "rol", "audit_records", "additional_costs"]  # Agregada la columna de costos adicionales
         read_only_fields = ["id", "audit_records"]
+
+class BulkAssignSerializer(serializers.Serializer):
+    operators = serializers.PrimaryKeyRelatedField(
+        queryset=Operator.objects.all(),
+        many=True
+    )
+    order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
+    truck = serializers.PrimaryKeyRelatedField(
+        queryset=Truck.objects.all(), 
+        allow_null=True, 
+        required=False
+    )
+    additional_costs = serializers.DecimalField(
+        max_digits=20, 
+        decimal_places=2, 
+        allow_null=True, 
+        required=False
+    )
+    assigned_at = serializers.DateTimeField()
+    rol = serializers.CharField()

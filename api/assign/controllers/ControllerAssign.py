@@ -10,6 +10,8 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from api.assign.services import ServicesAssign  # Importing the module instead of the class
 from api.assign.models.Assign import Assign
 from django.db import models
+from api.assign.serializers.SerializerAssign import BulkAssignSerializer
+from django.db import transaction
 
 class ControllerAssign(viewsets.ViewSet):
     """
@@ -125,7 +127,7 @@ class ControllerAssign(viewsets.ViewSet):
             )
         }
     )
-    # In your ControllerAssign.py
+    
     def create(self, request):
         serializer = SerializerAssign(data=request.data)
         if serializer.is_valid():
@@ -187,6 +189,110 @@ class ControllerAssign(viewsets.ViewSet):
             "data": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        summary="Create multiple assignments",
+        description="Creates multiple assignments at once using the provided data.",
+        request=BulkAssignSerializer(many=True),
+        responses={
+            201: OpenApiResponse(
+                description="Assignments created successfully",
+                examples=[
+                    OpenApiExample(
+                        "Success",
+                        value={"message": "Assignments created successfully"}
+                    )
+                ]
+            )
+        }
+    )
+    def bulk_create(self, request):
+        serializers = [SerializerAssign(data=item) for item in request.data]
+        
+        # Initial validation
+        errors = []
+        for idx, serializer in enumerate(serializers):
+            if not serializer.is_valid():
+                errors.append({
+                    'index': idx,
+                    'errors': serializer.errors,
+                    'operator_id': request.data[idx].get('operator'),
+                    'message': "Validation error in the operator assignment"
+                })
+        
+        if errors:
+            return Response({
+                "status": "error",
+                "messDev": "Validation errors found",
+                "messUser": "Please check the assignment data",
+                "data": errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                created_assigns = []
+                conflicts = []
+                
+                for idx, serializer in enumerate(serializers):
+                    data = serializer.validated_data
+                    operator_id = data["operator"].id_operator
+                    order = data["order"]
+                    truck = data.get("truck")
+                    truck_id = truck.id_truck if truck else None
+
+                    # Check for existing assignment
+                    existing_assign = Assign.objects.filter(
+                        operator__id_operator=operator_id,
+                        order__key=order.key
+                    )
+                    
+                    if existing_assign.exists():
+                        # Provide detailed information about the conflict
+                        existing = existing_assign.first()
+                        truck_info = f"with truck {existing.truck.id_truck}" if existing.truck else "without truck"
+                        
+                        conflicts.append({
+                            'index': idx,
+                            'operator_id': operator_id,
+                            'order_key': str(order.key),
+                            'message': f"Operator already assigned to this order {truck_info}"
+                        })
+                        continue  # Skip this record but continue with the others
+
+                    # Create assignment
+                    assign = self.assign_service.create_assign(
+                        operator_id=operator_id,
+                        truck_id=truck_id,
+                        order_id=str(order.key),
+                        additional_costs=data.get("additional_costs"),
+                        rol=data.get("rol")
+                    )
+                    created_assigns.append(assign)
+
+                if conflicts:
+                    return Response({
+                        "status": "partial_success",
+                        "messDev": f"Created {len(created_assigns)} assignments, {len(conflicts)} conflicts",
+                        "messUser": f"{len(created_assigns)} assignments were saved. {len(conflicts)} operators were already assigned.",
+                        "data": {
+                            "created": SerializerAssign(created_assigns, many=True).data,
+                            "conflicts": conflicts
+                        }
+                    }, status=status.HTTP_207_MULTI_STATUS)
+
+                return Response({
+                    "status": "success",
+                    "messDev": f"{len(created_assigns)} assignments created",
+                    "messUser": "All assignments completed successfully",
+                    "data": SerializerAssign(created_assigns, many=True).data
+                }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": str(e),
+                "messUser": "Unexpected error during assignments",
+                "data": None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     @extend_schema(
         summary="Retrieve an assignment",
         description="Retrieves a specific assignment by its ID.",
@@ -567,3 +673,51 @@ class ControllerAssign(viewsets.ViewSet):
                 "audit_records": audit_records
             }
         }, status=status.HTTP_200_OK)
+    
+
+    @extend_schema(
+        summary="Obtener operadores asignados a una orden",
+        description="Devuelve todos los operadores asignados a una orden específica utilizando su clave.",
+        responses={
+            200: SerializerAssign(many=True),
+            404: OpenApiResponse(
+                description="Orden no encontrada",
+                examples=[
+                    OpenApiExample(
+                        "Not Found",
+                        value={"error": "Order not found"}
+                    )
+                ]
+            )
+        }
+    )
+    def get_assigned_operators(self, request, order_key):
+        """
+        Retrieves all operators assigned to a specific order.
+        
+        This version does not use direct relationships between tables, 
+        but makes explicit queries to the Assign model.
+
+        Args:
+            order_key: The key of the order for which assigned operators are desired.
+
+        Returns:
+            - HTTP 200 OK with the list of assigned operators if the order exists
+            - HTTP 404 Not Found if the order does not exist
+        """
+        # Check if the order exists
+        try:
+            order = Order.objects.get(key=order_key)
+        except Order.DoesNotExist:
+            return Response(
+                {"status": "error", "messUser": "Orden no encontrada", "messDev": f"Order with key={order_key} does not exist"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Query the Assign model to find all assignments related to this order
+        assigned_operators = Assign.objects.filter(order__key=order_key)
+        
+        return Response(
+            SerializerAssign(assigned_operators, many=True).data, 
+            status=status.HTTP_200_OK
+        )
