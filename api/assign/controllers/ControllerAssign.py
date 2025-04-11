@@ -691,12 +691,13 @@ class ControllerAssign(viewsets.ViewSet):
             )
         }
     )
+    
     def get_assigned_operators(self, request, order_key):
         """
         Retrieves all operators assigned to a specific order.
         
-        This version does not use direct relationships between tables, 
-        but makes explicit queries to the Assign model.
+        This enhanced version uses the inheritance relationship between Operator and Person
+        to fetch complete information.
 
         Args:
             order_key: The key of the order for which assigned operators are desired.
@@ -715,9 +716,57 @@ class ControllerAssign(viewsets.ViewSet):
             )
         
         # Query the Assign model to find all assignments related to this order
-        assigned_operators = Assign.objects.filter(order__key=order_key)
+        # Use select_related to also fetch the related operator information
+        # Since Operator inherits from Person, we don't need to explicitly select "person"
+        assigned_operators = Assign.objects.filter(order__key=order_key).select_related('operator')
+        
+        # Prepare the response data with operator and person details
+        operator_data = []
+        for assignment in assigned_operators:
+            operator = assignment.operator
+            
+            # Since Operator inherits from Person, all Person fields are directly accessible on operator
+            operator_info = {
+                # Operator-specific fields
+                "id": operator.id_operator,
+                "number_licence": operator.number_licence,
+                "code": operator.code,
+                "n_children": operator.n_children,
+                "size_t_shift": operator.size_t_shift,
+                "name_t_shift": operator.name_t_shift,
+                "salary": operator.salary,
+                "photo": operator.photo,
+                "status": operator.status,
+                "assigned_at": assignment.assigned_at,
+                "additional_costs": assignment.additional_costs,
+                
+                # Person fields (inherited fields)
+                "first_name": operator.first_name if hasattr(operator, 'first_name') else None,
+                "last_name": operator.last_name if hasattr(operator, 'last_name') else None,
+                "identification": operator.identification if hasattr(operator, 'identification') else None,
+                "email": operator.email if hasattr(operator, 'email') else None,
+                "phone": operator.phone if hasattr(operator, 'phone') else None,
+                "address": operator.address if hasattr(operator, 'address') else None,
+                
+                # You can add more fields as needed
+            }
+            
+            # Optionally include user and company information if needed
+            if hasattr(operator, 'user') and operator.user:
+                operator_info.update({
+                    "username": operator.user.user_name,
+                })
+                
+            if hasattr(operator, 'id_company') and operator.id_company:
+                operator_info.update({
+                    "company_id": operator.id_company.id,
+                    "company_name": operator.id_company.name if hasattr(operator.id_company, 'name') else None,
+                    # Add other company fields as needed
+                })
+                
+            operator_data.append(operator_info)
         
         return Response(
-            SerializerAssign(assigned_operators, many=True).data, 
+            operator_data, 
             status=status.HTTP_200_OK
         )
