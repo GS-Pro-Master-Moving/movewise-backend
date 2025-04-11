@@ -24,8 +24,9 @@ class SerializerAssign(serializers.ModelSerializer):
     order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
     truck = serializers.PrimaryKeyRelatedField(queryset=Truck.objects.all(), allow_null=True, required=False)  # Nueva relación opcional
     payment = serializers.PrimaryKeyRelatedField(queryset=Truck.objects.all(), allow_null=True, required=False)  # Nueva relación opcional
+    additional_costs = serializers.DecimalField(max_digits=20, decimal_places=2, allow_null=True, required=False)  # Nueva columna de costos adicionales
 
     class Meta:
         model = Assign
-        fields = ["id", "operator", "order", "truck", "payment", "assigned_at", "rol", "audit_records"]
+        fields = ["id", "operator", "order", "truck", "payment", "assigned_at", "rol", "audit_records", "additional_costs"]  # Agregada la columna de costos adicionales
         read_only_fields = ["id", "audit_records"]

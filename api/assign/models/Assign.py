@@ -37,7 +37,7 @@ class Assign(models.Model):
     )
     assigned_at = models.DateTimeField(auto_now_add=True)
     rol = models.CharField(max_length=100, null=True, blank=True)
-
+    additional_costs = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
     class Meta:
         db_table = 'api_assign'
         #unique_together = ('operator', 'order', 'truck')

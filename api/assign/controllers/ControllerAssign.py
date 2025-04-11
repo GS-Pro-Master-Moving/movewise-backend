@@ -125,17 +125,22 @@ class ControllerAssign(viewsets.ViewSet):
             )
         }
     )
+    # En tu ControllerAssign.py
     def create(self, request):
         serializer = SerializerAssign(data=request.data)
         if serializer.is_valid():
             operator_id = serializer.validated_data["operator"].id_operator
-            order_id = serializer.validated_data["order"].key
-            truck_id = serializer.validated_data["truck"].id_truck
-
-            # Check if an assignment with this combination already exists
+            order = serializer.validated_data["order"]
+            additional_costs = serializer.validated_data["additional_costs"]
+            
+            # Obtener el ID del camión (puede ser None)
+            truck = serializer.validated_data.get("truck")
+            truck_id = truck.id_truck if truck else None
+            
+            # Verificar si ya existe la asignación
             existing_assign = Assign.objects.filter(
                 operator__id_operator=operator_id, 
-                order__key=order_id, 
+                order__key=order.key, 
                 truck__id_truck=truck_id
             ).first()
             
@@ -147,21 +152,34 @@ class ControllerAssign(viewsets.ViewSet):
                     "data": SerializerAssign(existing_assign).data
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Proceed with creation if no duplicate exists
+            # Obtener objetos completos para validación
             operator = get_object_or_404(Operator, id_operator=operator_id)
-            order = get_object_or_404(Order, key=order_id)
-            truck = get_object_or_404(Truck, id_truck=truck_id)
+            order_obj = get_object_or_404(Order, key=order.key)
 
-            assign = self.assign_service.create_assign(operator.id_operator, truck.id_truck, order.key)
+            # Crear la asignación
+            try:
+                assign = self.assign_service.create_assign(
+                    operator_id=operator.id_operator,
+                    truck_id=truck_id,
+                    order_id=str(order_obj.key),  # Convertir UUID a string si es necesario
+                    additional_costs=additional_costs
+                )
+                
+                return Response({
+                    "status": "success",
+                    "messDev": "Assignment created successfully",
+                    "messUser": "La asignación ha sido creada",
+                    "data": SerializerAssign(assign).data
+                }, status=status.HTTP_201_CREATED)
+                
+            except ValueError as e:
+                return Response({
+                    "status": "error",
+                    "messDev": str(e),
+                    "messUser": "Datos inválidos para la asignación",
+                    "data": None
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-            return Response({
-                "status": "success",
-                "messDev": "Assignment created successfully",
-                "messUser": "La asignación ha sido creada",
-                "data": SerializerAssign(assign).data
-            }, status=status.HTTP_201_CREATED)
-
-        # Return validation errors if the request is invalid
         return Response({
             "status": "error",
             "messDev": "Validation error",
