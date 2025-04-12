@@ -12,6 +12,7 @@ class SerializerOperator(serializers.ModelSerializer):
     address = serializers.CharField(source='person.address', required=True)
     phone = serializers.CharField(source='person.phone', required=True)
     email = serializers.EmailField(source='person.email', required=False, allow_null=True)
+    id = serializers.IntegerField(source='id_operator', required=True)  # Agregado para incluir el id del operador
 
     class Meta:
         model = Operator
@@ -21,26 +22,22 @@ class SerializerOperator(serializers.ModelSerializer):
             'name_t_shift', 'salary', 'photo', 'status',
             # Campos de Person (mapeados)
             'first_name', 'last_name', 'birth_date', 'type_id',
-            'id_number', 'address', 'phone', 'email'
+            'id_number', 'address', 'phone', 'email',
+            'id'  # Agregado al conjunto de campos
         ]
 
     def create(self, validated_data):
-        # Extraer datos de Person del source
         person_data = validated_data.pop('person', {})
         
-        # Crear Person primero
         person = Person.objects.create(**person_data)
         
-        # Crear Operator relacionado
         operator = Operator.objects.create(person=person, **validated_data)
         
         return operator
 
     def to_representation(self, instance):
-        # Obtener representación base del Operator
         representation = super().to_representation(instance)
         
-        # Agregar campos de Person desde la relación
         person = instance.person
         person_representation = {
             'first_name': person.first_name,
@@ -53,5 +50,4 @@ class SerializerOperator(serializers.ModelSerializer):
             'email': person.email
         }
         
-        # Combinar ambas representaciones
         return {**representation, **person_representation}
