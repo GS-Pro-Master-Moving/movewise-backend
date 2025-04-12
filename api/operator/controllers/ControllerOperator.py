@@ -8,6 +8,7 @@ from api.person.services.ServicesPerson import ServicesPerson
 from api.person.serializers.PersonSerializer import PersonSerializer
 from api.operator.models.Operator import Operator 
 from api.person.models.Person import Person
+from django.db import IntegrityError
 class CustomPagination(pagination.PageNumberPagination):
     page_size = 10  # Default page size
     page_size_query_param = 'page_size'
@@ -39,36 +40,16 @@ class ControllerOperator(viewsets.ViewSet):
     )
  
     def getOperatorById(self, request, operator_id):
-        """
-        Get an operator by number_id, including specific person information.
-        """
         try:
-            # Try to find by number_id in the Person table
-            operator = Operator.objects.get(id_number=operator_id)
-            # Get the person_id of the operator
-            person_id = operator.id_person
-            # Query the Person table with the person_id
-            person_data = Person.objects.get(id_person=person_id)
-        except Operator.DoesNotExist:
+            # Buscar por id_number en Person
+            person = Person.objects.get(id_number=operator_id)
+            operator = Operator.objects.get(person=person)
+            
+            serializer = SerializerOperator(operator)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except (Person.DoesNotExist, Operator.DoesNotExist):
             return Response({"error": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
-        except Person.DoesNotExist:
-            return Response({"error": "Person not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Serialize the operator's information and nest only some fields of the person
-        operator_data = {
-            'id_operator': operator.id_operator,
-            'phone': operator.phone,
-            'salary': operator.salary,
-            'number_licence': operator.number_licence,
-            'code': operator.code,
-            'photo': operator.photo,
-            'person': {
-                'id_person': person_data.id_person,
-                'first_name': person_data.first_name,
-                'last_name': person_data.last_name,
-            }
-        }
-        return Response(operator_data, status=status.HTTP_200_OK)
    
     @extend_schema(
         summary="List operators with pagination",
@@ -82,40 +63,21 @@ class ControllerOperator(viewsets.ViewSet):
         serializer = SerializerOperator(paginated_queryset, many=True)
         return self.paginator.get_paginated_response(serializer.data)
     
-    # TODO!! 
     def create_operator_person(self, request):
-        """
-        Create a new operator (including inherited person fields).
-
-        Expects:
-        - A JSON body with operator details (including person fields).
-
-        Returns:
-        - 201 Created: If the operator is successfully created.
-        - 400 Bad Request: If the request contains invalid data.
-        """
         serializer = SerializerOperator(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            try:
+                operator = serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except IntegrityError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def create(self, request):
+        return self.create_operator_person(request)
     
     def create(self, request):
-        """
-        Create a new operator.
-
-        Expects:
-        - A JSON body with operator details.
-
-        Returns:
-        - 201 Created: If the operator is successfully created.
-        - 400 Bad Request: If the request contains invalid data.
-        """
-        serializer = SerializerOperator(data=request.data)
-        if serializer.is_valid():
-            operator = self.service.create_operator(serializer.validated_data)
-            return Response(SerializerOperator(operator).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.create_operator_person(request)
 
     def patch_field(self, request, operator_id, field_name):
         """
@@ -148,18 +110,12 @@ class ControllerOperator(viewsets.ViewSet):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    def get_operator_id(self, request, operator_id):
-        """
-        Get a specific operator.
-
-        Path Parameters:
-        - `operator_id`: The ID of the operator.
-
-        Returns:
-        - 200 OK: If the operator is successfully retrieved.
-        - 404 Not Found: If the operator does not exist.
-        """
-        operator = self.service.get_operator(operator_id)
-        if operator:
-            return Response(SerializerOperator(operator).data, status=status.HTTP_200_OK)
-        return Response({ "error": "Operator not found" }, status=status.HTTP_404_NOT_FOUND)
+    def getOperatorById(self, request, operator_id):
+        try:
+            # Buscar por id_number en Person
+            person = Person.objects.get(id_number=operator_id)
+            operator = Operator.objects.get(person=person)
+            serializer = SerializerOperator(operator)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (Person.DoesNotExist, Operator.DoesNotExist):
+            return Response({"error": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
