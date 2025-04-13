@@ -138,33 +138,30 @@ class UserLogin(APIView):
 
         try:
             if serializer.validated_data.get('email'):
-                # Autenticación por email/password (admin)
+                # Autenticación admin (User)
                 user, is_admin = ServicesUser().authenticate(
                     serializer.validated_data['email'],
                     serializer.validated_data['password']
                 )
+                auth_obj = user  # Objeto User
             else:
-                # Autenticación por id_number (no admin)
-                user, is_admin = ServicesUser().authenticate_by_id_number(
+                # Autenticación operador (Person)
+                person, is_admin = ServicesUser().authenticate_by_id_number(
                     serializer.validated_data['id_number']
                 )
+                auth_obj = person  # Objeto Person
 
-            token = JWTAuthentication.generate_jwt(user)
-            response_data = {
+            token = JWTAuthentication.generate_jwt(auth_obj)
+            return Response({
                 "token": token,
                 "isAdmin": is_admin
-            }
-            
-            response_serializer = LoginResponseSerializer(data=response_data)
-            response_serializer.is_valid(raise_exception=True)
-            
-            return Response(response_serializer.data, status=status.HTTP_200_OK)
+            }, status=status.HTTP_200_OK)
             
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
             return Response(
-                {"detail": "Error en la autenticación"}, 
+                {"detail": f"Error en la autenticación {str(e)}"}, 
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
