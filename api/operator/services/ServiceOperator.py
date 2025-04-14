@@ -4,13 +4,13 @@ from api.operator.repositories.RepositoryOperator import RepositoryOperator
 from api.operator.services.IServicesOperator import IServiceOperator
 from api.order.models.Order import Order
 from api.truck.models.Truck import Truck  
-
+from api.person.models import Person
 class ServiceOperator(IServiceOperator):
     def __init__(self, repository=None):
         self.repository = repository or RepositoryOperator()
         
-    def create_operator(self, data):
-        return self.repository.create(data)
+    def create_operator(self, validated_data):
+        pass  
     def get_all_operators(self):
         return self.repository.get_all()
     

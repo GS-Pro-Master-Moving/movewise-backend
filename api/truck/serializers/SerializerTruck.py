@@ -8,4 +8,4 @@ class SerializerTruck(serializers.ModelSerializer):
 
     class Meta:
         model = Truck
-        fields = ["id_truck", "number_truck", "type", "rol", "name", "status"]
+        fields = ["id_truck", "number_truck", "type", "rol", "name", "status", "category"]

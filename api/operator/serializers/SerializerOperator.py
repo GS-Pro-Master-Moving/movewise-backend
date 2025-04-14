@@ -3,34 +3,51 @@ from api.operator.models.Operator import Operator
 from api.person.models.Person import Person
 
 class SerializerOperator(serializers.ModelSerializer):
-    # Include inherited fields explicitly
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
-    email = serializers.EmailField()
-    phone = serializers.CharField()
-    address = serializers.CharField()
+    # Campos de Person (mapeados a través de la relación)
+    first_name = serializers.CharField(source='person.first_name', required=True)
+    last_name = serializers.CharField(source='person.last_name', required=True)
+    birth_date = serializers.DateField(source='person.birth_date', required=True)
+    type_id = serializers.CharField(source='person.type_id', required=True)
+    id_number = serializers.IntegerField(source='person.id_number', required=True)
+    address = serializers.CharField(source='person.address', required=True)
+    phone = serializers.CharField(source='person.phone', required=True)
+    email = serializers.EmailField(source='person.email', required=False, allow_null=True)
+    id = serializers.IntegerField(source='id_operator', required=True)  # Agregado para incluir el id del operador
 
     class Meta:
         model = Operator
         fields = [
-            "first_name", "last_name", "email", "phone", "address",  # Fields from Person
-            "number_licence", "code", "n_children", "size_t_shift",  # Fields from Operator
-            "name_t_shift", "salary", "photo", "status"
+            # Campos de Operator
+            'number_licence', 'code', 'n_children', 'size_t_shift',
+            'name_t_shift', 'salary', 'photo', 'status',
+            # Campos de Person (mapeados)
+            'first_name', 'last_name', 'birth_date', 'type_id',
+            'id_number', 'address', 'phone', 'email',
+            'id'  # Agregado al conjunto de campos
         ]
 
     def create(self, validated_data):
-        # Extract Person fields
-        person_data = {
-            "first_name": validated_data.pop("first_name"),
-            "last_name": validated_data.pop("last_name"),
-            "email": validated_data.pop("email"),
-            "phone": validated_data.pop("phone"),
-            "address": validated_data.pop("address"),
-        }
-
-        # Create the Person instance
+        person_data = validated_data.pop('person', {})
+        
         person = Person.objects.create(**person_data)
-
-        # Create the Operator instance linked to the Person
-        operator = Operator.objects.create(person_ptr=person, **validated_data)
+        
+        operator = Operator.objects.create(person=person, **validated_data)
+        
         return operator
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        
+        person = instance.person
+        person_representation = {
+            'first_name': person.first_name,
+            'last_name': person.last_name,
+            'birth_date': person.birth_date.strftime('%Y-%m-%d'),
+            'type_id': person.type_id,
+            'id_number': person.id_number,
+            'address': person.address,
+            'phone': person.phone,
+            'email': person.email
+        }
+        
+        return {**representation, **person_representation}
