@@ -176,3 +176,24 @@ class ControllerTruck(viewsets.ViewSet):
                 "messUser": "No se encontró el camión",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
+            
+    def delete_truck(self, request, pk=None):
+        """
+        Deletes a truck by its ID.
+        """
+        try:
+            truck = get_object_or_404(Truck, id_truck=pk)
+            truck.delete()
+            return Response({
+                "status": "success",
+                "messDev": "Truck deleted successfully",
+                "messUser": "El camión ha sido eliminado",
+                "data": None
+            }, status=status.HTTP_204_NO_CONTENT)
+        except Truck.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Truck not found",
+                "messUser": "No se encontró el camión",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)

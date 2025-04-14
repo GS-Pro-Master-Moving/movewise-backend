@@ -55,6 +55,7 @@ urlpatterns = [
     path('trucks/', ControllerTruck.as_view({'get': 'get_avaliable', 'post': 'create'}), name='truck-list-create'),
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
     path('trucks/<int:pk>/update/', ControllerTruck.as_view({'put': 'update_truck'}), name='truck-update'),
+    path('trucks/<int:pk>/delete/', ControllerTruck.as_view({'delete': 'delete_truck'}), name='truck-delete'),
 
 
     # Companies
