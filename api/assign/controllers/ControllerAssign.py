@@ -134,6 +134,7 @@ class ControllerAssign(viewsets.ViewSet):
             operator_id = serializer.validated_data["operator"].id_operator
             order = serializer.validated_data["order"]
             additional_costs = serializer.validated_data["additional_costs"]
+            rol = serializer.validated_data["rol"]  # Obtener el rol
             
             # Get the truck ID (it can be None)
             truck = serializer.validated_data.get("truck")
@@ -164,7 +165,8 @@ class ControllerAssign(viewsets.ViewSet):
                     operator_id=operator.id_operator,
                     truck_id=truck_id,
                     order_id=str(order_obj.key),  # Convert UUID to string if necessary
-                    additional_costs=additional_costs
+                    additional_costs=additional_costs,
+                    rol=rol  # Pasar el rol a la creación de la asignación
                 )
                 
                 return Response({

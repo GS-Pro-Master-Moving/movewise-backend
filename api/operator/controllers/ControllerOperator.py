@@ -39,7 +39,7 @@ class ControllerOperator(viewsets.ViewSet):
         responses={200: SerializerOperator, 404: {"error": "Operator not found"}},
     )
  
-    def getOperatorById(self, request, operator_id):
+    def getOperatorByNumberId(self, request, operator_id):
         try:
             # Buscar por id_number en Person
             person = Person.objects.get(id_number=operator_id)
@@ -112,8 +112,8 @@ class ControllerOperator(viewsets.ViewSet):
     
     def getOperatorById(self, request, operator_id):
         try:
-            # Buscar por id_number en Person
-            person = Person.objects.get(id_number=operator_id)
+            # Buscar por id en Person
+            person = Person.objects.get(id_person=operator_id)
             operator = Operator.objects.get(person=person)
             serializer = SerializerOperator(operator)
             return Response(serializer.data, status=status.HTTP_200_OK)
