@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from api.tool.services.ServicesTool import ServicesTool
 from api.tool.serializers.SerializerTool import ToolSerializer
 
-class ToolController(viewsets.ViewSet):
+class ControllerTool(viewsets.ViewSet):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

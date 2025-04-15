@@ -92,6 +92,7 @@ class ControllerAssignTool(viewsets.ViewSet):
         """
         serializer = SerializerAssignTool(data=request.data, many=True)
         if serializer.is_valid():
+            print("Data to create:", serializer.validated_data)
             tools = self.services_assign_tool.create_assignments(serializer.validated_data)# To review
             return Response(tools, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

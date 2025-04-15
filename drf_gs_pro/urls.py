@@ -6,6 +6,7 @@ from api.order.controllers.ControllerOrder import ControllerOrder
 from api.job.controllers.ControllerJob import JobController  
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from api.assign.controllers.ControllerAssign import ControllerAssign
+from api.tool.controllers.ControllerTool import ControllerTool
 from api.truck.controllers.ControllerTruck import ControllerTruck  
 from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignTool
 from api.user.controllers.UserController import UserRegister, UserLogin
@@ -51,7 +52,8 @@ urlpatterns = [
     # Trucks
     path('trucks/', ControllerTruck.as_view({'get': 'get_avaliable', 'post': 'create'}), name='truck-list-create'),
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
-
+    #tools
+    path('tools/', ControllerTool.as_view({'get': 'list'}), name='tool-list'),
     # Companies
     path('companies/', CompanyViewSet.as_view({
         'get': 'list',
