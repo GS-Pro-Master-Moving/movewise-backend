@@ -5,7 +5,7 @@ from api.order.models.Order import Order
 from api.assign_tool.repositories.IRepositoryAssignTool import IRepositoryAssignTool
 
 class RepositoryAssignTool(IRepositoryAssignTool):
-    def assign_tool(self, tool_id: str, order_id: str) -> bool:
+    def assign_tool(self, tool_id: int, order_id: str) -> bool:
         print("\nAssigning tool to order in repository")
         try:
             tool = Tool.objects.get(id=tool_id)
@@ -65,6 +65,7 @@ class RepositoryAssignTool(IRepositoryAssignTool):
             order_id = assign.get("id_order")
             print(tool_id, order_id)
             if not tool_id or not order_id:
+                print("Tool ID or Order ID is missing")
                 results.append({"tool_id": tool_id, "order_id": order_id, "status": "error", "message": "Invalid data"})
                 continue
             
