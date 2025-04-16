@@ -2,6 +2,7 @@ from rest_framework import status, viewsets, pagination
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
+from api.truck.serializers.SerializerUpdateTruck import SerializerUpdateTruck
 from api.truck.services.ServicesTruck import ServicesTruck
 from api.truck.serializers.SerializerTruck import SerializerTruck
 from api.truck.models.Truck import Truck
@@ -146,15 +147,15 @@ class ControllerTruck(viewsets.ViewSet):
         Updates a truck's details.
         Expected payload:
         {
-            "number_truck": "ABC123",
-            "type": "Cargo",
-            "rol": "Transport",
-            "name": "Big Truck"
+            "number_truck": "DEF456",
+            "type": "Carga mediana",
+            "name": "Truck 3",
+            "category": null
         }
         """
         try:
             truck = get_object_or_404(Truck, id_truck=pk)
-            serializer = SerializerTruck(truck, data=request.data, partial=True)
+            serializer = SerializerUpdateTruck(truck, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
                 return Response({
