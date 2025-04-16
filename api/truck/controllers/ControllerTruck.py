@@ -140,3 +140,60 @@ class ControllerTruck(viewsets.ViewSet):
                 "messUser": "No se pudo actualizar el estado del camión",
                 "data": None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def update_truck(self, request, pk=None):
+        """
+        Updates a truck's details.
+        Expected payload:
+        {
+            "number_truck": "ABC123",
+            "type": "Cargo",
+            "rol": "Transport",
+            "name": "Big Truck"
+        }
+        """
+        try:
+            truck = get_object_or_404(Truck, id_truck=pk)
+            serializer = SerializerTruck(truck, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    "status": "success",
+                    "messDev": "Truck updated successfully",
+                    "messUser": "El camión ha sido actualizado",
+                    "data": serializer.data
+                }, status=status.HTTP_200_OK)
+            return Response({
+                "status": "error",
+                "messDev": "Validation error",
+                "messUser": "Datos inválidos",
+                "data": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Truck.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Truck not found",
+                "messUser": "No se encontró el camión",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+    def delete_truck(self, request, pk=None):
+        """
+        Deletes a truck by its ID.
+        """
+        try:
+            truck = get_object_or_404(Truck, id_truck=pk)
+            truck.delete()
+            return Response({
+                "status": "success",
+                "messDev": "Truck deleted successfully",
+                "messUser": "El camión ha sido eliminado",
+                "data": None
+            }, status=status.HTTP_204_NO_CONTENT)
+        except Truck.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Truck not found",
+                "messUser": "No se encontró el camión",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)

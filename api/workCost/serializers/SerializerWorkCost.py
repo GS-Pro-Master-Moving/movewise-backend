@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from api.truck.models.Truck import Truck
+from api.workCost.models.WorkCost import WorkCost
 
 class SerializerTruck(serializers.ModelSerializer):
     """
@@ -7,5 +7,5 @@ class SerializerTruck(serializers.ModelSerializer):
     """
 
     class Meta:
-        model = Truck
-        fields = ["id_truck", "number_truck", "type", "name", "status", "category"]
+        model = WorkCost
+        fields = "__all__"

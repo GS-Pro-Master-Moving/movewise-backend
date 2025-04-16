@@ -14,7 +14,7 @@ class ServicesAssign:
         self.repository = RepositoryAssign()
 
     # ServicesAssign.py
-    def create_assign(self, operator_id: int, truck_id: Optional[int], order_id: str, additional_costs: float) -> Assign:
+    def create_assign(self, operator_id: int, truck_id: Optional[int], order_id: str, additional_costs: float, rol: Optional[str] = None) -> Assign:
         """Creates a new assignment between an operator, a truck, and an order."""
         # Validaciones de negocio
         if not operator_id or not order_id:
@@ -30,8 +30,9 @@ class ServicesAssign:
             operator_id=operator_id,
             truck_id=truck_id,
             order_id=order_uuid,
-            additional_costs=additional_costs
-    )
+            additional_costs=additional_costs,
+            rol=rol
+        )
     
     @staticmethod
     def create_assignments(data):

@@ -6,11 +6,14 @@ from api.order.controllers.ControllerOrder import ControllerOrder
 from api.job.controllers.ControllerJob import JobController  
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from api.assign.controllers.ControllerAssign import ControllerAssign
+from api.tool.controllers.ControllerTool import ControllerTool
 from api.truck.controllers.ControllerTruck import ControllerTruck  
 from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignTool
 from api.user.controllers.UserController import UserRegister, UserLogin
 from api.company.controllers.company_controller import CompanyViewSet
 from api.payment.controllers.ControllerPayment import ControllerPayment
+from api.workCost.controllers.ControllerWorkCost import ControllerWorkCost
+from api.costFuel.controllers.CostFuelController import ControllerCostFuel
 
 urlpatterns = [
     #login
@@ -29,7 +32,8 @@ urlpatterns = [
     # jobs
     path('jobs/', JobController.as_view({'get': 'list'}), name='job-list'),
     # operators
-    path('operators/<int:operator_id>/', ControllerOperator.as_view({'get': 'getOperatorById'}), name='operator-get-by-id'),
+    path('operators/<int:operator_id>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-id'),
+    path('operators-by-id/<int:operator_id>/', ControllerOperator.as_view({'get': 'getOperatorById'}), name='operator-get-by-number-id'),
     path('operators/', ControllerOperator.as_view({'post': 'create', 'get': 'list'}), name='operator-list-create'),
     path('operators/<int:operator_id>/patch/<str:field_name>/',ControllerOperator.as_view({'patch': 'patch_field'}), name='operator-patch-field'),
 
@@ -37,13 +41,14 @@ urlpatterns = [
 
     # assigns
     path('assigns/', ControllerAssign.as_view({'post': 'create'}), name='assign-create'),
+    path('assigns/bulk/', ControllerAssign.as_view({'post': 'bulk_create'}), name='assign-bulk-create'),
     path('assigns/<int:pk>/', ControllerAssign.as_view({'get': 'retrieve', 'delete': 'delete'}), name='assign-detail'),
     path('assigns/operator/<int:operator_id>/', ControllerAssign.as_view({'get': 'list_by_operator'}), name='assigns-by-operator'),
     path('assigns/order/<str:order_id>/', ControllerAssign.as_view({'get': 'list_by_order'}), name='assigns-by-order'),
     path('assigns/<int:pk>/update/', ControllerAssign.as_view({'patch': 'update'}), name='assign-update'),
     path('assigns/<int:assign_id>/update-status/', ControllerAssign.as_view({'patch': 'update_status'}), name='assign-update-status'),
     path('assigns/<int:pk>/audit-history/', ControllerAssign.as_view({'get': 'audit_history'}), name='assign-audit-history'),
-    
+    path('assigns/order/<str:order_key>/operators/', ControllerAssign.as_view({'get': 'get_assigned_operators'}), name='assign-get-operators'),
     # assignTools
     path('assignTool/', ControllerAssignTool.as_view({'post': 'assign_tool'}), name='assign-tool'),
     path('assignTools/', ControllerAssignTool.as_view({'post': 'bulk_create'}), name='assign-tool'),
@@ -53,6 +58,19 @@ urlpatterns = [
     path('truck-by-id/<int:id_truck>/', ControllerTruck.as_view({'get': 'get_truck_by_id'}), name='truck-get-by-id'),    
     path('trucks/', ControllerTruck.as_view({'get': 'get_avaliable', 'post': 'create'}), name='truck-list-create'),
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
+    path('trucks/<int:pk>/update/', ControllerTruck.as_view({'put': 'update_truck'}), name='truck-update'),
+    path('trucks/<int:pk>/delete/', ControllerTruck.as_view({'delete': 'delete_truck'}), name='truck-delete'),
+    # Cost Fuel
+    path('costfuel-by-id/<int:pk>/', ControllerCostFuel.as_view({'get': 'retrieve'}), name='costfuel-get-by-id'),    
+    path('costfuels/', ControllerCostFuel.as_view({'get': 'list', 'post': 'create'}), name='costfuel-list-create'),
+    path('costfuels/<int:pk>/', ControllerCostFuel.as_view({'put': 'update', 'patch': 'update'}), name='costfuel-update'),
+    path('costfuels/<int:pk>/delete/', ControllerCostFuel.as_view({'delete': 'destroy'}), name='costfuel-delete'),
+    path('costfuels/by-order/<str:order_key>/', ControllerCostFuel.as_view({'get': 'by_order'}), name='costfuel-by-order'),
+    path('costfuels/by-truck/<int:truck_id>/', ControllerCostFuel.as_view({'get': 'by_truck'}), name='costfuel-by-truck'),
+
+    #tools
+    path('tools/', ControllerTool.as_view({'get': 'list'}), name='tool-list'),
+
 
     # Companies
     path('companies/', CompanyViewSet.as_view({
@@ -76,5 +94,10 @@ urlpatterns = [
         'patch': 'update',
         'delete': 'destroy'
     }), name='payment-detail'),
-   
+
+    #WorkCost
+    path('workcost/', ControllerWorkCost.as_view({
+    'get': 'list',
+    'post': 'create'
+}), name='workcost-list-create'),
 ]
