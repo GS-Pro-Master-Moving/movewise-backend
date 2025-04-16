@@ -413,6 +413,7 @@ class ControllerAssign(viewsets.ViewSet):
             "messUser": "Asignaciones recuperadas con éxito",
             "data": serializer.data
         }, status=status.HTTP_200_OK)
+    
     @extend_schema(
         summary="Update an existing assignment",
         description="Updates the details of an existing assignment identified by its ID.",

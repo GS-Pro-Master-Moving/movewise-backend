@@ -19,38 +19,37 @@ class RepositoryAssignTool(IRepositoryAssignTool):
             return False
         tool.order = order
         tool.save()
-        AssignTool.objects.create(id_tool=tool, id_order=order, date=order.date)
+        AssignTool.objects.create(id_tool=tool, key=order, date=order.date)
         return True
     
     def unassign_tool(self, tool_id: int, order_id: str) -> bool:
         try:
-            tool = Tool.objects.get(id=tool_id)
-        except Tool.DoesNotExist:
-            print("\nTool not found")
+            # Busca directamente la asignación
+            assignment = AssignTool.objects.get(
+                id_tool__id=tool_id,
+                key__key=order_id
+            )
+            assignment.delete()
+            return True
+            
+        except AssignTool.DoesNotExist:
+            print(f"\nAssignTool not found for tool {tool_id} and order {order_id}")
             return False
-        try:
-            order = Order.objects.get(key=order_id)
-        except Order.DoesNotExist:
-            print("\nOrder not found")
+        except Exception as e:
+            print(f"\nError deleting assignment: {str(e)}")
             return False
-        assign_tool = assign_tool.objects.drop(tool=tool, order=order)
-        if not assign_tool:
-            print("\nAssignment not found")
-            return False
-        return True
     
     def get_assigned_tools(self, order_id: str) -> list:
         try:
-            order = Order.objects.get(id_order=order_id)
+            order = Order.objects.get(key=order_id)
+            assignments = AssignTool.objects.filter(key=order).select_related('id_tool')
+            return assignments
         except Order.DoesNotExist:
-            print("\nOrder not found")
             return []
-        tools = Tool.objects.filter(order=order)
-        return list(tools)
-    
+        
     def get_assigned_tools_by_job(self, job_id: int) -> list:
         try:
-            order = Order.objects.get(id_order=job_id)
+            order = Order.objects.get(key=job_id)
         except Order.DoesNotExist:
             print("\nOrder not found")
             return []
@@ -62,7 +61,7 @@ class RepositoryAssignTool(IRepositoryAssignTool):
         print("\nCreating ", data)
         for assign in data:
             tool_id = assign.get("id_tool")
-            order_id = assign.get("id_order")
+            order_id = assign.get("key")
             print(tool_id, order_id)
             if not tool_id or not order_id:
                 print("Tool ID or Order ID is missing")
