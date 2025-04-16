@@ -16,10 +16,10 @@ class ServicesAssignTool(IServicesAssignTool):
         return self.repository.get_assigned_tools(order_id)
     
     def get_assigned_tools_by_job(self, job_id: int) -> list:
-        return self.repository.get_assigned_tools_by_tool(job_id)
+        return self.repository.get_assigned_tools_by_job(job_id)
     
     def create_assignments(self, data: list[dict]) -> list[dict]:
         print("\nCreating assignments in service")
         for assignment in data:
-            print(f"Assigning tool {assignment['id_tool']} to order {assignment['id_order']}")
+            print(f"Assigning tool {assignment['id_tool']} to order {assignment['key']}")
         return self.repository.create_assignments(data)
