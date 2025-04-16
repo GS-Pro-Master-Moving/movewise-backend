@@ -13,6 +13,7 @@ from api.user.controllers.UserController import UserRegister, UserLogin
 from api.company.controllers.company_controller import CompanyViewSet
 from api.payment.controllers.ControllerPayment import ControllerPayment
 from api.workCost.controllers.ControllerWorkCost import ControllerWorkCost
+from api.costFuel.controllers.CostFuelController import ControllerCostFuel
 
 urlpatterns = [
     #login
@@ -59,6 +60,13 @@ urlpatterns = [
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
     path('trucks/<int:pk>/update/', ControllerTruck.as_view({'put': 'update_truck'}), name='truck-update'),
     path('trucks/<int:pk>/delete/', ControllerTruck.as_view({'delete': 'delete_truck'}), name='truck-delete'),
+    # Cost Fuel
+    path('costfuel-by-id/<int:pk>/', ControllerCostFuel.as_view({'get': 'retrieve'}), name='costfuel-get-by-id'),    
+    path('costfuels/', ControllerCostFuel.as_view({'get': 'list', 'post': 'create'}), name='costfuel-list-create'),
+    path('costfuels/<int:pk>/', ControllerCostFuel.as_view({'put': 'update', 'patch': 'update'}), name='costfuel-update'),
+    path('costfuels/<int:pk>/delete/', ControllerCostFuel.as_view({'delete': 'destroy'}), name='costfuel-delete'),
+    path('costfuels/by-order/<str:order_key>/', ControllerCostFuel.as_view({'get': 'by_order'}), name='costfuel-by-order'),
+    path('costfuels/by-truck/<int:truck_id>/', ControllerCostFuel.as_view({'get': 'by_truck'}), name='costfuel-by-truck'),
 
     #tools
     path('tools/', ControllerTool.as_view({'get': 'list'}), name='tool-list'),
