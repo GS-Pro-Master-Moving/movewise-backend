@@ -12,6 +12,7 @@ from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignToo
 from api.user.controllers.UserController import UserRegister, UserLogin
 from api.company.controllers.company_controller import CompanyViewSet
 from api.payment.controllers.ControllerPayment import ControllerPayment
+from api.workCost.controllers.ControllerWorkCost import ControllerWorkCost
 
 urlpatterns = [
     #login
@@ -85,5 +86,10 @@ urlpatterns = [
         'patch': 'update',
         'delete': 'destroy'
     }), name='payment-detail'),
-   
+
+    #WorkCost
+    path('workcost/', ControllerWorkCost.as_view({
+    'get': 'list',
+    'post': 'create'
+}), name='workcost-list-create'),
 ]
