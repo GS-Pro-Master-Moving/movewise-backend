@@ -12,6 +12,7 @@ from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignToo
 from api.user.controllers.UserController import UserRegister, UserLogin
 from api.company.controllers.company_controller import CompanyViewSet
 from api.payment.controllers.ControllerPayment import ControllerPayment
+from api.workCost.controllers.ControllerWorkCost import ControllerWorkCost
 
 urlpatterns = [
     #login
@@ -56,8 +57,13 @@ urlpatterns = [
     path('truck-by-id/<int:id_truck>/', ControllerTruck.as_view({'get': 'get_truck_by_id'}), name='truck-get-by-id'),    
     path('trucks/', ControllerTruck.as_view({'get': 'get_avaliable', 'post': 'create'}), name='truck-list-create'),
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
+    path('trucks/<int:pk>/update/', ControllerTruck.as_view({'put': 'update_truck'}), name='truck-update'),
+    path('trucks/<int:pk>/delete/', ControllerTruck.as_view({'delete': 'delete_truck'}), name='truck-delete'),
+
     #tools
     path('tools/', ControllerTool.as_view({'get': 'list'}), name='tool-list'),
+
+
     # Companies
     path('companies/', CompanyViewSet.as_view({
         'get': 'list',
@@ -80,5 +86,10 @@ urlpatterns = [
         'patch': 'update',
         'delete': 'destroy'
     }), name='payment-detail'),
-   
+
+    #WorkCost
+    path('workcost/', ControllerWorkCost.as_view({
+    'get': 'list',
+    'post': 'create'
+}), name='workcost-list-create'),
 ]

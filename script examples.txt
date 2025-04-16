@@ -1,0 +1,95 @@
+
+INSERT INTO api_person (id_person, name, last_name, birth_date, cell_phone, address, id_number, type_id, email)
+VALUES
+(1, 'John', 'Doe', '1990-05-15', 1234567890, '123 Main St', 987654321, 'DNI', 'john.doe@example.com'),
+(2, 'Jane', 'Smith', '1985-08-22', 2345678901, '456 Oak St', 876543210, 'DNI', 'jane.smith@example.com'),
+(3, 'Alice', 'Johnson', '1993-11-10', 3456789012, '789 Pine St', 765432109, 'PASSPORT', 'alice.johnson@example.com'),
+(4, 'Bob', 'Brown', '1988-02-18', 4567890123, '321 Maple St', 654321098, 'DNI', 'bob.brown@example.com'),
+(5, 'Charlie', 'Davis', '1995-07-30', 5678901234, '987 Elm St', 543210987, 'ID_CARD', 'charlie.davis@example.com');
+
+INSERT INTO api_job (id, name) VALUES
+(1, 'd'),
+(2, 'p'),
+(3, 'p/c'),
+(4, 'load');
+
+INSERT INTO api_truck (id_truck, number_truck, type, category, name) VALUES
+(5, 'TRK-001', 'Cargo', 'Transport', 'Big Truck'),
+(2, 'TRK-002', 'Refrigerated', 'Logistics', 'Cool Truck'),
+(3, 'TRK-003', 'Tanker', 'Fuel', 'Oil Carrier'),
+(4, 'TRK-004', 'Flatbed', 'Construction', 'Heavy Loader');
+
+INSERT INTO api_person (id_person, first_name, last_name, birth_date, email) VALUES
+(6, 'Juan', 'Pérez', '1990-05-15', 'juan.perez@example.com'),
+(7, 'Adalberto', 'Guiterrez', '1995-05-15', 'adalbe.guti@example.com');
+
+INSERT INTO api_operator (person_ptr_id, number_licence, code, n_children, size_t_shift, name_t_shift, salary, photo, status) 
+VALUES 
+(1, 'ABC12345', 'OP001', 2, '8H', 'Morning Shift', 2500.50, 'photo1.jpg', 'Active'),
+(2, 'CBA54321', 'OP002', 3, '16H', 'Night Shift', 2500.50, 'photo2.jpg', 'Active');
+
+INSERT INTO api_tool (name, id_job) 
+VALUES 
+('uña metalica', 1),
+('Martillo', 1),
+('4 wheeler', 1),
+('Hand truck', 1),
+('Home protection', 1),
+('Comercial bins', 1)
+;
+
+INSERT INTO api_tool (name, id_job) 
+VALUES 
+('Tape gun', 2),
+('1.5', 2),
+('3.0', 2),
+('4.5', 2),
+('Dish', 2),
+('Mirror', 2),
+('Wordrobe', 2),
+('Bars', 2),
+('Mattres bags', 2),
+('Tape', 2),
+('Inventarios', 2),
+('Stickers', 2),
+('Seals', 2),
+('Brown paper', 2),
+('Paper blanco', 2),
+('Shiki weapp', 2),
+('Tv box', 2)
+;
+
+INSERT INTO api_tool (name, id_job) 
+VALUES 
+('Papel blanco', 3),
+('Brown papper', 3),
+('Tape', 3),
+('Shiki wrapp', 3),
+('1.5', 3),
+('3.0', 3),
+('4.5', 3),
+('Wardrobe(flat)', 3),
+('Dish pack', 3),
+('Mirror', 3),
+('Tv box', 3),
+('Mattres bags', 3),
+('Puntillas', 3),
+('Seals night value and crates',3),
+('Hojas de inventarios', 3),
+('Stickers', 3),
+('Hand-truck', 3),
+('4 wheeler', 3),
+('Bag for protection house', 3)
+;
+
+INSERT INTO api_tool (name, id_job) 
+VALUES 
+('Blankets', 4),
+('Rubber vans - Tape', 4),
+('4 wheeler', 4),
+('Hand truck', 4),
+('Mirrors', 4),
+('Extra boxes', 4),
+('Shiki wrapp', 4),
+('Home protection', 4)
+;
