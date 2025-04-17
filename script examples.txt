@@ -1,5 +1,5 @@
 
-INSERT INTO api_person (id_person, name, last_name, birth_date, cell_phone, address, id_number, type_id, email)
+INSERT INTO api_person (id_person, first_name, last_name, birth_date, phone, address, id_number, type_id, email)
 VALUES
 (1, 'John', 'Doe', '1990-05-15', 1234567890, '123 Main St', 987654321, 'DNI', 'john.doe@example.com'),
 (2, 'Jane', 'Smith', '1985-08-22', 2345678901, '456 Oak St', 876543210, 'DNI', 'jane.smith@example.com'),
