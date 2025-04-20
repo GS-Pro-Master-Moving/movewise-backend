@@ -22,7 +22,36 @@ class ControllerWorkCost(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+    
+    def listByOrderId(self, request, *args, **kwargs):
+        """
+        Retrieves a paginated list of WorkCost entries filtered by order_id.
 
+        Returns:
+        - 200 OK: A paginated list of WorkCost entries.
+        - 404 Not Found: If no WorkCost entries are found for the given order_id.
+        """
+        order_id = kwargs.get('order_id')  
+        print("order_id: ", order_id)
+        try:
+            # Filter WorkCost entries by order_id
+            queryset = WorkCost.objects.filter(id_order=order_id)
+
+            # Paginate the queryset
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+            # If no pagination is applied, return all results
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data, status=200)
+
+        except WorkCost.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": f"No WorkCost entries found for order_id: {order_id}"
+            }, status=404)
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
