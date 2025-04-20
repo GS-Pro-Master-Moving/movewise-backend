@@ -1,6 +1,7 @@
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
+from api.assign.controllers.ControllerAssign import ControllerAssign
 from api.costFuel.services.ServicesCostFuel import ServicesCostFuel
 from api.order.serializers.OrderSerializer import OrderSerializer
 from api.order.services.ServicesOrder import ServicesOrder  
@@ -39,6 +40,7 @@ class ControllerOrder(viewsets.ViewSet):
         """
         workcost_service = ServicesWorkCost()
         cost_fuel_service = ServicesCostFuel()
+        assign_service = ControllerAssign()
         try:
             
             # Retrieve the order by its primary key
@@ -66,19 +68,34 @@ class ControllerOrder(viewsets.ViewSet):
                 total_work_cost = total_work_cost + work_cost.cost
             print("Total work cost:", total_work_cost)
             
-            # Calculate the total salary of assigned operators
-            operator_salaries = sum(operator.salary for operator in order.assign.all())
-            print("Operator salaries:", operator_salaries)
-            
+            # For making it with services its missing the implementation of service get_assigned_operators
+            # For a while its used directly from the controller
+            operators = assign_service.get_assigned_operators(pk)
+            driver_salaries = 0.0
+            other_salaries = 0.0
+
+            # Sum the salaries
+            for operator in operators.data:
+                role = operator.get('rol', None)  # Getting the role field
+                salary = float(operator.get('salary', 0))  # Parsing to float and getting the salary
+
+                if role == 'driver':
+                    driver_salaries += salary
+                else:
+                    other_salaries += salary
+
+            # Imprimir los resultados
+            print("Driver salaries:", driver_salaries)
+            print("Other salaries:", other_salaries)
+
             # Parsing 
             expense = float(expense)
             renting_cost = float(renting_cost)
             total_fuel_cost = float(total_fuel_cost)
             total_work_cost = float(total_work_cost)
-            operator_salaries = float(operator_salaries)
-
+            
             # Calculate the total cost
-            total_cost = expense + renting_cost + total_fuel_cost + total_work_cost + operator_salaries
+            total_cost = expense + renting_cost + total_fuel_cost + total_work_cost + driver_salaries + other_salaries
             print("total_cost:",total_cost)
             # Return the summary as a JSON response 
             return Response({
@@ -88,7 +105,8 @@ class ControllerOrder(viewsets.ViewSet):
                     "rentingCost": renting_cost,
                     "fuelCost": total_fuel_cost,
                     "workCost": total_work_cost,
-                    "operatorSalaries": operator_salaries,
+                    "driverSalaries": driver_salaries,
+                    "otherSalaries": other_salaries,
                     "totalCost": total_cost
                 }
             }, status=status.HTTP_200_OK)
