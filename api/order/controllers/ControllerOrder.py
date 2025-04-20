@@ -17,7 +17,11 @@ class ControllerOrder(viewsets.ViewSet):
     Controller for managing Order entities.
 
     Provides an endpoint for:
+    - Getting a sumary of the cost in the order.
+    - list all the orders.
     - Creating an order.
+    - Partial update for some fields in order
+    - Get all the states avaliable for the orders
     """
 
     def __init__(self, **kwargs):

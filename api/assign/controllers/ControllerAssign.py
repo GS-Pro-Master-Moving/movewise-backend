@@ -25,6 +25,7 @@ class ControllerAssign(viewsets.ViewSet):
     - List assignaments by orderKey
     - Update the status of an assignment.
     - Delete an assignment.
+    - List operators in an order
     """
 
     def __init__(self, **kwargs):
@@ -773,3 +774,74 @@ class ControllerAssign(viewsets.ViewSet):
             operator_data, 
             status=status.HTTP_200_OK
         )
+        
+    def list_operator_by_order(self, request, order_key=None):
+        """
+        Retrieves a list of operators assigned to a specific order.
+
+        Args:
+            order_key: The key of the order for which assigned operators are desired.
+
+        Returns:
+            - HTTP 200 OK: A list of operators assigned to the order.
+            - HTTP 404 Not Found: If the order does not exist.
+        """
+        if not order_key:
+            return Response({
+                "status": "error",
+                "messDev": "Missing order_key in URL",
+                "messUser": "El identificador de la orden es requerido",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Check if the order exists
+            order = Order.objects.get(key=order_key)
+
+            # Query the Assign model to find all assignments related to this order
+            assigned_operators = Assign.objects.filter(order=order).select_related('operator')
+
+            # Prepare the response data with operator details
+            operator_data = []
+            for assignment in assigned_operators:
+                operator = assignment.operator
+
+                # Include operator-specific and inherited fields
+                operator_info = {
+                    "id": operator.id_operator,
+                    "first_name": operator.first_name if hasattr(operator, 'first_name') else None,
+                    "last_name": operator.last_name if hasattr(operator, 'last_name') else None,
+                    "email": operator.email if hasattr(operator, 'email') else None,
+                    "phone": operator.phone if hasattr(operator, 'phone') else None,
+                    "address": operator.address if hasattr(operator, 'address') else None,
+                    "number_licence": operator.number_licence,
+                    "salary": operator.salary,
+                    "status": operator.status,
+                    "assigned_at": assignment.assigned_at,
+                    "additional_costs": assignment.additional_costs,
+                }
+
+                operator_data.append(operator_info)
+
+            return Response({
+                "status": "success",
+                "messDev": "Operators retrieved successfully",
+                "messUser": "Operadores recuperados con éxito",
+                "data": operator_data
+            }, status=status.HTTP_200_OK)
+
+        except Order.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": f"Order with key={order_key} does not exist",
+                "messUser": "Orden no encontrada",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Unexpected error: {str(e)}",
+                "messUser": "Error inesperado al recuperar los operadores",
+                "data": None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
