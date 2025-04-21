@@ -76,8 +76,6 @@ class ControllerOperator(viewsets.ViewSet):
     def create(self, request):
         return self.create_operator_person(request)
     
-    def create(self, request):
-        return self.create_operator_person(request)
 
     def patch_field(self, request, operator_id, field_name):
         """

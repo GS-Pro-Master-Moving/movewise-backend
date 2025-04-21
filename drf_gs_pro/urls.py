@@ -29,6 +29,7 @@ urlpatterns = [
     path('orders/', ControllerOrder.as_view({'post': 'create','get':'list_all' }), name='order-create'),
     path('orders/<str:pk>/', ControllerOrder.as_view({'patch': 'partial_update'}), name='order-update'),
     path('orders/status/<str:pk>/', ControllerOrder.as_view({'patch': 'update_status'}), name='order-update-status'),
+    path('orders/<str:pk>/summary-cost/', ControllerOrder.as_view({'get': 'SumaryCost'}), name='order-summary-cost'),
     # jobs
     path('jobs/', JobController.as_view({'get': 'list'}), name='job-list'),
     # operators
@@ -100,5 +101,8 @@ urlpatterns = [
     path('workcost/', ControllerWorkCost.as_view({
     'get': 'list',
     'post': 'create'
-}), name='workcost-list-create'),
+    }), name='workcost-list-create'),
+    path('workcost/order/<str:order_id>/', 
+        ControllerWorkCost.as_view({'get': 'listByOrderId'}), 
+        name='workcost-list-by-order-id'),
 ]

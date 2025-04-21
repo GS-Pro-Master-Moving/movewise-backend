@@ -1,6 +1,8 @@
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
+from api.assign.controllers.ControllerAssign import ControllerAssign
+from api.costFuel.services.ServicesCostFuel import ServicesCostFuel
 from api.order.serializers.OrderSerializer import OrderSerializer
 from api.order.services.ServicesOrder import ServicesOrder  
 from api.order.models.Order import Order
@@ -9,19 +11,123 @@ from api.order.serializers.StatesSerializer import StatesUSASerializer
 from api.order.models.Order import StatesUSA
 from django.http import JsonResponse
 from rest_framework.decorators import action
+from api.workCost.services.ServicesWorkCost import ServicesWorkCost
 
 class ControllerOrder(viewsets.ViewSet):
     """
     Controller for managing Order entities.
 
     Provides an endpoint for:
+    - Getting a sumary of the cost in the order.
+    - list all the orders.
     - Creating an order.
+    - Partial update for some fields in order
+    - Get all the states avaliable for the orders
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.order_service = ServicesOrder()  
+        self.workcost_service = ServicesWorkCost()
 
+    def SumaryCost(self, request, pk=None):
+        """
+        Retrieves the summary of costs for a specific order.
+
+        Returns:
+        - 200 OK: A JSON object with the breakdown of costs and the total.
+        - 404 Not Found: If the order does not exist.
+        """
+        workcost_service = ServicesWorkCost()
+        cost_fuel_service = ServicesCostFuel()
+        assign_service = ControllerAssign()
+        try:
+            
+            # Retrieve the order by its primary key
+            order = Order.objects.get(key=pk)
+            
+            # Expense 
+            expense = order.expense
+            print("Expense:", expense)
+            
+            # Renting cost
+            renting_cost = order.income
+            print("Renting cost:", renting_cost)
+            
+            # Calculate fuel cost 
+            fuel_cost_list = cost_fuel_service.get_by_order(pk)
+            total_fuel_cost = 0
+            for fuel_cost in fuel_cost_list:
+                total_fuel_cost = total_fuel_cost + fuel_cost.cost_fuel
+            print("Total fuel cost:", total_fuel_cost)
+            
+            # Calculate work cost 
+            work_cost_list = workcost_service.get_workCost_by_KeyOrder(pk)
+            total_work_cost = 0
+            for work_cost in work_cost_list:
+                total_work_cost = total_work_cost + work_cost.cost
+            print("Total work cost:", total_work_cost)
+            
+            # For making it with services its missing the implementation of service get_assigned_operators
+            # For a while its used directly from the controller
+            operators = assign_service.get_assigned_operators(pk)
+            driver_salaries = 0.0
+            other_salaries = 0.0
+
+            # Sum the salaries
+            for operator in operators.data:
+                role = operator.get('rol', None)  # Getting the role field
+                salary = float(operator.get('salary', 0))  # Parsing to float and getting the salary
+
+                if role == 'driver':
+                    driver_salaries += salary
+                else:
+                    other_salaries += salary
+
+            # Imprimir los resultados
+            print("Driver salaries:", driver_salaries)
+            print("Other salaries:", other_salaries)
+
+            # Parsing 
+            expense = float(expense)
+            renting_cost = float(renting_cost)
+            total_fuel_cost = float(total_fuel_cost)
+            total_work_cost = float(total_work_cost)
+            
+            # Calculate the total cost
+            total_cost = expense + renting_cost + total_fuel_cost + total_work_cost + driver_salaries + other_salaries
+            print("total_cost:",total_cost)
+            # Return the summary as a JSON response 
+            return Response({
+                "status": "success",
+                "data": {
+                    "expense": expense,
+                    "rentingCost": renting_cost,
+                    "fuelCost": total_fuel_cost,
+                    "workCost": total_work_cost,
+                    "driverSalaries": driver_salaries,
+                    "otherSalaries": other_salaries,
+                    "totalCost": total_cost
+                }
+            }, status=status.HTTP_200_OK)
+
+        except Order.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Order not found",
+                "messUser": "No se encontró la orden",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error calculating summary cost: {str(e)}",
+                "messUser": f"No se pudo calcular el costo total: {str(e)}",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        
     def list_all(self, request):
         """
         List all orders.

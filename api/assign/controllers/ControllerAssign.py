@@ -25,6 +25,7 @@ class ControllerAssign(viewsets.ViewSet):
     - List assignaments by orderKey
     - Update the status of an assignment.
     - Delete an assignment.
+    - List operators in an order
     """
 
     def __init__(self, **kwargs):
@@ -695,7 +696,7 @@ class ControllerAssign(viewsets.ViewSet):
         }
     )
     
-    def get_assigned_operators(self, request, order_key):
+    def get_assigned_operators(self,order_key):
         """
         Retrieves all operators assigned to a specific order.
         
@@ -742,7 +743,8 @@ class ControllerAssign(viewsets.ViewSet):
                 "status": operator.status,
                 "assigned_at": assignment.assigned_at,
                 "additional_costs": assignment.additional_costs,
-                
+                # Getting the operator's role in the assign
+                "rol": assignment.rol,
                 # Person fields (inherited fields)
                 "first_name": operator.first_name if hasattr(operator, 'first_name') else None,
                 "last_name": operator.last_name if hasattr(operator, 'last_name') else None,
@@ -773,3 +775,4 @@ class ControllerAssign(viewsets.ViewSet):
             operator_data, 
             status=status.HTTP_200_OK
         )
+        
