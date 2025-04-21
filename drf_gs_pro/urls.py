@@ -9,11 +9,13 @@ from api.assign.controllers.ControllerAssign import ControllerAssign
 from api.tool.controllers.ControllerTool import ControllerTool
 from api.truck.controllers.ControllerTruck import ControllerTruck  
 from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignTool
+
 from api.user.controllers.UserController import UserRegister, UserLogin
 from api.company.controllers.company_controller import CompanyViewSet
 from api.payment.controllers.ControllerPayment import ControllerPayment
 from api.workCost.controllers.ControllerWorkCost import ControllerWorkCost
 from api.costFuel.controllers.CostFuelController import ControllerCostFuel
+from api.son.controllers.ControllerSon import SonController
 
 urlpatterns = [
     #login
@@ -69,10 +71,15 @@ urlpatterns = [
     path('costfuels/<int:pk>/delete/', ControllerCostFuel.as_view({'delete': 'destroy'}), name='costfuel-delete'),
     path('costfuels/by-order/<str:order_key>/', ControllerCostFuel.as_view({'get': 'by_order'}), name='costfuel-by-order'),
     path('costfuels/by-truck/<int:truck_id>/', ControllerCostFuel.as_view({'get': 'by_truck'}), name='costfuel-by-truck'),
-
+    #Son
+    path('sons/', SonController.as_view({'get': 'get', 'post': 'post'}), name='son-list-create'),
+    path('sons/<int:son_id>/', SonController.as_view({
+        'get': 'get',
+        'put': 'put',
+        'delete': 'delete'
+    }), name='son-detail'),
     #tools
     path('tools/', ControllerTool.as_view({'get': 'list'}), name='tool-list'),
-
 
     # Companies
     path('companies/', CompanyViewSet.as_view({

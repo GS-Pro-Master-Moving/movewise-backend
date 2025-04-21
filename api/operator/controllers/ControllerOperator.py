@@ -9,6 +9,8 @@ from api.person.serializers.PersonSerializer import PersonSerializer
 from api.operator.models.Operator import Operator 
 from api.person.models.Person import Person
 from django.db import IntegrityError
+from django.db import transaction
+
 class CustomPagination(pagination.PageNumberPagination):
     page_size = 10  # Default page size
     page_size_query_param = 'page_size'
@@ -63,13 +65,19 @@ class ControllerOperator(viewsets.ViewSet):
         serializer = SerializerOperator(paginated_queryset, many=True)
         return self.paginator.get_paginated_response(serializer.data)
     
+
     def create_operator_person(self, request):
         serializer = SerializerOperator(data=request.data)
         if serializer.is_valid():
             try:
-                operator = serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                # using atomic to ensure that everything is saved correctly or nothing is saved
+                with transaction.atomic():
+                    operator = serializer.save()
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
             except IntegrityError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                # Catch other types of exceptions
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -110,7 +118,6 @@ class ControllerOperator(viewsets.ViewSet):
     
     def getOperatorById(self, request, operator_id):
         try:
-            # Buscar por id en Person
             person = Person.objects.get(id_person=operator_id)
             operator = Operator.objects.get(person=person)
             serializer = SerializerOperator(operator)
