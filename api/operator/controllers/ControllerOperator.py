@@ -69,23 +69,35 @@ class ControllerOperator(viewsets.ViewSet):
             try:
                 with transaction.atomic():
                     operator = serializer.save()
-                    return Response(
-                        SerializerOperator(operator, context={'request': request}).data,
-                        status=status.HTTP_201_CREATED
-                    )
+                    response_data = {
+                        "message": "Operator created successfully",
+                        "data": SerializerOperator(operator, context={'request': request}).data,
+                        "status": status.HTTP_201_CREATED
+                    }
+                    return Response(response_data, status=status.HTTP_201_CREATED)
+                    
             except IntegrityError as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                error_message = f"Database integrity error: {str(e)}"
+                return Response({"message": error_message}, status=status.HTTP_400_BAD_REQUEST)
+                
             except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                error_message = f"Unexpected error: {str(e)}"
+                return Response({"message": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        error_message = {
+            "message": "Validation error",
+            "errors": serializer.errors,
+            "status": status.HTTP_400_BAD_REQUEST
+        }
+        return Response(error_message, status=status.HTTP_400_BAD_REQUEST)
     #temporaly alias
     def create_operator_person(self, request):
         return self.create(request)
     @extend_schema(
         summary="Patch a single field of an operator",
-        description="Actualiza un campo específico (name_t_shift o size_t_shift).",
+        description="Updates a specific field (name_t_shift or size_t_shift).",
         parameters=[
-            OpenApiParameter("field_name", str, OpenApiParameter.PATH, description="Campo a actualizar"),
+            OpenApiParameter("field_name", str, OpenApiParameter.PATH, description="field to update"),
         ],
         request=SerializerOperatorUpdate,
         responses={200: {"message": "Updated"}, 400: {"error": "Bad request"}},
