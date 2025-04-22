@@ -174,7 +174,8 @@ class ControllerOrder(viewsets.ViewSet):
                 # Remove unnecessary fields
                 order_data.pop('expense', None)
                 order_data.pop('income', None)
-                
+                order_data.pop('payStatus',None)
+
                 key = order_data.get('key')
                 fuel_entries = cost_fuel_service.get_by_order(key)
                 fuel_list = []
