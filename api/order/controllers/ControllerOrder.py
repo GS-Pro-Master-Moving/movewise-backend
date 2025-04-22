@@ -156,6 +156,57 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error in listing orders",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
+    
+    def list_with_fuel(self, request):
+        """
+        Endpoint to list all orders paginated (10 per page) including detailed gasoline cost entries.
+        """
+        try:
+            orders = self.order_service.get_all_orders()
+            paginator = PageNumberPagination()
+            paginated = paginator.paginate_queryset(orders, request)
+
+            serialized = OrderSerializer(paginated, many=True)
+            orders_data = serialized.data
+
+            cost_fuel_service = ServicesCostFuel()
+            for order_data in orders_data:
+                # Remove unnecessary fields
+                order_data.pop('expense', None)
+                order_data.pop('income', None)
+                
+                key = order_data.get('key')
+                fuel_entries = cost_fuel_service.get_by_order(key)
+                fuel_list = []
+                for fe in fuel_entries:
+                    truck = fe.truck
+                    fuel_list.append({
+                        'id_fuel': fe.id_fuel,
+                        'cost_fuel': fe.cost_fuel,
+                        'cost_gl': fe.cost_gl,
+                        'fuel_qty': fe.fuel_qty,
+                        'distance': fe.distance,
+                        'truck': {
+                            'id_truck': truck.id_truck,
+                            'number_truck': truck.number_truck,
+                            'type': truck.type,
+                            'name': truck.name,
+                            'status': truck.status,
+                            'category': truck.category,
+                        }
+                    })
+                order_data['fuelCost'] = fuel_list
+
+            return paginator.get_paginated_response(orders_data)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching orders with fuel cost: {e}",
+                "messUser": "Error fetching orders with fuel cost",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
     @extend_schema(
             summary="Update status of an order and receives an evidence",
             description="Returns a list of all orders.",
