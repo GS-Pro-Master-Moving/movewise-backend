@@ -1,3 +1,6 @@
+from django.conf import settings
+from django.conf.urls.static import static #image managment
+
 from django.contrib import admin
 from django.urls import path
 from api.company.controllers.ControllerCompany import ControllerCompany
@@ -113,3 +116,6 @@ urlpatterns = [
         ControllerWorkCost.as_view({'get': 'listByOrderId'}), 
         name='workcost-list-by-order-id'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

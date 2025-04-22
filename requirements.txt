@@ -19,3 +19,8 @@ python-dotenv>=1.0.0
 # Formateo y linting (desarrollo)
 black>=24.0.0
 flake8>=7.0.0 
+python-decouple 
+boto3 
+django-storages
+Pillow #compress images
+
