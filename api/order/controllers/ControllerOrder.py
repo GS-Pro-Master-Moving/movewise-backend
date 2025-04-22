@@ -12,6 +12,7 @@ from api.order.models.Order import StatesUSA
 from django.http import JsonResponse
 from rest_framework.decorators import action
 from api.workCost.services.ServicesWorkCost import ServicesWorkCost
+from rest_framework.pagination import PageNumberPagination
 
 class ControllerOrder(viewsets.ViewSet):
     """
@@ -129,22 +130,30 @@ class ControllerOrder(viewsets.ViewSet):
         
     def list_all(self, request):
         """
-        List all orders.
+        List all orders with pagination.
 
         Returns:
-        - 200 OK: A list of all orders.
+        - 200 OK: A paginated list of all orders.
         """
         try:
             # Get all orders using the service
             orders = self.order_service.get_all_orders()
-            # Return the response with the serialized data
-            return Response(OrderSerializer(orders, many=True).data, status=status.HTTP_200_OK) 
-        
+
+            # Paginate the queryset
+            paginator = PageNumberPagination()
+            paginated_orders = paginator.paginate_queryset(orders, request)
+
+            # Serialize the paginated data
+            serialized_orders = OrderSerializer(paginated_orders, many=True)
+
+            # Return the paginated response
+            return paginator.get_paginated_response(serialized_orders.data)
+
         except Exception as e:
             return Response({
                 "status": "error",
                 "messDev": f"Error fetching orders: {str(e)}",
-                "messUser": f"Error in listing orders",
+                "messUser": "Error in listing orders",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
     @extend_schema(
