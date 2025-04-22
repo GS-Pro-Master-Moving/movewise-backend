@@ -12,6 +12,7 @@ from api.order.models.Order import StatesUSA
 from django.http import JsonResponse
 from rest_framework.decorators import action
 from api.workCost.services.ServicesWorkCost import ServicesWorkCost
+from rest_framework.pagination import PageNumberPagination
 
 class ControllerOrder(viewsets.ViewSet):
     """
@@ -42,34 +43,32 @@ class ControllerOrder(viewsets.ViewSet):
         cost_fuel_service = ServicesCostFuel()
         assign_service = ControllerAssign()
         try:
-            
             # Retrieve the order by its primary key
             order = Order.objects.get(key=pk)
-            
-            # Expense 
-            expense = order.expense
+
+            # Expense
+            expense = float(order.expense or 0)
             print("Expense:", expense)
-            
+
             # Renting cost
-            renting_cost = order.income
+            renting_cost = float(order.income or 0)
             print("Renting cost:", renting_cost)
-            
-            # Calculate fuel cost 
+
+            # Calculate fuel cost
             fuel_cost_list = cost_fuel_service.get_by_order(pk)
             total_fuel_cost = 0
             for fuel_cost in fuel_cost_list:
-                total_fuel_cost = total_fuel_cost + fuel_cost.cost_fuel
+                total_fuel_cost += float(getattr(fuel_cost, 'cost_fuel', 0))
             print("Total fuel cost:", total_fuel_cost)
-            
-            # Calculate work cost 
+
+            # Calculate work cost
             work_cost_list = workcost_service.get_workCost_by_KeyOrder(pk)
             total_work_cost = 0
             for work_cost in work_cost_list:
-                total_work_cost = total_work_cost + work_cost.cost
+                total_work_cost += float(getattr(work_cost, 'cost', 0))
             print("Total work cost:", total_work_cost)
-            
-            # For making it with services its missing the implementation of service get_assigned_operators
-            # For a while its used directly from the controller
+
+            # Get assigned operators
             operators = assign_service.get_assigned_operators(pk)
             driver_salaries = 0.0
             other_salaries = 0.0
@@ -84,20 +83,22 @@ class ControllerOrder(viewsets.ViewSet):
                 else:
                     other_salaries += salary
 
-            # Imprimir los resultados
+            # Print the results
             print("Driver salaries:", driver_salaries)
             print("Other salaries:", other_salaries)
 
-            # Parsing 
-            expense = float(expense)
-            renting_cost = float(renting_cost)
-            total_fuel_cost = float(total_fuel_cost)
-            total_work_cost = float(total_work_cost)
-            
             # Calculate the total cost
-            total_cost = expense + renting_cost + total_fuel_cost + total_work_cost + driver_salaries + other_salaries
-            print("total_cost:",total_cost)
-            # Return the summary as a JSON response 
+            total_cost = (
+                expense +
+                renting_cost +
+                total_fuel_cost +
+                total_work_cost +
+                driver_salaries +
+                other_salaries
+            )
+            print("Total cost:", total_cost)
+
+            # Return the summary as a JSON response
             return Response({
                 "status": "success",
                 "data": {
@@ -115,7 +116,7 @@ class ControllerOrder(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": "Order not found",
-                "messUser": "No se encontró la orden",
+                "messUser": "Order not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
 
@@ -123,29 +124,36 @@ class ControllerOrder(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": f"Error calculating summary cost: {str(e)}",
-                "messUser": f"No se pudo calcular el costo total: {str(e)}",
+                "messUser": f"Error calculating summary cost",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        
     def list_all(self, request):
         """
-        List all orders.
+        List all orders with pagination.
 
         Returns:
-        - 200 OK: A list of all orders.
+        - 200 OK: A paginated list of all orders.
         """
         try:
             # Get all orders using the service
             orders = self.order_service.get_all_orders()
-            # Return the response with the serialized data
-            return Response(OrderSerializer(orders, many=True).data, status=status.HTTP_200_OK) 
-        
+
+            # Paginate the queryset
+            paginator = PageNumberPagination()
+            paginated_orders = paginator.paginate_queryset(orders, request)
+
+            # Serialize the paginated data
+            serialized_orders = OrderSerializer(paginated_orders, many=True)
+
+            # Return the paginated response
+            return paginator.get_paginated_response(serialized_orders.data)
+
         except Exception as e:
             return Response({
                 "status": "error",
                 "messDev": f"Error fetching orders: {str(e)}",
-                "messUser": f"No se pudieron obtener las órdenes: {str(e)}",
+                "messUser": "Error in listing orders",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
     @extend_schema(
@@ -162,7 +170,7 @@ class ControllerOrder(viewsets.ViewSet):
                 return Response({
                     "status": "error",
                     "messDev": "Order is finalized and cannot be modified",
-                    "messUser": "No se pueden modificar órdenes finalizadas",
+                    "messUser": "Cannot edit finalized orders",
                     "data": None
                 }, status=status.HTTP_403_FORBIDDEN)
 
@@ -176,7 +184,7 @@ class ControllerOrder(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": "Order not found",
-                "messUser": "No se encontró la orden",
+                "messUser": "Order not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
         
@@ -184,7 +192,7 @@ class ControllerOrder(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": f"Error updating order: {str(e)}",
-                "messUser": f"No se pudo actualizar la orden: {str(e)}",
+                "messUser": f"Error updating order",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
     @extend_schema(
@@ -236,7 +244,7 @@ class ControllerOrder(viewsets.ViewSet):
                 return Response({
                     "status": "error",
                     "messDev": "Order is finalized and cannot be modified",
-                    "messUser": "No se pueden modificar órdenes finalizadas",
+                    "messUser": "Cannot edit finalized orders",
                     "data": None
                 }, status=status.HTTP_403_FORBIDDEN)
 
@@ -264,7 +272,7 @@ class ControllerOrder(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": "Order not found",
-                "messUser": "No se encontró la orden",
+                "messUser": "Order not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
         
@@ -272,7 +280,7 @@ class ControllerOrder(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": f"Error updating order: {str(e)}",
-                "messUser": f"No se pudo actualizar la orden: {str(e)}",
+                "messUser": f"Error updating order",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -290,7 +298,7 @@ class ControllerOrder(viewsets.ViewSet):
             error_response = {
                 "status": "error",
                 "messDev": f"Error fetching states: {str(e)}",
-                "messUser": f"No se pudieron obtener los estados: {str(e)}",
+                "messUser": f"Error fetching states",
                 "data": None
             }
             return JsonResponse(error_response, status=400)

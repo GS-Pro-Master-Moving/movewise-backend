@@ -44,7 +44,7 @@ class ControllerTruck(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": "Truck not found",
-                "messUser": "Camión no encontrado",
+                "messUser": "Truck not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)    
         
@@ -64,7 +64,7 @@ class ControllerTruck(viewsets.ViewSet):
             return paginator.get_paginated_response({
                 "status": "success",
                 "messDev": "Available trucks fetched",
-                "messUser": "Camiones disponibles obtenidos",
+                "messUser": "Available trucks fetched",
                 "data": SerializerTruck(paginated_trucks, many=True).data
             })
 
@@ -72,7 +72,7 @@ class ControllerTruck(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": f"Error fetching available trucks: {str(e)}",
-                "messUser": "No se pudieron obtener los camiones disponibles",
+                "messUser": "Error fetching available trucks",
                 "data": None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -94,20 +94,20 @@ class ControllerTruck(viewsets.ViewSet):
                 return Response({
                     "status": "success",
                     "messDev": "Truck created successfully",
-                    "messUser": "El camión ha sido registrado",
+                    "messUser": "Truck created successfully",
                     "data": SerializerTruck(truck).data
                 }, status=status.HTTP_201_CREATED)
             except Exception as e:
                 return Response({
                     "status": "error",
                     "messDev": f"Error creating truck: {str(e)}",
-                    "messUser": "Hubo un problema al registrar el camión",
+                    "messUser": "There was an error creating the truck",
                     "data": None
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response({
             "status": "error",
             "messDev": "Validation error",
-            "messUser": "Datos inválidos",
+            "messUser": "Invalid data",
             "data": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -124,21 +124,21 @@ class ControllerTruck(viewsets.ViewSet):
             return Response({
                 "status": "success",
                 "messDev": "Truck status updated",
-                "messUser": f"El camión ha sido {'activado' if truck.status else 'desactivado'}",
+                "messUser": f"The truck has been {'activated' if truck.status else 'deleted'}",
                 "data": SerializerTruck(truck).data
             }, status=status.HTTP_200_OK)
         except Truck.DoesNotExist:
             return Response({
                 "status": "error",
                 "messDev": "Truck not found",
-                "messUser": "No se encontró el camión",
+                "messUser": "Truck not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({
                 "status": "error",
                 "messDev": f"Error updating truck status: {str(e)}",
-                "messUser": "No se pudo actualizar el estado del camión",
+                "messUser": "Truck elimination failed",
                 "data": None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -161,20 +161,20 @@ class ControllerTruck(viewsets.ViewSet):
                 return Response({
                     "status": "success",
                     "messDev": "Truck updated successfully",
-                    "messUser": "El camión ha sido actualizado",
+                    "messUser": "Truck updated successfully",
                     "data": serializer.data
                 }, status=status.HTTP_200_OK)
             return Response({
                 "status": "error",
                 "messDev": "Validation error",
-                "messUser": "Datos inválidos",
+                "messUser": "Validation error",
                 "data": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         except Truck.DoesNotExist:
             return Response({
                 "status": "error",
                 "messDev": "Truck not found",
-                "messUser": "No se encontró el camión",
+                "messUser": "Truck not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
             
@@ -195,6 +195,6 @@ class ControllerTruck(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": "Truck not found",
-                "messUser": "No se encontró el camión",
+                "messUser": "Truck not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
