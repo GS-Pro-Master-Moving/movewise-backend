@@ -30,7 +30,7 @@ class ControllerOrder(viewsets.ViewSet):
         super().__init__(**kwargs)
         self.order_service = ServicesOrder()  
         self.workcost_service = ServicesWorkCost()
-
+    
     def SumaryCost(self, request, pk=None):
         """
         Retrieves the summary of costs for a specific order.
@@ -355,4 +355,93 @@ class ControllerOrder(viewsets.ViewSet):
             }
             return JsonResponse(error_response, status=400)
         
+    def summary_orders_list(self, request):
+        """
+        Retrieves a list of orders with a summary of costs.
+
+        Returns:
+        - 200 OK: A JSON object with the list of orders and their respective summaries.
+        - 400 Bad Request: If an error occurs.
+        """
+        try:
+            # Get all orders using the service
+            orders = self.order_service.get_all_orders()
+
+            # Prepare the response data
+            orders_summary = []
+            for order in orders:
+                # Extract the required fields
+                order_data = {
+                    "key": order.key,
+                    "key_ref": order.key_ref,
+                    "client": order.person.first_name + " " + order.person.last_name,
+                    "date": order.date,
+                    "state": order.state_usa,
+                }
+
+                # Calculate the summary for the order
+                expense = float(order.expense or 0)
+                renting_cost = float(order.income or 0)
+
+                # Calculate fuel cost
+                cost_fuel_service = ServicesCostFuel()
+                fuel_cost_list = cost_fuel_service.get_by_order(order.key)
+                total_fuel_cost = sum(float(getattr(fuel_cost, 'cost_fuel', 0)) for fuel_cost in fuel_cost_list)
+
+                # Calculate work cost
+                workcost_service = ServicesWorkCost()
+                work_cost_list = workcost_service.get_workCost_by_KeyOrder(order.key)
+                total_work_cost = sum(float(getattr(work_cost, 'cost', 0)) for work_cost in work_cost_list)
+
+                # Get assigned operators and calculate salaries
+                assign_service = ControllerAssign()
+                operators = assign_service.get_assigned_operators(order.key)
+                driver_salaries = 0.0
+                other_salaries = 0.0
+                for operator in operators.data:
+                    role = operator.get('rol', None)
+                    salary = float(operator.get('salary', 0))
+                    if role == 'driver':
+                        driver_salaries += salary
+                    else:
+                        other_salaries += salary
+
+                # Calculate the total cost
+                total_cost = (
+                    expense +
+                    renting_cost +
+                    total_fuel_cost +
+                    total_work_cost +
+                    driver_salaries +
+                    other_salaries
+                )
+
+                # Add the summary to the order data
+                order_data["summary"] = {
+                    "expense": expense,
+                    "rentingCost": renting_cost,
+                    "fuelCost": total_fuel_cost,
+                    "workCost": total_work_cost,
+                    "driverSalaries": driver_salaries,
+                    "otherSalaries": other_salaries,
+                    "totalCost": total_cost,
+                }
+
+                # Append the order data to the response list
+                orders_summary.append(order_data)
+
+            # Return the response
+            return Response({
+                "status": "success",
+                "data": orders_summary
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching orders with summaries: {str(e)}",
+                "messUser": "Error fetching orders with summaries",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
     
