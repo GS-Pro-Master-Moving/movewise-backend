@@ -354,22 +354,27 @@ class ControllerOrder(viewsets.ViewSet):
                 "data": None
             }
             return JsonResponse(error_response, status=400)
-        
+    from rest_framework.pagination import PageNumberPagination
+
     def summary_orders_list(self, request):
         """
-        Retrieves a list of orders with a summary of costs.
+        Retrieves a paginated list of orders with a summary of costs.
 
         Returns:
-        - 200 OK: A JSON object with the list of orders and their respective summaries.
+        - 200 OK: A JSON object with the paginated list of orders and their respective summaries.
         - 400 Bad Request: If an error occurs.
         """
         try:
             # Get all orders using the service
             orders = self.order_service.get_all_orders()
 
+            # Paginate the queryset
+            paginator = PageNumberPagination()
+            paginated_orders = paginator.paginate_queryset(orders, request)
+
             # Prepare the response data
             orders_summary = []
-            for order in orders:
+            for order in paginated_orders:
                 # Extract the required fields
                 order_data = {
                     "key": order.key,
@@ -430,11 +435,8 @@ class ControllerOrder(viewsets.ViewSet):
                 # Append the order data to the response list
                 orders_summary.append(order_data)
 
-            # Return the response
-            return Response({
-                "status": "success",
-                "data": orders_summary
-            }, status=status.HTTP_200_OK)
+            # Return the paginated response
+            return paginator.get_paginated_response(orders_summary)
 
         except Exception as e:
             return Response({
@@ -443,5 +445,3 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error fetching orders with summaries",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
-    
-    
