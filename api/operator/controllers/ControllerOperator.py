@@ -95,8 +95,8 @@ class ControllerOperator(viewsets.ViewSet):
         return self.create(request)
     
     @extend_schema(
-            summary="Patch operator and person",
-            description="Updates whole operator"
+    summary="Patch operator and person",
+    description="Updates whole operator and reemplaza imágenes borrando las anteriores"
     )
     def update_operator_person(self, request, id_operator):
         try:
@@ -104,8 +104,20 @@ class ControllerOperator(viewsets.ViewSet):
         except Operator.DoesNotExist:
             return Response({"message": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # partial=True permite actualizaciones parciales con PATCH
-        serializer = SerializerOperator(operator, data=request.data, partial=True, context={'request': request})
+        files = request.FILES
+        if 'photo' in files and operator.photo:
+            operator.photo.delete(save=False)
+        if 'license_front' in files and operator.license_front:
+            operator.license_front.delete(save=False)
+        if 'license_back' in files and operator.license_back:
+            operator.license_back.delete(save=False)
+
+        serializer = SerializerOperator(
+            operator,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
         if serializer.is_valid():
             try:
                 with transaction.atomic():
@@ -116,16 +128,21 @@ class ControllerOperator(viewsets.ViewSet):
                         "status": status.HTTP_200_OK
                     }, status=status.HTTP_200_OK)
             except IntegrityError as e:
-                return Response({"message": f"Database integrity error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"message": f"Database integrity error: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             except Exception as e:
-                return Response({"message": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(
+                    {"message": f"Unexpected error: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         return Response({
             "message": "Validation error",
             "errors": serializer.errors,
             "status": status.HTTP_400_BAD_REQUEST
         }, status=status.HTTP_400_BAD_REQUEST)
-
     @extend_schema(
         summary="Patch a single field of an operator",
         description="Updates a specific field (name_t_shift or size_t_shift).",
