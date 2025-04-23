@@ -45,7 +45,7 @@ urlpatterns = [
     path('operators/<int:operator_id>/patch/<str:field_name>/',ControllerOperator.as_view({'patch': 'patch_field'}), name='operator-patch-field'),
 
     path('operators/create/',ControllerOperator.as_view({'post': 'create_operator_person'}), name='operator-create-person'),
-
+    path('operators/update/<int:id_operator>/', ControllerOperator.as_view({'patch': 'update_operator_person'}), name='operator-update-person'),
     # assigns
     path('assigns/', ControllerAssign.as_view({'post': 'create'}), name='assign-create'),
     path('assigns/bulk/', ControllerAssign.as_view({'post': 'bulk_create'}), name='assign-bulk-create'),

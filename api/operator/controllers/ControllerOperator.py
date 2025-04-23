@@ -93,6 +93,39 @@ class ControllerOperator(viewsets.ViewSet):
     #temporaly alias
     def create_operator_person(self, request):
         return self.create(request)
+    
+    @extend_schema(
+            summary="Patch operator and person",
+            description="Updates whole operator"
+    )
+    def update_operator_person(self, request, id_operator):
+        try:
+            operator = Operator.objects.get(id_operator=id_operator)
+        except Operator.DoesNotExist:
+            return Response({"message": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # partial=True permite actualizaciones parciales con PATCH
+        serializer = SerializerOperator(operator, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            try:
+                with transaction.atomic():
+                    operator = serializer.save()
+                    return Response({
+                        "message": "Operator updated successfully",
+                        "data": SerializerOperator(operator, context={'request': request}).data,
+                        "status": status.HTTP_200_OK
+                    }, status=status.HTTP_200_OK)
+            except IntegrityError as e:
+                return Response({"message": f"Database integrity error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({"message": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({
+            "message": "Validation error",
+            "errors": serializer.errors,
+            "status": status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     @extend_schema(
         summary="Patch a single field of an operator",
         description="Updates a specific field (name_t_shift or size_t_shift).",
