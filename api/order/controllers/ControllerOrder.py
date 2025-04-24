@@ -40,83 +40,20 @@ class ControllerOrder(viewsets.ViewSet):
         - 200 OK: A JSON object with the breakdown of costs and the total.
         - 404 Not Found: If the order does not exist.
         """
-        workcost_service = ServicesWorkCost()
-        cost_fuel_service = ServicesCostFuel()
-        assign_service = ServicesAssign()
         try:
-            # Retrieve the order by its primary key
-            order = Order.objects.get(key=pk)
-
-            # Expense
-            expense = float(order.expense or 0)
-            print("Expense:", expense)
-
-            # Renting cost
-            renting_cost = float(order.income or 0)
-            print("Renting cost:", renting_cost)
-
-            # Calculate fuel cost
-            fuel_cost_list = cost_fuel_service.get_by_order(pk)
-            total_fuel_cost = 0
-            for fuel_cost in fuel_cost_list:
-                total_fuel_cost += float(getattr(fuel_cost, 'cost_fuel', 0))
-            print("Total fuel cost:", total_fuel_cost)
-
-            # Calculate work cost
-            work_cost_list = workcost_service.get_workCost_by_KeyOrder(pk)
-            total_work_cost = 0
-            for work_cost in work_cost_list:
-                total_work_cost += float(getattr(work_cost, 'cost', 0))
-            print("Total work cost:", total_work_cost)
-
-            # Get assigned operators
-            assigned_operators = assign_service.get_assigned_operators(pk)
-            driver_salaries = 0.0
-            other_salaries = 0.0
-
-            # Sum the salaries
-            for assignment in assigned_operators:
-                operator = assignment.operator
-                role = assignment.rol  # Get the role from the Assign model
-                salary = float(operator.salary or 0)
-                if role == 'driver':
-                    driver_salaries += salary
-                else:
-                    other_salaries += salary
-
-            # Print the results
-            print("Driver salaries:", driver_salaries)
-            print("Other salaries:", other_salaries)
-
-            # Calculate the total cost
-            total_cost = (
-                expense +
-                renting_cost +
-                total_fuel_cost +
-                total_work_cost +
-                driver_salaries +
-                other_salaries
-            )
-            print("Total cost:", total_cost)
+            # Use the service to calculate the summary
+            summary = self.order_service.calculate_summary(pk)
 
             # Return the summary as a JSON response
             return Response({
                 "status": "success",
-                "data": {
-                    "expense": expense,
-                    "rentingCost": renting_cost,
-                    "fuelCost": total_fuel_cost,
-                    "workCost": total_work_cost,
-                    "driverSalaries": driver_salaries,
-                    "otherSalaries": other_salaries,
-                    "totalCost": total_cost
-                }
+                "data": summary
             }, status=status.HTTP_200_OK)
 
-        except Order.DoesNotExist:
+        except ValueError as e:
             return Response({
                 "status": "error",
-                "messDev": "Order not found",
+                "messDev": str(e),
                 "messUser": "Order not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
@@ -125,10 +62,10 @@ class ControllerOrder(viewsets.ViewSet):
             return Response({
                 "status": "error",
                 "messDev": f"Error calculating summary cost: {str(e)}",
-                "messUser": f"Error calculating summary cost",
+                "messUser": "Error calculating summary cost",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+            
     def list_all(self, request):
         """
         List all orders with pagination.
@@ -356,7 +293,6 @@ class ControllerOrder(viewsets.ViewSet):
             }
             return JsonResponse(error_response, status=400)
     from rest_framework.pagination import PageNumberPagination
-
     def summary_orders_list(self, request):
         """
         Retrieves a paginated list of orders with a summary of costs.
@@ -385,54 +321,8 @@ class ControllerOrder(viewsets.ViewSet):
                     "state": order.state_usa,
                 }
 
-                # Calculate the summary for the order
-                expense = float(order.expense or 0)
-                renting_cost = float(order.income or 0)
-
-                # Calculate fuel cost
-                cost_fuel_service = ServicesCostFuel()
-                fuel_cost_list = cost_fuel_service.get_by_order(order.key)
-                total_fuel_cost = sum(float(getattr(fuel_cost, 'cost_fuel', 0)) for fuel_cost in fuel_cost_list)
-
-                # Calculate work cost
-                workcost_service = ServicesWorkCost()
-                work_cost_list = workcost_service.get_workCost_by_KeyOrder(order.key)
-                total_work_cost = sum(float(getattr(work_cost, 'cost', 0)) for work_cost in work_cost_list)
-
-                # Get assigned operators and calculate salaries
-                assign_service = ServicesAssign()
-                operators = assign_service.get_assigned_operators(order.key)
-                driver_salaries = 0.0
-                other_salaries = 0.0
-                for assignment in operators:
-                    operator = assignment.operator
-                    role = assignment.rol
-                    salary = float(operator.salary or 0)
-                    if role == 'driver':
-                        driver_salaries += salary
-                    else:
-                        other_salaries += salary
-
-                # Calculate the total cost
-                total_cost = (
-                    expense +
-                    renting_cost +
-                    total_fuel_cost +
-                    total_work_cost +
-                    driver_salaries +
-                    other_salaries
-                )
-
-                # Add the summary to the order data
-                order_data["summary"] = {
-                    "expense": expense,
-                    "rentingCost": renting_cost,
-                    "fuelCost": total_fuel_cost,
-                    "workCost": total_work_cost,
-                    "driverSalaries": driver_salaries,
-                    "otherSalaries": other_salaries,
-                    "totalCost": total_cost,
-                }
+                # Calculate the summary for the order using the service
+                order_data["summary"] = self.order_service.calculate_summary(order.key)
 
                 # Append the order data to the response list
                 orders_summary.append(order_data)
