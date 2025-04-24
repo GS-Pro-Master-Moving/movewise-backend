@@ -1,7 +1,8 @@
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
-from api.assign.controllers.ControllerAssign import ControllerAssign
+from api.assign.models.Assign import Assign
+from api.assign.services.ServicesAssign import ServicesAssign
 from api.costFuel.services.ServicesCostFuel import ServicesCostFuel
 from api.order.serializers.OrderSerializer import OrderSerializer
 from api.order.services.ServicesOrder import ServicesOrder  
@@ -41,7 +42,7 @@ class ControllerOrder(viewsets.ViewSet):
         """
         workcost_service = ServicesWorkCost()
         cost_fuel_service = ServicesCostFuel()
-        assign_service = ControllerAssign()
+        assign_service = ServicesAssign()
         try:
             # Retrieve the order by its primary key
             order = Order.objects.get(key=pk)
@@ -69,15 +70,15 @@ class ControllerOrder(viewsets.ViewSet):
             print("Total work cost:", total_work_cost)
 
             # Get assigned operators
-            operators = assign_service.get_assigned_operators(pk)
+            assigned_operators = assign_service.get_assigned_operators(pk)
             driver_salaries = 0.0
             other_salaries = 0.0
 
             # Sum the salaries
-            for operator in operators.data:
-                role = operator.get('rol', None)  # Getting the role field
-                salary = float(operator.get('salary', 0))  # Parsing to float and getting the salary
-
+            for assignment in assigned_operators:
+                operator = assignment.operator
+                role = assignment.rol  # Get the role from the Assign model
+                salary = float(operator.salary or 0)
                 if role == 'driver':
                     driver_salaries += salary
                 else:
@@ -399,13 +400,14 @@ class ControllerOrder(viewsets.ViewSet):
                 total_work_cost = sum(float(getattr(work_cost, 'cost', 0)) for work_cost in work_cost_list)
 
                 # Get assigned operators and calculate salaries
-                assign_service = ControllerAssign()
+                assign_service = ServicesAssign()
                 operators = assign_service.get_assigned_operators(order.key)
                 driver_salaries = 0.0
                 other_salaries = 0.0
-                for operator in operators.data:
-                    role = operator.get('rol', None)
-                    salary = float(operator.get('salary', 0))
+                for assignment in operators:
+                    operator = assignment.operator
+                    role = assignment.rol
+                    salary = float(operator.salary or 0)
                     if role == 'driver':
                         driver_salaries += salary
                     else:
