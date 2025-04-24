@@ -1,4 +1,4 @@
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, pagination
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
@@ -12,7 +12,12 @@ from api.assign.models.Assign import Assign
 from django.db import models
 from api.assign.serializers.SerializerAssign import BulkAssignSerializer, AssignOperatorSerializer
 from django.db import transaction
+from rest_framework.exceptions import ValidationError, PermissionDenied
 
+class CustomPagination(pagination.PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 class ControllerAssign(viewsets.ViewSet):
     """
     Controller for handling assignments between Operators and Orders.
@@ -37,6 +42,7 @@ class ControllerAssign(viewsets.ViewSet):
         """
         super().__init__(**kwargs)
         self.assign_service = ServicesAssign.ServicesAssign()  # Initialize the Assign service
+        self.paginator = CustomPagination()
     
     @extend_schema(
         summary="Create multiple assignments",
@@ -80,7 +86,77 @@ class ControllerAssign(viewsets.ViewSet):
             return Response({"message": message}, status=status.HTTP_201_CREATED)
         else:
             return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
-    
+    @extend_schema(
+        summary="List all assignments with operator details",
+        description=(
+            "Retrieve all assignments along with operator code, salary, "
+            "first and last name, and payment bonus for expense calculation purposes."
+        ),
+        responses={
+            200: OpenApiResponse(
+                response=AssignOperatorSerializer(many=True),
+                description="A wrapped success response with assignment list"
+            ),
+            400: OpenApiResponse(description="Bad Request: Invalid parameters or data."),
+            401: OpenApiResponse(description="Unauthorized: Missing or invalid credentials."),
+            403: OpenApiResponse(description="Forbidden: Insufficient permissions."),
+            500: OpenApiResponse(description="Internal Server Error: Unexpected error.")
+        }
+    )
+    def list_assign_operator(self, request):
+        """
+        GET /api/assign/operators/
+        Returns a wrapped JSON with paginated assignments and related operator info.
+        """
+        try:
+            qs = Assign.objects.select_related(
+                'operator__person',
+                'payment'
+            ).order_by('-assigned_at')
+
+            # paginate
+            page = self.paginator.paginate_queryset(qs, request, view=self)
+            serializer = AssignOperatorSerializer(page, many=True)
+            data = serializer.data
+
+            return Response({
+                "status":    "success",
+                "messDev":   "Assignments retrieved successfully",
+                "messUser":  "Assignments list fetched.",
+                "data":      data,
+                "pagination": {
+                    "count":     self.paginator.page.paginator.count,
+                    "next":      self.paginator.get_next_link(),
+                    "previous":  self.paginator.get_previous_link(),
+                    "page_size": self.paginator.page_size,
+                }
+            }, status=status.HTTP_200_OK)
+
+        except ValidationError as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "Invalid request parameters.",
+                "data":     None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except PermissionDenied as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "You do not have permission to view these assignments.",
+                "data":     None
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        except Exception as exc:
+            # Ideally, log `exc` here
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "An unexpected error occurred while retrieving assignments.",
+                "data":     None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @extend_schema(
         summary="Create a new assignment",
         description="Creates a new assignment between an Operator, a Truck, and an Order.",
@@ -128,18 +204,6 @@ class ControllerAssign(viewsets.ViewSet):
             )
         }
     )
-    def list_assign_operator(self, request):
-        """
-        GET /api/assign/operators/
-        Devuelve todos los assigns con la info del operador + bonus.
-        """
-        qs = Assign.objects.select_related(
-            'operator__person',
-            'payment'
-        ).order_by('-assigned_at')
-
-        serializer = AssignOperatorSerializer(qs, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
     def create(self, request):
         serializer = SerializerAssign(data=request.data)
         if serializer.is_valid():
@@ -398,7 +462,6 @@ class ControllerAssign(viewsets.ViewSet):
         }
     )
     def list_by_order(self, request, order_id):
-        # Primero, verifica si la orden existe
         try:
             order = Order.objects.get(key=order_id)
         except Order.DoesNotExist:

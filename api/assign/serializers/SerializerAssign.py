@@ -10,7 +10,7 @@ from api.person.models.Person import Person
 class AssignOperatorSerializer(serializers.ModelSerializer):
     date       = serializers.DateTimeField(source='assigned_at')
     code       = serializers.CharField(source='operator.code')
-    salary     = serializers.DecimalField(source='operator.salary', max_digits=10, decimal_places=2)
+    salary     = serializers.DecimalField(source='operator.salary', max_digits=10, decimal_places=2,coerce_to_string=False)
     first_name = serializers.CharField(source='operator.person.first_name')
     last_name  = serializers.CharField(source='operator.person.last_name')
     bonus      = serializers.DecimalField(source='payment.bonus', max_digits=10, decimal_places=2, allow_null=True)
