@@ -2,7 +2,10 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 from api.assign.controllers.ControllerAssign import ControllerAssign
+from api.assign.models.Assign import Assign
+from api.costFuel.serializers.SerializerCostFuel import SerializerCostFuel
 from api.costFuel.services.ServicesCostFuel import ServicesCostFuel
+from api.operator.serializers.SerializerOperator import SerializerOperator
 from api.order.serializers.OrderSerializer import OrderSerializer
 from api.order.services.ServicesOrder import ServicesOrder  
 from api.order.models.Order import Order
@@ -11,6 +14,7 @@ from api.order.serializers.StatesSerializer import StatesUSASerializer
 from api.order.models.Order import StatesUSA
 from django.http import JsonResponse
 from rest_framework.decorators import action
+from api.truck.models.Truck import Truck
 from api.workCost.services.ServicesWorkCost import ServicesWorkCost
 from rest_framework.pagination import PageNumberPagination
 
@@ -355,4 +359,56 @@ class ControllerOrder(viewsets.ViewSet):
             }
             return JsonResponse(error_response, status=400)
         
-    
+    @extend_schema(
+        summary="Get an order by ID with its operators, trucks, and cost fuel",
+        description="Returns a detailed order with its operators, trucks, and cost fuel.",
+        responses={200: StatesUSASerializer(many=True)}
+    )
+    def get_order_details(self, request, pk=None):
+        """
+        Get an order by ID with its operators, trucks, and cost fuel.
+
+        Returns:
+        - 200 OK: A detailed order with its operators, trucks, and cost fuel.
+        - 404 Not Found: If the order does not exist.
+        """
+        # Services
+        cost_fuel_service = ServicesCostFuel()
+        try:
+            # Retrieve the order by its primary key
+            order = Order.objects.get(key=pk)
+            
+            # Retrieve the operators in the order 
+            assigned_operators = Assign.objects.filter(order__key=pk).select_related('operator')
+            print("Assigned Operators:", assigned_operators)
+            # Retrieve the trucks in the order
+            assigned_trucks = Truck.objects.filter(assignments__order__key=pk).distinct()
+            print("Assigned Trucks:", assigned_trucks)
+            # Retrieve the cost fuel in the order
+            cost_fuel = cost_fuel_service.get_by_order(pk)
+            print("Cost Fuel:", cost_fuel)
+            # Serialize the order data
+            serialized_order = OrderSerializer(order)
+            # Serialize the cost fuel data
+            serialized_cost_fuel = SerializerCostFuel(cost_fuel, many=True)
+            # Serualize the assigned operators data
+            serialized_operators = SerializerOperator(
+                [op.operator for op in assigned_operators], many=True
+            )
+            # Prepare the response data
+            response = {
+                "order": serialized_order.data,
+                "assigned_operators": serialized_operators.data,
+                "cost_fuel": serialized_cost_fuel.data,
+                #"assigned_trucks": [truck for truck in assigned_trucks]
+            }
+            # Return the detailed order as a JSON response
+            return Response(response, status=status.HTTP_200_OK)
+
+        except Order.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Order not found",
+                "messUser": "Order not found",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
