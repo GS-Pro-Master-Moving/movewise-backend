@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from api.assign.services import ServicesAssign  # Importing the module instead of the class
 from api.assign.models.Assign import Assign
 from django.db import models
-from api.assign.serializers.SerializerAssign import BulkAssignSerializer
+from api.assign.serializers.SerializerAssign import BulkAssignSerializer, AssignOperatorSerializer
 from django.db import transaction
 
 class ControllerAssign(viewsets.ViewSet):
@@ -128,7 +128,18 @@ class ControllerAssign(viewsets.ViewSet):
             )
         }
     )
-    
+    def list_assign_operator(self, request):
+        """
+        GET /api/assign/operators/
+        Devuelve todos los assigns con la info del operador + bonus.
+        """
+        qs = Assign.objects.select_related(
+            'operator__person',
+            'payment'
+        ).order_by('-assigned_at')
+
+        serializer = AssignOperatorSerializer(qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     def create(self, request):
         serializer = SerializerAssign(data=request.data)
         if serializer.is_valid():
@@ -752,10 +763,7 @@ class ControllerAssign(viewsets.ViewSet):
                 "email": operator.email if hasattr(operator, 'email') else None,
                 "phone": operator.phone if hasattr(operator, 'phone') else None,
                 "address": operator.address if hasattr(operator, 'address') else None,
-                
-                # You can add more fields as needed
             }
-            
             # Optionally include user and company information if needed
             if hasattr(operator, 'user') and operator.user:
                 operator_info.update({
