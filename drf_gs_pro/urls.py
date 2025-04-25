@@ -49,6 +49,7 @@ urlpatterns = [
     # assigns
     path('list-assign-operator/', ControllerAssign.as_view({'get': 'list_assign_operator'}), name='assign-operator'),
     path('assigns/', ControllerAssign.as_view({'post': 'create'}), name='assign-create'),
+    path('assign/create-payment/', ControllerAssign.as_view({'post':'create_assign_payment'}), name='create-assign-payment'),
     path('assigns/bulk/', ControllerAssign.as_view({'post': 'bulk_create'}), name='assign-bulk-create'),
     path('assigns/<int:pk>/', ControllerAssign.as_view({'get': 'retrieve', 'delete': 'delete'}), name='assign-detail'),
     path('assigns/operator/<int:operator_id>/', ControllerAssign.as_view({'get': 'list_by_operator'}), name='assigns-by-operator'),
