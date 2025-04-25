@@ -2,6 +2,7 @@ from django.db import models
 from api.subscription.models.Subscription import Subscription
 
 class Company(models.Model):
+    id = models.AutoField(primary_key=True)
     license_number = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)

@@ -29,14 +29,7 @@ class User(AbstractBaseUser):
     user_name = models.CharField(max_length=50, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    id_company = models.ForeignKey(
-        Company,
-        related_name='users',
-        on_delete=models.CASCADE,
-        db_column='id_company',
-        null=False,
-        blank=False
-    )
+    id_company = models.ForeignKey(Company, on_delete=models.CASCADE, db_column="id_company")
     # required fields for django
     USERNAME_FIELD = "user_name"
     REQUIRED_FIELDS = []
