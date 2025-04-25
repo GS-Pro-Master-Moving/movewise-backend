@@ -264,15 +264,29 @@ class ControllerOrder(viewsets.ViewSet):
         - 201 Created: If the order is successfully created.
         - 400 Bad Request: If the request contains invalid data.
         """
-        serializer = OrderSerializer(data=request.data)
-        if serializer.is_valid():
-            order = self.order_service.create_order(serializer.validated_data) 
-            return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+        print("\n=== STARTING ORDER CREATION ===")
+        print("Request headers:", request.headers)
+        print("Request data:", request.data)
         
-        # En caso de error, se envía un mensaje más detallado en inglés
-        error_messages = serializer.errors
-        detailed_error_message = f"Validation errors: {error_messages}"
-        return Response({"error": detailed_error_message}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = OrderSerializer(
+            data=request.data,
+            context={'request': request}  # IMPORTAN SEND CONTEXT
+        )
+        
+        if not serializer.is_valid():
+            print("Serializer errors:", serializer.errors)
+            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            order = serializer.save()
+            print("Order created successfully:", order.key)
+            return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print("Critical error:", str(e))
+            return Response(
+                {"error": f"Error creating order: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     # This decorator customizes the Swagger/OpenAPI documentation for this endpoint.
     # It defines a summary, a detailed description, the type of data expected in the request,
