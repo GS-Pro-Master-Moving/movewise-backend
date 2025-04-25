@@ -357,10 +357,10 @@ class ControllerOrder(viewsets.ViewSet):
                 }, status=status.HTTP_403_FORBIDDEN)
 
             # Update the order using the service
-            updated_order = self.order_service.delete_order_with_status(pk)
+            result = self.order_service.delete_order_with_status(pk)
             
             # Return the response with the updated data
-            return Response(OrderSerializer(updated_order).data, status=status.HTTP_200_OK) 
+            return Response(result, status=status.HTTP_200_OK) 
         
         except Order.DoesNotExist:
             return Response({

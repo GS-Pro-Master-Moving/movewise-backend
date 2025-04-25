@@ -72,6 +72,9 @@ class RepositoryOrder(IRepositoryOrder):
             order = Order.objects.get(key=order_key)
             order.status = "Inactive"
             order.save()
-            return order
+            if(order.status == "Inactive"):
+                return f"Order deleted successfully. status: {order.status}"
+            else:
+                return f"Order could not be deleted. status: {order.status}"
         except Order.DoesNotExist:
-            return f"Order {order_key} does not exist."
+            return f"Order does not exist."
