@@ -1,4 +1,4 @@
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, pagination
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
@@ -10,9 +10,17 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from api.assign.services import ServicesAssign  # Importing the module instead of the class
 from api.assign.models.Assign import Assign
 from django.db import models
-from api.assign.serializers.SerializerAssign import BulkAssignSerializer
+from api.assign.serializers.SerializerAssign import BulkAssignSerializer, AssignOperatorSerializer
 from django.db import transaction
+from rest_framework.exceptions import ValidationError, PermissionDenied
+from datetime import datetime, timedelta
+from django.db.models.functions import ExtractWeek
 
+
+class CustomPagination(pagination.PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 class ControllerAssign(viewsets.ViewSet):
     """
     Controller for handling assignments between Operators and Orders.
@@ -37,6 +45,7 @@ class ControllerAssign(viewsets.ViewSet):
         """
         super().__init__(**kwargs)
         self.assign_service = ServicesAssign.ServicesAssign()  # Initialize the Assign service
+        self.paginator = CustomPagination()
     
     @extend_schema(
         summary="Create multiple assignments",
@@ -80,7 +89,147 @@ class ControllerAssign(viewsets.ViewSet):
             return Response({"message": message}, status=status.HTTP_201_CREATED)
         else:
             return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
-    
+    @extend_schema(
+        summary="List all assignments with operator details",
+        description=(
+            "Retrieve all assignments along with operator code, salary, "
+            "first and last name, and payment bonus for expense calculation purposes."
+        ),
+        responses={
+            200: OpenApiResponse(
+                response=AssignOperatorSerializer(many=True),
+                description="A wrapped success response with assignment list"
+            ),
+            400: OpenApiResponse(description="Bad Request: Invalid parameters or data."),
+            401: OpenApiResponse(description="Unauthorized: Missing or invalid credentials."),
+            403: OpenApiResponse(description="Forbidden: Insufficient permissions."),
+            500: OpenApiResponse(description="Internal Server Error: Unexpected error.")
+        }
+    )
+
+
+    def list_assign_operator(self, request):
+        """
+        GET /api/assign/operators/?number_week=15&year=2025
+        Returns paginated assignments filtered by ISO week number and year, with week date range.
+        """
+        try:
+            number_week = request.query_params.get('number_week', None)
+            year_param = request.query_params.get('year', None)
+
+            # validate year
+            if year_param is not None:
+                try:
+                    year = int(year_param)
+                    if year < 1900 or year > 2100:
+                        raise ValueError("Invalid year provided.")
+                except ValueError:
+                    return Response({
+                        "status": "error",
+                        "messDev": "Year must be a valid 4-digit number.",
+                        "messUser": "The year provided is invalid. Use 4 digits (e.g., 2024).",
+                        "data": None
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                year = datetime.now().year
+
+            start_date = end_date = None
+            week_info = {}
+
+            qs = Assign.objects.select_related(
+                'operator__person',
+                'payment'
+            )
+
+            if number_week is not None:
+                try:
+                    number_week = int(number_week)
+                    if number_week < 1 or number_week > 53:
+                        raise ValueError("Invalid week number. Must be between 1 and 53.")
+
+                    # Calculate week start date
+                    start_date = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
+                    end_date = start_date + timedelta(days=6)
+
+                    qs = qs.filter(assigned_at__date__range=(start_date.date(), end_date.date()))
+
+                    week_info = {
+                        "week_number": number_week,
+                        "year": year,
+                        "start_date": start_date.strftime("%Y-%m-%d"),
+                        "end_date": end_date.strftime("%Y-%m-%d"),
+                    }
+
+                except ValueError as e:
+                    return Response({
+                        "status": "error",
+                        "messDev": str(e),
+                        "messUser": "Invalid week number provided.",
+                        "data": None
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            qs = qs.order_by('-assigned_at')
+
+            # Paginate
+            page = self.paginator.paginate_queryset(qs, request, view=self)
+            serializer = AssignOperatorSerializer(page, many=True)
+            data = serializer.data
+
+            if not data:
+                return Response({
+                    "status":    "success",
+                    "messDev":   "No assignments found for the given week.",
+                    "messUser":  "There are no assignments for the selected week.",
+                    "data":      [],
+                    "week_info": week_info or None,
+                    "pagination": {
+                        "count":     0,
+                        "next":      None,
+                        "previous":  None,
+                        "page_size": self.paginator.page_size,
+                    }
+                }, status=status.HTTP_200_OK)
+
+            return Response({
+                "status":    "success",
+                "messDev":   "Assignments retrieved successfully",
+                "messUser":  "Assignments list fetched.",
+                "data":      data,
+                "week_info": week_info or None,
+                "pagination": {
+                    "count":     self.paginator.page.paginator.count,
+                    "next":      self.paginator.get_next_link(),
+                    "previous":  self.paginator.get_previous_link(),
+                    "page_size": self.paginator.page_size,
+                }
+            }, status=status.HTTP_200_OK)
+
+        except ValidationError as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "Invalid request parameters.",
+                "data":     None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except PermissionDenied as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "You do not have permission to view these assignments.",
+                "data":     None
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        except Exception as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "An unexpected error occurred while retrieving assignments.",
+                "data":     None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
     @extend_schema(
         summary="Create a new assignment",
         description="Creates a new assignment between an Operator, a Truck, and an Order.",
@@ -128,7 +277,6 @@ class ControllerAssign(viewsets.ViewSet):
             )
         }
     )
-    
     def create(self, request):
         serializer = SerializerAssign(data=request.data)
         if serializer.is_valid():
@@ -387,7 +535,6 @@ class ControllerAssign(viewsets.ViewSet):
         }
     )
     def list_by_order(self, request, order_id):
-        # Primero, verifica si la orden existe
         try:
             order = Order.objects.get(key=order_id)
         except Order.DoesNotExist:
@@ -752,10 +899,7 @@ class ControllerAssign(viewsets.ViewSet):
                 "email": operator.email if hasattr(operator, 'email') else None,
                 "phone": operator.phone if hasattr(operator, 'phone') else None,
                 "address": operator.address if hasattr(operator, 'address') else None,
-                
-                # You can add more fields as needed
             }
-            
             # Optionally include user and company information if needed
             if hasattr(operator, 'user') and operator.user:
                 operator_info.update({
