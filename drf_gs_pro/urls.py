@@ -19,6 +19,7 @@ from api.payment.controllers.ControllerPayment import ControllerPayment
 from api.workCost.controllers.ControllerWorkCost import ControllerWorkCost
 from api.costFuel.controllers.CostFuelController import ControllerCostFuel
 from api.son.controllers.ControllerSon import SonController
+from api.plan.controllers.PlanController import PlanController
 
 urlpatterns = [
     #login
@@ -111,13 +112,12 @@ urlpatterns = [
     }), name='payment-detail'),
 
     #WorkCost
-    path('workcost/', ControllerWorkCost.as_view({
-    'get': 'list',
-    'post': 'create'
-    }), name='workcost-list-create'),
-    path('workcost/order/<str:order_id>/', 
-        ControllerWorkCost.as_view({'get': 'listByOrderId'}), 
-        name='workcost-list-by-order-id'),
+    path('workcost/', ControllerWorkCost.as_view({'get': 'list','post': 'create'}), name='workcost-list-create'),
+    path('workcost/order/<str:order_id>/', ControllerWorkCost.as_view({'get': 'listByOrderId'}), name='workcost-list-by-order-id'),
+
+    #Plan
+    path('plans/',PlanController.as_view({'get':  'list','post': 'create'}),name='plans-list-create'),
+    path('plans/<int:pk>/',PlanController.as_view({'get':'retrieve','delete': 'destroy', 'patch':  'partial_update'}),name='plans-detail'),
 ]
 
 if settings.DEBUG:
