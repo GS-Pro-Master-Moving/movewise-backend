@@ -8,6 +8,7 @@ from api.payment.models.Payment import Payment
 from api.person.models.Person import Person
 
 class AssignOperatorSerializer(serializers.ModelSerializer):
+    id_assign  = serializers.IntegerField(source='id')
     date       = serializers.DateTimeField(source='assigned_at')
     code       = serializers.CharField(source='operator.code')
     salary     = serializers.DecimalField(source='operator.salary', max_digits=10, decimal_places=2,coerce_to_string=False)
@@ -18,6 +19,7 @@ class AssignOperatorSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Assign
         fields = (
+            'id_assign',
             'date',
             'code',
             'salary',
