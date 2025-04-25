@@ -19,41 +19,45 @@ class JWTAuthentication(BaseAuthentication):
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
             
-            # Buscar User (admin)
+            # Search User (admin)
             try:
                 user = User.objects.get(person__id_person=payload["person_id"])
                 return (user, None)
             except User.DoesNotExist:
-                # Buscar Operator
+                # Search Operator
                 try:
                     person = Person.objects.get(id_person=payload["person_id"])
-                    Operator.objects.get(person=person)  # Verifica que exista el operador
+                    Operator.objects.get(person=person)  
                     return (person, None)
                 except (Person.DoesNotExist, Operator.DoesNotExist):
-                    raise AuthenticationFailed("Acceso no autorizado")
+                    raise AuthenticationFailed("Unauthorized access")
                 
         except jwt.ExpiredSignatureError:
-            raise AuthenticationFailed("Token expirado")
+            raise AuthenticationFailed("Token expired")
         except Exception as e:
-            raise AuthenticationFailed(f"Token inválido: {str(e)}")
+            raise AuthenticationFailed(f"Invalid token: {str(e)}")
 
     @staticmethod
     def generate_jwt(obj) -> str:
-        """Genera token para User (Admin) o Person (Operator)"""
+        "Generate token for User (Admin) or Person (Operator)"
         if hasattr(obj, 'person'):  # Es un User (Admin)
+            company_id = obj.person.id_company.id
             payload = {
                 "person_id": obj.person.id_person,
+                "company_id": company_id,
                 "email": obj.person.email,
                 "is_admin": True,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1),
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2),
                 "iat": datetime.datetime.utcnow()
             }
-        elif hasattr(obj, 'id_person'):  # Es una Person (Operator)
+        elif hasattr(obj, 'id_person'):  # Is a Person (Operator)
+            company_id = obj.id_company.id
             payload = {
                 "person_id": obj.id_person,
+                "company_id": company_id,
                 "email": obj.email or "operador@empresa.com",
                 "is_admin": False,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1),
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2),
                 "iat": datetime.datetime.utcnow()
             }
         else:

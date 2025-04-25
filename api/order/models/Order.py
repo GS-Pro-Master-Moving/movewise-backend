@@ -83,7 +83,7 @@ class Order(models.Model):
         related_name='orders',
         on_delete=models.CASCADE,
         db_column='id_company',
-        null=True,
+        null=False,
         blank=True
     )
     person = models.ForeignKey( # Person realtion

@@ -19,7 +19,7 @@ class Person(models.Model):
         related_name='persons',
         on_delete=models.CASCADE,
         db_column='id_company',
-        null=True,
+        null=False,
         blank=True
     )
 

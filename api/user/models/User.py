@@ -3,11 +3,12 @@ from django.contrib.auth.hashers import make_password
 from django.db import models
 from api.person.models import Person
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from api.company.models.Company import Company
 
 class UserManager(BaseUserManager):
     def create_user(self, user_name, password=None, **extra_fields):
         if not user_name:
-            raise ValueError("El user_name es obligatorio")
+            raise ValueError("the user_name field is required")
         user = self.model(user_name=user_name, **extra_fields)
         if password and not password.startswith('pbkdf2_sha256$'):
             password = make_password(password)
@@ -28,8 +29,15 @@ class User(AbstractBaseUser):
     user_name = models.CharField(max_length=50, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    # Campos requeridos por Django
+    id_company = models.ForeignKey(
+        Company,
+        related_name='users',
+        on_delete=models.CASCADE,
+        db_column='id_company',
+        null=False,
+        blank=False
+    )
+    # required fields for django
     USERNAME_FIELD = "user_name"
     REQUIRED_FIELDS = []
 
@@ -37,7 +45,7 @@ class User(AbstractBaseUser):
 
     class Meta:
         app_label = 'api'
-        db_table = 'api_user'  # Especificamos el nombre exacto de la tabla
+        db_table = 'api_user'  # name of the table
 
     def __str__(self):
         return self.user_name
