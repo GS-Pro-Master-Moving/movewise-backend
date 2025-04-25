@@ -119,3 +119,15 @@ class ServicesOrder(IServicesOrder):
 
             except Order.DoesNotExist:
                 raise ValueError("Order not found")
+            
+    def delete_order_with_status(self, order_key):
+        """
+        Deletes an order if its status is "Finished".
+
+        Args:
+        - order_key: The key of the order to be deleted.
+
+        Returns:
+        - A message indicating the result of the operation.
+        """
+        return self.repository.delete_order_with_status(order_key)

@@ -337,3 +337,43 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error fetching orders with summaries",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
+            
+    @extend_schema(
+        summary="Update status of an order for elimination",
+        description="Update the status of an order.",
+        responses={200: OrderSerializer(many=True), 400: {"error": "Invalid data or evidence not found"}}
+    )
+    def delete_order_with_status(self, request, pk=None):
+        try:
+            # Get the order by its key
+            order = Order.objects.get(key=pk)
+            #validation if the order status is finalized it cannot be updated
+            if order.status == "Inactive":
+                return Response({
+                    "status": "error",
+                    "messDev": "Order is deleted and cannot be modified",
+                    "messUser": "Cannot edit deleted orders",
+                    "data": None
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # Update the order using the service
+            updated_order = self.order_service.delete_order_with_status(pk)
+            
+            # Return the response with the updated data
+            return Response(OrderSerializer(updated_order).data, status=status.HTTP_200_OK) 
+        
+        except Order.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Order not found",
+                "messUser": "Order not found",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error updating order: {str(e)}",
+                "messUser": f"Error updating order",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
