@@ -13,6 +13,9 @@ from django.db import models
 from api.assign.serializers.SerializerAssign import BulkAssignSerializer, AssignOperatorSerializer
 from django.db import transaction
 from rest_framework.exceptions import ValidationError, PermissionDenied
+from datetime import datetime, timedelta
+from django.db.models.functions import ExtractWeek
+
 
 class CustomPagination(pagination.PageNumberPagination):
     page_size = 10
@@ -103,27 +106,96 @@ class ControllerAssign(viewsets.ViewSet):
             500: OpenApiResponse(description="Internal Server Error: Unexpected error.")
         }
     )
+
+
     def list_assign_operator(self, request):
         """
-        GET /api/assign/operators/
-        Returns a wrapped JSON with paginated assignments and related operator info.
+        GET /api/assign/operators/?number_week=15&year=2025
+        Returns paginated assignments filtered by ISO week number and year, with week date range.
         """
         try:
+            number_week = request.query_params.get('number_week', None)
+            year_param = request.query_params.get('year', None)
+
+            # validate year
+            if year_param is not None:
+                try:
+                    year = int(year_param)
+                    if year < 1900 or year > 2100:
+                        raise ValueError("Invalid year provided.")
+                except ValueError:
+                    return Response({
+                        "status": "error",
+                        "messDev": "Year must be a valid 4-digit number.",
+                        "messUser": "The year provided is invalid. Use 4 digits (e.g., 2024).",
+                        "data": None
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                year = datetime.now().year
+
+            start_date = end_date = None
+            week_info = {}
+
             qs = Assign.objects.select_related(
                 'operator__person',
                 'payment'
-            ).order_by('-assigned_at')
+            )
 
-            # paginate
+            if number_week is not None:
+                try:
+                    number_week = int(number_week)
+                    if number_week < 1 or number_week > 53:
+                        raise ValueError("Invalid week number. Must be between 1 and 53.")
+
+                    # Calculate week start date
+                    start_date = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
+                    end_date = start_date + timedelta(days=6)
+
+                    qs = qs.filter(assigned_at__date__range=(start_date.date(), end_date.date()))
+
+                    week_info = {
+                        "week_number": number_week,
+                        "year": year,
+                        "start_date": start_date.strftime("%Y-%m-%d"),
+                        "end_date": end_date.strftime("%Y-%m-%d"),
+                    }
+
+                except ValueError as e:
+                    return Response({
+                        "status": "error",
+                        "messDev": str(e),
+                        "messUser": "Invalid week number provided.",
+                        "data": None
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            qs = qs.order_by('-assigned_at')
+
+            # Paginate
             page = self.paginator.paginate_queryset(qs, request, view=self)
             serializer = AssignOperatorSerializer(page, many=True)
             data = serializer.data
+
+            if not data:
+                return Response({
+                    "status":    "success",
+                    "messDev":   "No assignments found for the given week.",
+                    "messUser":  "There are no assignments for the selected week.",
+                    "data":      [],
+                    "week_info": week_info or None,
+                    "pagination": {
+                        "count":     0,
+                        "next":      None,
+                        "previous":  None,
+                        "page_size": self.paginator.page_size,
+                    }
+                }, status=status.HTTP_200_OK)
 
             return Response({
                 "status":    "success",
                 "messDev":   "Assignments retrieved successfully",
                 "messUser":  "Assignments list fetched.",
                 "data":      data,
+                "week_info": week_info or None,
                 "pagination": {
                     "count":     self.paginator.page.paginator.count,
                     "next":      self.paginator.get_next_link(),
@@ -149,13 +221,14 @@ class ControllerAssign(viewsets.ViewSet):
             }, status=status.HTTP_403_FORBIDDEN)
 
         except Exception as exc:
-            # Ideally, log `exc` here
             return Response({
                 "status":   "error",
                 "messDev":  str(exc),
                 "messUser": "An unexpected error occurred while retrieving assignments.",
                 "data":     None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
     @extend_schema(
         summary="Create a new assignment",
