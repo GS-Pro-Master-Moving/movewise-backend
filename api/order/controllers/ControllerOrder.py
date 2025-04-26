@@ -385,6 +385,21 @@ class ControllerOrder(viewsets.ViewSet):
             }
             # Return the detailed order as a JSON response
             return Response(response, status=status.HTTP_200_OK)
+        except Order.DoesNotExist:
+            return Response({
+                "status": "error",
+                "messDev": "Order not found",
+                "messUser": "Order not found",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching order details: {str(e)}",
+                "messUser": "Error fetching order details",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
     @extend_schema(
         summary="Update status of an order for elimination",
         description="Update the status of an order.",
