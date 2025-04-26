@@ -341,6 +341,51 @@ class ControllerOrder(viewsets.ViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
             
     @extend_schema(
+        summary="Get an order by ID with its operators, trucks, and cost fuel",
+        description="Returns a detailed order with its operators, trucks, and cost fuel.",
+        responses={200: StatesUSASerializer(many=True)}
+    )
+    def get_order_details(self, request, pk=None):
+        """
+        Get an order by ID with its operators, trucks, and cost fuel.
+
+        Returns:
+        - 200 OK: A detailed order with its operators, trucks, and cost fuel.
+        - 404 Not Found: If the order does not exist.
+        """
+        # Services
+        cost_fuel_service = ServicesCostFuel()
+        try:
+            # Retrieve the order by its primary key
+            order = Order.objects.get(key=pk)
+            
+            # Retrieve the operators in the order 
+            assigned_operators = Assign.objects.filter(order__key=pk).select_related('operator')
+            print("Assigned Operators:", assigned_operators)
+            # Retrieve the trucks in the order
+            assigned_trucks = Truck.objects.filter(assignments__order__key=pk).distinct()
+            print("Assigned Trucks:", assigned_trucks)
+            # Retrieve the cost fuel in the order
+            cost_fuel = cost_fuel_service.get_by_order(pk)
+            print("Cost Fuel:", cost_fuel)
+            # Serialize the order data
+            serialized_order = OrderSerializer(order)
+            # Serialize the cost fuel data
+            serialized_cost_fuel = SerializerCostFuel(cost_fuel, many=True)
+            # Serualize the assigned operators data
+            serialized_operators = SerializerOperator(
+                [op.operator for op in assigned_operators], many=True
+            )
+            # Prepare the response data
+            response = {
+                "order": serialized_order.data,
+                "assigned_operators": serialized_operators.data,
+                "cost_fuel": serialized_cost_fuel.data,
+                #"assigned_trucks": [truck for truck in assigned_trucks]
+            }
+            # Return the detailed order as a JSON response
+            return Response(response, status=status.HTTP_200_OK)
+    @extend_schema(
         summary="Update status of an order for elimination",
         description="Update the status of an order.",
         responses={200: OrderSerializer(many=True), 400: {"error": "Invalid data or evidence not found"}}
@@ -363,7 +408,6 @@ class ControllerOrder(viewsets.ViewSet):
             
             # Return the response with the updated data
             return Response(result, status=status.HTTP_200_OK) 
-        
         except Order.DoesNotExist:
             return Response({
                 "status": "error",
@@ -411,3 +455,4 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error fetching pending orders",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
+
