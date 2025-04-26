@@ -1,4 +1,4 @@
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, pagination
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
@@ -10,9 +10,18 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from api.assign.services import ServicesAssign  # Importing the module instead of the class
 from api.assign.models.Assign import Assign
 from django.db import models
-from api.assign.serializers.SerializerAssign import BulkAssignSerializer
+from api.assign.serializers.SerializerAssign import BulkAssignSerializer, AssignOperatorSerializer
 from django.db import transaction
+from rest_framework.exceptions import ValidationError, PermissionDenied
+from datetime import datetime, timedelta
+from django.db.models.functions import ExtractWeek
+from api.payment.models.Payment import Payment
+from django.utils import timezone
 
+class CustomPagination(pagination.PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 class ControllerAssign(viewsets.ViewSet):
     """
     Controller for handling assignments between Operators and Orders.
@@ -37,6 +46,7 @@ class ControllerAssign(viewsets.ViewSet):
         """
         super().__init__(**kwargs)
         self.assign_service = ServicesAssign.ServicesAssign()  # Initialize the Assign service
+        self.paginator = CustomPagination()
     
     @extend_schema(
         summary="Create multiple assignments",
@@ -80,7 +90,408 @@ class ControllerAssign(viewsets.ViewSet):
             return Response({"message": message}, status=status.HTTP_201_CREATED)
         else:
             return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
-    
+    @extend_schema(
+        summary="Create payment and update multiple assignments",
+        description=(
+            "Creates a single Payment record and updates multiple Assignments with that payment ID. "
+            "If an assignment already has a payment with status 'paid', it will be skipped and reported."
+        ),
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "id_assigns": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "List of assignment IDs to update"
+                    },
+                    "value": {
+                        "type": "number",
+                        "description": "Payment amount"
+                    },
+                    "date_payment": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Payment date (optional, defaults to now)"
+                    },
+                    "bonus": {
+                        "type": "number",
+                        "description": "Optional bonus amount"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Payment status (e.g. 'paid', 'pending')"
+                    },
+                    "date_start": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Start date for the payment period"
+                    },
+                    "date_end": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "End date for the payment period"
+                    }
+                },
+                "required": ["id_assigns", "value", "status", "date_start", "date_end"]
+            }
+        },
+        responses={
+            201: OpenApiResponse(
+                description="Payment created and assignments updated",
+                examples=[
+                    OpenApiExample(
+                        "Success",
+                        value={
+                            "status": "success",
+                            "messDev": "Payment created and assignments updated",
+                            "messUser": "Operation successful",
+                            "data": {
+                                "payment": {
+                                    "id_pay": 1,
+                                    "value": 10020.00,
+                                    "date_payment": "2025-04-25T12:00:00Z",
+                                    "bonus": 0.00,
+                                    "status": "paid",
+                                    "date_start": "2025-04-21",
+                                    "date_end": "2025-04-27"
+                                },
+                                "updated_assigns": [1, 2, 3],
+                                "skipped_assigns": [4],
+                                "not_found_assigns": []
+                            }
+                        }
+                    )
+                ]
+            ),
+            400: [
+                OpenApiResponse(
+                    description="Validation error",
+                    examples=[
+                        OpenApiExample(
+                            "Missing Fields",
+                            value={
+                                "status": "error",
+                                "messDev": "Validation errors",
+                                "messUser": "Invalid data",
+                                "data": {
+                                    "id_assigns": ["At least one assignment ID is required"],
+                                    "value": ["Value is required"]
+                                }
+                            }
+                        )
+                    ]
+                ),
+                OpenApiResponse(
+                    description="All assignments already paid",
+                    examples=[
+                        OpenApiExample(
+                            "Already Paid",
+                            value={
+                                "status": "error",
+                                "messDev": "All assignments are already paid",
+                                "messUser": "No assignments were updated because they are already paid",
+                                "data": {
+                                    "already_paid": [1, 2],
+                                    "not_found_assigns": [5]
+                                }
+                            }
+                        )
+                    ]
+                )
+            ],
+            404: OpenApiResponse(
+                description="No assignments found",
+                examples=[
+                    OpenApiExample(
+                        "Not Found",
+                        value={
+                            "status": "error",
+                            "messDev": "No assignments found with provided IDs",
+                            "messUser": "No assignments found for given assignment IDs",
+                            "data": {
+                                "not_found_assigns": [10, 11, 12]
+                            }
+                        }
+                    )
+                ]
+            )
+        }
+    )
+    def create_assign_payment(self,request):
+        """
+        Receives:
+        - id_assigns: list of Assign IDs
+        - value, date_payment, bonus, status, date_start, date_end
+
+        Creates a single Payment and updates in bulk all Assign records with that payment,
+        skipping any assignment that already has a payment in status 'paid'.
+        """
+        data = request.data
+
+        # 1) Extract and validate fields
+        id_assigns = data.get('id_assigns', [])
+        value      = data.get('value')
+        date_start = data.get('date_start')
+        date_end   = data.get('date_end')
+        status_p   = data.get('status')
+        bonus      = data.get('bonus', 0)
+        dp         = data.get('date_payment', None)
+
+        errors = {}
+        if not id_assigns:
+            errors['id_assigns'] = ['At least one assignment ID is required']
+        if value is None:
+            errors['value'] = ['Value is required']
+        if not status_p:
+            errors['status'] = ['Status is required']
+        if not date_start:
+            errors['date_start'] = ['Start date is required']
+        if not date_end:
+            errors['date_end'] = ['End date is required']
+        if errors:
+            return Response({
+                'status': 'error',
+                'messDev': 'Validation errors',
+                'messUser': 'Invalid data',
+                'data': errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2) Parse dates
+        try:
+            date_start = datetime.strptime(date_start, '%Y-%m-%d').date()
+            date_end   = datetime.strptime(date_end,   '%Y-%m-%d').date()
+            if dp:
+                try:
+                    dp = datetime.strptime(dp, '%Y-%m-%dT%H:%M:%S')
+                except ValueError:
+                    dp = datetime.strptime(dp, '%Y-%m-%d')
+            else:
+                dp = timezone.now()
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'messDev': f'Invalid date format: {e}',
+                'messUser': 'Date format error',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 3) Verify assignments exist
+        assigns_qs = Assign.objects.filter(id__in=id_assigns)
+        found_assigns = list(assigns_qs)
+        found_ids = [a.id for a in found_assigns]
+        if not found_ids:
+            return Response({
+                'status': 'error',
+                'messDev': 'No assignments found with provided IDs',
+                'messUser': 'Invalid assignment IDs',
+                'data': {'not_found': id_assigns}
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        not_found = [i for i in id_assigns if i not in found_ids]
+
+        # 4) Skip assignments already paid
+        already_paid = []
+        to_update_ids = []
+        for assign in found_assigns:
+            if assign.payment and getattr(assign.payment, 'status', '').lower() == 'paid':
+                already_paid.append(assign.id)
+            else:
+                to_update_ids.append(assign.id)
+
+        # If there's nothing to update, return an error
+        if not to_update_ids:
+            return Response({
+                'status': 'error',
+                'messDev': 'All assignments are already paid',
+                'messUser': 'No assignments were updated because they are already paid',
+                'data': {
+                    'already_paid': already_paid,
+                    'not_found': not_found
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 5) Create Payment and update Assign in a transaction
+        try:
+            with transaction.atomic():
+                payment = Payment.objects.create(
+                    value=value,
+                    date_payment=dp,
+                    bonus=bonus,
+                    status=status_p,
+                    date_start=date_start,
+                    date_end=date_end
+                )
+                Assign.objects.filter(id__in=to_update_ids).update(payment=payment)
+
+            # 6) Successful response
+            return Response({
+                'status': 'success',
+                'messDev': 'Payment created and assignments updated',
+                'messUser': 'Operation successful',
+                'data': {
+                    'payment': {
+                        'id_pay':       payment.id_pay,
+                        'value':        float(payment.value),
+                        'date_payment': payment.date_payment,
+                        'bonus':        float(payment.bonus or 0),
+                        'status':       payment.status,
+                        'date_start':   payment.date_start,
+                        'date_end':     payment.date_end,
+                    },
+                    'updated_assigns':    to_update_ids,
+                    'skipped_assigns':    already_paid,
+                    'not_found_assigns':  not_found
+                }
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'messDev': f'Error creating payment: {e}',
+                'messUser': 'Could not create payment',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        summary="List all assignments with operator details",
+        description=(
+            "Retrieve all assignments along with operator code, salary, "
+            "first and last name, and payment bonus for expense calculation purposes."
+        ),
+        responses={
+            200: OpenApiResponse(
+                response=AssignOperatorSerializer(many=True),
+                description="A wrapped success response with assignment list"
+            ),
+            400: OpenApiResponse(description="Bad Request: Invalid parameters or data."),
+            401: OpenApiResponse(description="Unauthorized: Missing or invalid credentials."),
+            403: OpenApiResponse(description="Forbidden: Insufficient permissions."),
+            500: OpenApiResponse(description="Internal Server Error: Unexpected error.")
+        }
+    )
+    def list_assign_operator(self, request):
+        """
+        GET /api/assign/operators/?number_week=15&year=2025
+        Returns paginated assignments filtered by ISO week number and year, with week date range.
+        """
+        try:
+            number_week = request.query_params.get('number_week', None)
+            year_param = request.query_params.get('year', None)
+
+            # validate year
+            if year_param is not None:
+                try:
+                    year = int(year_param)
+                    if year < 1900 or year > 2100:
+                        raise ValueError("Invalid year provided.")
+                except ValueError:
+                    return Response({
+                        "status": "error",
+                        "messDev": "Year must be a valid 4-digit number.",
+                        "messUser": "The year provided is invalid. Use 4 digits (e.g., 2024).",
+                        "data": None
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                year = datetime.now().year
+
+            start_date = end_date = None
+            week_info = {}
+
+            qs = Assign.objects.select_related(
+                'operator__person',
+                'payment'
+            )
+
+            if number_week is not None:
+                try:
+                    number_week = int(number_week)
+                    if number_week < 1 or number_week > 53:
+                        raise ValueError("Invalid week number. Must be between 1 and 53.")
+
+                    # Calculate week start date
+                    start_date = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
+                    end_date = start_date + timedelta(days=6)
+
+                    qs = qs.filter(assigned_at__date__range=(start_date.date(), end_date.date()))
+
+                    week_info = {
+                        "week_number": number_week,
+                        "year": year,
+                        "start_date": start_date.strftime("%Y-%m-%d"),
+                        "end_date": end_date.strftime("%Y-%m-%d"),
+                    }
+
+                except ValueError as e:
+                    return Response({
+                        "status": "error",
+                        "messDev": str(e),
+                        "messUser": "Invalid week number provided.",
+                        "data": None
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            qs = qs.order_by('-assigned_at')
+
+            # Paginate
+            page = self.paginator.paginate_queryset(qs, request, view=self)
+            serializer = AssignOperatorSerializer(page, many=True)
+            data = serializer.data
+
+            if not data:
+                return Response({
+                    "status":    "success",
+                    "messDev":   "No assignments found for the given week.",
+                    "messUser":  "There are no assignments for the selected week.",
+                    "data":      [],
+                    "week_info": week_info or None,
+                    "pagination": {
+                        "count":     0,
+                        "next":      None,
+                        "previous":  None,
+                        "page_size": self.paginator.page_size,
+                    }
+                }, status=status.HTTP_200_OK)
+
+            return Response({
+                "status":    "success",
+                "messDev":   "Assignments retrieved successfully",
+                "messUser":  "Assignments list fetched.",
+                "data":      data,
+                "week_info": week_info or None,
+                "pagination": {
+                    "count":     self.paginator.page.paginator.count,
+                    "next":      self.paginator.get_next_link(),
+                    "previous":  self.paginator.get_previous_link(),
+                    "page_size": self.paginator.page_size,
+                }
+            }, status=status.HTTP_200_OK)
+
+        except ValidationError as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "Invalid request parameters.",
+                "data":     None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except PermissionDenied as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "You do not have permission to view these assignments.",
+                "data":     None
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        except Exception as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "An unexpected error occurred while retrieving assignments.",
+                "data":     None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
     @extend_schema(
         summary="Create a new assignment",
         description="Creates a new assignment between an Operator, a Truck, and an Order.",
@@ -128,7 +539,6 @@ class ControllerAssign(viewsets.ViewSet):
             )
         }
     )
-    
     def create(self, request):
         serializer = SerializerAssign(data=request.data)
         if serializer.is_valid():
@@ -387,7 +797,6 @@ class ControllerAssign(viewsets.ViewSet):
         }
     )
     def list_by_order(self, request, order_id):
-        # Primero, verifica si la orden existe
         try:
             order = Order.objects.get(key=order_id)
         except Order.DoesNotExist:
@@ -752,10 +1161,7 @@ class ControllerAssign(viewsets.ViewSet):
                 "email": operator.email if hasattr(operator, 'email') else None,
                 "phone": operator.phone if hasattr(operator, 'phone') else None,
                 "address": operator.address if hasattr(operator, 'address') else None,
-                
-                # You can add more fields as needed
             }
-            
             # Optionally include user and company information if needed
             if hasattr(operator, 'user') and operator.user:
                 operator_info.update({

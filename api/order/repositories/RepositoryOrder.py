@@ -66,3 +66,15 @@ class RepositoryOrder(IRepositoryOrder):
     def get_states():
         return StatesUSA.objects.all()
 
+    @staticmethod
+    def delete_order_with_status(order_key):
+        try:
+            order = Order.objects.get(key=order_key)
+            order.status = "Inactive"
+            order.save()
+            if(order.status == "Inactive"):
+                return f"Order deleted successfully. status: {order.status}"
+            else:
+                return f"Order could not be deleted. status: {order.status}"
+        except Order.DoesNotExist:
+            return f"Order does not exist."

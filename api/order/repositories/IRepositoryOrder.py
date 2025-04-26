@@ -24,3 +24,14 @@ class IRepositoryOrder:
     """
     def get_all_orders():
         pass
+    """
+        Deletes an order if its status is "Finished".
+
+        Args:
+        - order_key: The key of the order to be deleted.
+
+        Returns:
+        - A message indicating the result of the operation.
+        """
+    def delete_order_with_status(self, order_key):
+        pass
