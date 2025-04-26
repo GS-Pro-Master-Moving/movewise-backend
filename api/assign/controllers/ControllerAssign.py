@@ -19,7 +19,7 @@ from api.payment.models.Payment import Payment
 from django.utils import timezone
 from api.order.services.ServicesOrder import ServicesOrder
 from api.order.serializers.OrderSerializer import OrderSerializer
-
+from api.truck.serializers.SerializerTruck import SerializerTruck
 class CustomPagination(pagination.PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
@@ -101,58 +101,54 @@ class ControllerAssign(viewsets.ViewSet):
         """
         GET /api/assign/
         Returns paginated list of orders with their operators, vehicles,
-        additional workhosts (costs), summaryList and summaryCost.
+        workhosts (additional costs), summaryList and summaryCost.
         """
         try:
-            # get orders
+            # 1. Obtener todas las órdenes
             orders = self.order_service.get_all_orders()
 
-            # paginate
+            # 2. Paginar
             paginator = self.paginator
             page = paginator.paginate_queryset(orders, request, view=self)
 
             resultados = []
             for order in page:
+                # Datos base de la orden
                 order_data = OrderSerializer(order).data
 
-                #Get related assignments
+                # Asignaciones relacionadas
                 assigns = (
                     Assign.objects
                           .filter(order=order)
                           .select_related('operator__person', 'truck', 'payment')
                 )
 
-                #Assigned operators
+                # Operadores asignados (incluye 'role')
                 order_data['operators'] = AssignOperatorSerializer(assigns, many=True).data
 
-                # Vehicles assigned without duplicates
+                # Vehículos asignados sin duplicados
                 seen = set()
                 vehicles = []
                 for a in assigns:
                     t = a.truck
                     if t and t.id_truck not in seen:
                         seen.add(t.id_truck)
-                        vehicles.append({
-                            'id_truck':     t.id_truck,
-                            'number_truck': t.number_truck,
-                            'type':         t.type,
-                            'name':         t.name,
-                        })
+                        vehicles.append(SerializerTruck(t).data)
                 order_data['vehicles'] = vehicles
 
-                # Workhosts (additional cost)
-                order_data['workcosts'] = [
+                # Workhosts (costos adicionales)
+                order_data['workhosts'] = [
                     {'assign_id': a.id, 'cost': a.additional_costs or 0}
                     for a in assigns
                 ]
 
                 # SummaryList y SummaryCost
-                order_data['summaryList'] = self.order_service.calculate_summary(order.key)
+                order_data['summaryList'] = self.order_service.calculate_summary_list(order.key)
                 order_data['summaryCost'] = self.order_service.calculate_summary(order.key)
 
                 resultados.append(order_data)
 
-            # Return paginated response
+            # 3. Devolver respuesta paginada
             return paginator.get_paginated_response(resultados)
 
         except ValidationError as exc:
@@ -179,8 +175,6 @@ class ControllerAssign(viewsets.ViewSet):
                 "data":     None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-    
     @extend_schema(
         summary="Create multiple assignments",
         description="Creates multiple assignments at once using the provided data.",

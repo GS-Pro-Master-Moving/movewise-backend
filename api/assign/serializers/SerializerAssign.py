@@ -16,7 +16,7 @@ class AssignOperatorSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='operator.person.first_name')
     last_name  = serializers.CharField(source='operator.person.last_name')
     bonus      = serializers.DecimalField(source='payment.bonus', max_digits=10, decimal_places=2, allow_null=True)
-
+    role       = serializers.CharField(source='rol',allow_null=True) 
     class Meta:
         model  = Assign
         fields = (
@@ -27,6 +27,7 @@ class AssignOperatorSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'bonus',
+            'role'
         )
 
 class PersonSerializer(serializers.ModelSerializer):

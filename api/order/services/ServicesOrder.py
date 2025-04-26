@@ -8,6 +8,11 @@ from api.job.models.Job import Job
 from api.workCost.services.ServicesWorkCost import ServicesWorkCost
 from api.assign.services.ServicesAssign import ServicesAssign
 from api.costFuel.services.ServicesCostFuel import ServicesCostFuel
+from api.assign.serializers.SerializerAssign import AssignOperatorSerializer
+from api.truck.serializers.SerializerTruck import SerializerTruck
+from api.assign.models.Assign import Assign
+from django.shortcuts import get_object_or_404
+
 class ServicesOrder(IServicesOrder):
     def __init__(self):
         self.repository = RepositoryOrder()
@@ -131,3 +136,48 @@ class ServicesOrder(IServicesOrder):
         - A message indicating the result of the operation.
         """
         return self.repository.delete_order_with_status(order_key)
+    
+# reports services 
+    def calculate_summary_list(self, order_key):
+        """
+        Devuelve, para la orden indicada, un objeto con:
+        - operators: lista de operadores asignados (con bonus y role).
+        - vehicles: lista de camiones, sin duplicados.
+        - workhosts: costos adicionales por asignación.
+        """
+        # 1) Obtener la orden o 404
+        order = get_object_or_404(Order, key=order_key)
+
+        # 2) Todas sus asignaciones
+        assigns = (
+            Assign.objects
+                  .filter(order=order)
+                  .select_related('operator__person', 'truck', 'payment')
+        )
+
+        # 3) Serializar operadores
+        operators = AssignOperatorSerializer(assigns, many=True).data
+
+        # 4) Serializar vehículos sin duplicados
+        seen = set()
+        vehicles = []
+        for a in assigns:
+            t = a.truck
+            if t and t.id_truck not in seen:
+                seen.add(t.id_truck)
+                vehicles.append(SerializerTruck(t).data)
+
+        # 5) Construir workhosts (additional_costs)
+        workhosts = [
+            {
+                "assign_id": a.id,
+                "cost":      a.additional_costs or 0
+            }
+            for a in assigns
+        ]
+
+        return {
+            "operators": operators,
+            "vehicles":  vehicles,
+            "workhosts": workhosts
+        }
