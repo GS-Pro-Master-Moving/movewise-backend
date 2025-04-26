@@ -7,6 +7,8 @@ from api.assign.models.Assign import AssignAudit
 from api.payment.models.Payment import Payment
 from api.person.models.Person import Person
 from api.order.services import ServicesOrder
+from api.workCost.models.WorkCost import WorkCost
+from django.db.models import Sum
 
 class AssignOperatorSerializer(serializers.ModelSerializer):
     id_assign  = serializers.IntegerField(source='id')
@@ -127,8 +129,13 @@ class AssignSummarySerializer(serializers.ModelSerializer):
         return svc.calculate_summary_list(obj.order.key)
 
     def get_summaryCost(self, obj):
-        """
-        calling the method in the service that generates the cost
-        """
-        svc = ServicesOrder()
-        return svc.calculate_summary(obj.order.key)
+        work_cost = WorkCost.objects.filter(id_order=obj.order.id).aggregate(total=Sum('cost'))['total'] or 0
+        return {
+            "expense": obj.order.expense,
+            "rentingCost": obj.order.income,
+            "fuelCost": 0,
+            "workCost": work_cost,
+            "driverSalaries": self.get_driver_salaries(obj),
+            "otherSalaries": self.get_other_salaries(obj),
+            "totalCost": self.get_total_cost(obj, work_cost),
+        }

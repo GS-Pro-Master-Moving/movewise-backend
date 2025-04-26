@@ -20,6 +20,8 @@ from django.utils import timezone
 from api.order.services.ServicesOrder import ServicesOrder
 from api.order.serializers.OrderSerializer import OrderSerializer
 from api.truck.serializers.SerializerTruck import SerializerTruck
+from api.workCost.serializers.SerializerWorkCost import WorkCostSerializer
+from api.workCost.models.WorkCost import WorkCost
 class CustomPagination(pagination.PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
@@ -97,6 +99,7 @@ class ControllerAssign(viewsets.ViewSet):
         }
         
     )
+
     def list(self, request):
         """
         GET /api/assign/
@@ -115,8 +118,8 @@ class ControllerAssign(viewsets.ViewSet):
 
                 assigns = (
                     Assign.objects
-                          .filter(order=order)
-                          .select_related('operator__person', 'truck', 'payment')
+                        .filter(order=order)
+                        .select_related('operator__person', 'truck', 'payment')
                 )
 
                 order_data['operators'] = AssignOperatorSerializer(assigns, many=True).data
@@ -130,13 +133,9 @@ class ControllerAssign(viewsets.ViewSet):
                         vehicles.append(SerializerTruck(t).data)
                 order_data['vehicles'] = vehicles
 
-                
-                order_data['workhosts'] = [
-                    {'assign_id': a.id, 'cost': a.additional_costs or 0}
-                    for a in assigns
-                ]
+                # work_costs = WorkCost.objects.filter(id_order=order.key)
+                # order_data['workcosts'] = WorkCostSerializer(work_costs, many=True).data
 
-                order_data['summaryList'] = self.order_service.calculate_summary_list(order.key)
                 order_data['summaryCost'] = self.order_service.calculate_summary(order.key)
 
                 resultados.append(order_data)
