@@ -1,9 +1,11 @@
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
+from api.costFuel.serializers.SerializerCostFuel import SerializerCostFuel
 from api.assign.models.Assign import Assign
 from api.assign.services.ServicesAssign import ServicesAssign
 from api.costFuel.services.ServicesCostFuel import ServicesCostFuel
+from api.operator.serializers.SerializerOperator import SerializerOperator
 from api.order.serializers.OrderSerializer import OrderSerializer
 from api.order.services.ServicesOrder import ServicesOrder  
 from api.order.models.Order import Order
@@ -12,6 +14,7 @@ from api.order.serializers.StatesSerializer import StatesUSASerializer
 from api.order.models.Order import StatesUSA
 from django.http import JsonResponse
 from rest_framework.decorators import action
+from api.truck.models.Truck import Truck
 from api.workCost.services.ServicesWorkCost import ServicesWorkCost
 from rest_framework.pagination import PageNumberPagination
 
@@ -292,7 +295,6 @@ class ControllerOrder(viewsets.ViewSet):
                 "data": None
             }
             return JsonResponse(error_response, status=400)
-    from rest_framework.pagination import PageNumberPagination
     def summary_orders_list(self, request):
         """
         Retrieves a paginated list of orders with a summary of costs.

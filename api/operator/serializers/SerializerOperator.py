@@ -85,6 +85,7 @@ class SerializerOperator(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
+        print(f"data hp {validated_data}")
         person_data = validated_data.pop('person')
         sons_data = validated_data.pop('sons', [])
 
