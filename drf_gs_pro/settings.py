@@ -116,7 +116,7 @@ WSGI_APPLICATION = 'drf_gs_pro.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  
-        'NAME': 'django_restframework_gs_pro', 
+        'NAME': 'exampledb', 
         'USER': 'root',  
         'PASSWORD': 'Oracle123', 
         'HOST': 'localhost',  

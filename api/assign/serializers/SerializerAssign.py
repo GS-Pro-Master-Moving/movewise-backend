@@ -6,6 +6,7 @@ from api.truck.models.Truck import Truck
 from api.assign.models.Assign import AssignAudit
 from api.payment.models.Payment import Payment
 from api.person.models.Person import Person
+from api.order.services import ServicesOrder
 
 class AssignOperatorSerializer(serializers.ModelSerializer):
     id_assign  = serializers.IntegerField(source='id')
@@ -89,3 +90,44 @@ class BulkAssignSerializer(serializers.Serializer):
     )
     assigned_at = serializers.DateTimeField()
     rol = serializers.CharField()
+
+
+#report serializers in assign
+class TruckSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Truck
+        fields = ['id_truck', 'number_truck', 'type', 'name']
+
+class AssignSummarySerializer(serializers.ModelSerializer):
+    operator      = AssignOperatorSerializer(source='*')
+    order         = OrderSerializer(source='order', read_only=True)
+    truck         = TruckSerializer(read_only=True)
+    workhosts     = serializers.DecimalField(source='additional_costs', max_digits=20, decimal_places=2)
+    summaryList   = serializers.SerializerMethodField()
+    summaryCost   = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Assign
+        fields = [
+            'id',
+            'operator',
+            'order',
+            'truck',
+            'workhosts',
+            'summaryList',
+            'summaryCost',
+        ]
+
+    def get_summaryList(self, obj):
+        """
+        Call the method in service that generates the list summary.
+        """
+        svc = ServicesOrder()
+        return svc.calculate_summary_list(obj.order.key)
+
+    def get_summaryCost(self, obj):
+        """
+        calling the method in the service that generates the cost
+        """
+        svc = ServicesOrder()
+        return svc.calculate_summary(obj.order.key)
