@@ -6,6 +6,9 @@ from api.truck.models.Truck import Truck
 from api.assign.models.Assign import AssignAudit
 from api.payment.models.Payment import Payment
 from api.person.models.Person import Person
+from api.order.services import ServicesOrder
+from api.workCost.models.WorkCost import WorkCost
+from django.db.models import Sum
 
 class AssignOperatorSerializer(serializers.ModelSerializer):
     id_assign  = serializers.IntegerField(source='id')
@@ -15,7 +18,7 @@ class AssignOperatorSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='operator.person.first_name')
     last_name  = serializers.CharField(source='operator.person.last_name')
     bonus      = serializers.DecimalField(source='payment.bonus', max_digits=10, decimal_places=2, allow_null=True)
-
+    role       = serializers.CharField(source='rol',allow_null=True) 
     class Meta:
         model  = Assign
         fields = (
@@ -26,6 +29,7 @@ class AssignOperatorSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'bonus',
+            'role'
         )
 
 class PersonSerializer(serializers.ModelSerializer):
@@ -34,7 +38,7 @@ class PersonSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'email']  # Solo nombre, apellido y correo
 
 class OrderSerializer(serializers.ModelSerializer):
-    person = PersonSerializer(read_only=True)  # Incluir el serializer de persona
+    person = PersonSerializer(read_only=True)  
 
     class Meta:
         model = Order
@@ -89,3 +93,49 @@ class BulkAssignSerializer(serializers.Serializer):
     )
     assigned_at = serializers.DateTimeField()
     rol = serializers.CharField()
+
+
+#report serializers in assign
+class TruckSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Truck
+        fields = ['id_truck', 'number_truck', 'type', 'name']
+
+class AssignSummarySerializer(serializers.ModelSerializer):
+    operator      = AssignOperatorSerializer(source='*')
+    order         = OrderSerializer(source='order', read_only=True)
+    truck         = TruckSerializer(read_only=True)
+    workhosts     = serializers.DecimalField(source='additional_costs', max_digits=20, decimal_places=2)
+    summaryList   = serializers.SerializerMethodField()
+    summaryCost   = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Assign
+        fields = [
+            'id',
+            'operator',
+            'order',
+            'truck',
+            'workhosts',
+            'summaryList',
+            'summaryCost',
+        ]
+
+    def get_summaryList(self, obj):
+        """
+        Call the method in service that generates the list summary.
+        """
+        svc = ServicesOrder()
+        return svc.calculate_summary_list(obj.order.key)
+
+    def get_summaryCost(self, obj):
+        work_cost = WorkCost.objects.filter(id_order=obj.order.id).aggregate(total=Sum('cost'))['total'] or 0
+        return {
+            "expense": obj.order.expense,
+            "rentingCost": obj.order.income,
+            "fuelCost": 0,
+            "workCost": work_cost,
+            "driverSalaries": self.get_driver_salaries(obj),
+            "otherSalaries": self.get_other_salaries(obj),
+            "totalCost": self.get_total_cost(obj, work_cost),
+        }
