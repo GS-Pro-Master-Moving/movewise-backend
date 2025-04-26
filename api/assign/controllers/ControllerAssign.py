@@ -104,29 +104,23 @@ class ControllerAssign(viewsets.ViewSet):
         workhosts (additional costs), summaryList and summaryCost.
         """
         try:
-            # 1. Obtener todas las órdenes
             orders = self.order_service.get_all_orders()
 
-            # 2. Paginar
             paginator = self.paginator
             page = paginator.paginate_queryset(orders, request, view=self)
 
             resultados = []
             for order in page:
-                # Datos base de la orden
                 order_data = OrderSerializer(order).data
 
-                # Asignaciones relacionadas
                 assigns = (
                     Assign.objects
                           .filter(order=order)
                           .select_related('operator__person', 'truck', 'payment')
                 )
 
-                # Operadores asignados (incluye 'role')
                 order_data['operators'] = AssignOperatorSerializer(assigns, many=True).data
 
-                # Vehículos asignados sin duplicados
                 seen = set()
                 vehicles = []
                 for a in assigns:
@@ -136,19 +130,17 @@ class ControllerAssign(viewsets.ViewSet):
                         vehicles.append(SerializerTruck(t).data)
                 order_data['vehicles'] = vehicles
 
-                # Workhosts (costos adicionales)
+                
                 order_data['workhosts'] = [
                     {'assign_id': a.id, 'cost': a.additional_costs or 0}
                     for a in assigns
                 ]
 
-                # SummaryList y SummaryCost
                 order_data['summaryList'] = self.order_service.calculate_summary_list(order.key)
                 order_data['summaryCost'] = self.order_service.calculate_summary(order.key)
 
                 resultados.append(order_data)
 
-            # 3. Devolver respuesta paginada
             return paginator.get_paginated_response(resultados)
 
         except ValidationError as exc:

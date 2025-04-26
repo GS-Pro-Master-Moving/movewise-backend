@@ -36,7 +36,7 @@ class PersonSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'email']  # Solo nombre, apellido y correo
 
 class OrderSerializer(serializers.ModelSerializer):
-    person = PersonSerializer(read_only=True)  # Incluir el serializer de persona
+    person = PersonSerializer(read_only=True)  
 
     class Meta:
         model = Order
