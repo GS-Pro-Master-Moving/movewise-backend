@@ -377,3 +377,35 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": f"Error updating order",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
+            
+            
+    @extend_schema(
+        summary="List the orders that are Pending",
+        description="List just the orders that are pending.",
+        responses={200: OrderSerializer(many=True), 400: {"error": "Unexpected error"}}
+    )
+    def list_pending_orders(self, request):
+        try:
+            # Get all orders using the service
+            orders = self.order_service.get_all_orders()
+
+            # Filter the orders to get only those with status "Pending"
+            pending_orders = [order for order in orders if order.status == "Pending"]
+
+            # Paginate the queryset
+            paginator = PageNumberPagination()
+            paginated_orders = paginator.paginate_queryset(pending_orders, request)
+
+            # Serialize the paginated data
+            serialized_orders = OrderSerializer(paginated_orders, many=True)
+
+            # Return the paginated response
+            return paginator.get_paginated_response(serialized_orders.data)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching pending orders: {str(e)}",
+                "messUser": "Error fetching pending orders",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
