@@ -7,6 +7,27 @@ from api.assign.models.Assign import AssignAudit
 from api.payment.models.Payment import Payment
 from api.person.models.Person import Person
 
+class AssignOperatorSerializer(serializers.ModelSerializer):
+    id_assign  = serializers.IntegerField(source='id')
+    date       = serializers.DateTimeField(source='assigned_at')
+    code       = serializers.CharField(source='operator.code')
+    salary     = serializers.DecimalField(source='operator.salary', max_digits=10, decimal_places=2,coerce_to_string=False)
+    first_name = serializers.CharField(source='operator.person.first_name')
+    last_name  = serializers.CharField(source='operator.person.last_name')
+    bonus      = serializers.DecimalField(source='payment.bonus', max_digits=10, decimal_places=2, allow_null=True)
+
+    class Meta:
+        model  = Assign
+        fields = (
+            'id_assign',
+            'date',
+            'code',
+            'salary',
+            'first_name',
+            'last_name',
+            'bonus',
+        )
+
 class PersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
