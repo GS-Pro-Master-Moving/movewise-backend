@@ -53,22 +53,31 @@ class ControllerTruck(viewsets.ViewSet):
 
     def get_avaliable(self, request):
         """
-        Returns a paginated list of available (active) trucks.
+        Returns a paginated list of available (active) trucks for the current company.
         """
         try:
-            trucks = self.truck_service.get_avaliable()
+            # Obtener company_id del request
+            company_id = request.company_id
 
-            # Paginación manual con PageNumberPagination
+            # Obtener camiones disponibles para esa empresa
+            trucks = self.truck_service.get_avaliable(company_id)
+
+            # Paginación manual
             paginator = pagination.PageNumberPagination()
-            paginator.page_size = request.query_params.get("page_size", 10)  # Tamaño configurable
+            paginator.page_size = request.query_params.get("page_size", 10)
             paginated_trucks = paginator.paginate_queryset(trucks, request)
 
-            return paginator.get_paginated_response({
+            # Agregar current company id al mensaje de respuesta
+            response_data = paginator.get_paginated_response({
                 "status": "success",
                 "messDev": "Available trucks fetched",
                 "messUser": "Available trucks fetched",
                 "data": SerializerTruck(paginated_trucks, many=True).data
-            })
+            }).data
+
+            response_data['current_company_id'] = company_id  # Agregar el ID de la compañía
+
+            return Response(response_data)
 
         except Exception as e:
             return Response({
