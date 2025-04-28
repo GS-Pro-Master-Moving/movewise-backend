@@ -22,5 +22,8 @@ class IRepositoryOrder:
     """
     Get all orders.
     """
-    def get_all_orders():
-        pass
+    def get_all_orders(self, company_id):
+        """
+        Return all orders belonging to company_id.
+        """
+        raise NotImplementedError

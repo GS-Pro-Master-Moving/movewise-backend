@@ -9,8 +9,10 @@ class ServicesOrder(IServicesOrder):
     def __init__(self):
         self.repository = RepositoryOrder()
 
-    def get_all_orders(self):
-        return self.repository.get_all_orders()
+    def get_all_orders(self, company_id):
+        if not company_id:
+            raise ValidationError("Company context missing")
+        return self.repository.get_all_orders(company_id)
         
     def update_status(self, url, order):
         self.repository.update_status(url,order)

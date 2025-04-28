@@ -130,30 +130,26 @@ class ControllerOrder(viewsets.ViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         
     def list_all(self, request):
-        """
-        List all orders with pagination.
-
-        Returns:
-        - 200 OK: A paginated list of all orders.
-        """
         try:
-            # Get all orders using the service
-            orders = self.order_service.get_all_orders()
+            company_id = request.company_id
+            orders = self.order_service.get_all_orders(company_id)
 
-            # Paginate the queryset
             paginator = PageNumberPagination()
-            paginated_orders = paginator.paginate_queryset(orders, request)
+            paginated = paginator.paginate_queryset(orders, request)
+            serialized = OrderSerializer(paginated, many=True)
 
-            # Serialize the paginated data
-            serialized_orders = OrderSerializer(paginated_orders, many=True)
-
-            # Return the paginated response
-            return paginator.get_paginated_response(serialized_orders.data)
+            return Response({
+                "status": "success",
+                "messDev": f"Orders listed successfully. Current company id: {company_id}",
+                "messUser": "Orders listed successfully",
+                "current_company_id": company_id,
+                "data": paginator.get_paginated_response(serialized.data).data
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({
                 "status": "error",
-                "messDev": f"Error fetching orders: {str(e)}",
+                "messDev": f"Error fetching orders: {e}",
                 "messUser": "Error in listing orders",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -163,22 +159,34 @@ class ControllerOrder(viewsets.ViewSet):
         Endpoint to list all orders paginated (10 per page) including detailed gasoline cost entries.
         """
         try:
-            orders = self.order_service.get_all_orders()
+            # Obtener company_id del request
+            company_id = request.company_id
+
+            # Obtener órdenes filtradas por empresa
+            orders = self.order_service.get_all_orders(company_id)
+
+            # Paginación
             paginator = PageNumberPagination()
-            paginated = paginator.paginate_queryset(orders, request)
+            paginated_orders = paginator.paginate_queryset(orders, request)
 
-            serialized = OrderSerializer(paginated, many=True)
-            orders_data = serialized.data
+            # Serialización
+            serialized_orders = OrderSerializer(paginated_orders, many=True)
+            orders_data = serialized_orders.data
 
+            # Instanciar servicio de CostFuel
             cost_fuel_service = ServicesCostFuel()
+
             for order_data in orders_data:
-                # Remove unnecessary fields
+                # Eliminar campos innecesarios
                 order_data.pop('expense', None)
                 order_data.pop('income', None)
-                order_data.pop('payStatus',None)
+                order_data.pop('payStatus', None)
 
+                # Buscar fuel entries de la orden
                 key = order_data.get('key')
                 fuel_entries = cost_fuel_service.get_by_order(key)
+
+                # Formatear la lista de costos de combustible
                 fuel_list = []
                 for fe in fuel_entries:
                     truck = fe.truck
@@ -197,9 +205,18 @@ class ControllerOrder(viewsets.ViewSet):
                             'category': truck.category,
                         }
                     })
+
+                # Agregar fuelCost a la orden
                 order_data['fuelCost'] = fuel_list
 
-            return paginator.get_paginated_response(orders_data)
+            # Respuesta paginada personalizada
+            return Response({
+                "status": "success",
+                "messDev": f"Orders with fuel listed successfully. Current company id: {company_id}",
+                "messUser": "Orders listed successfully",
+                "current_company_id": company_id,
+                "data": paginator.get_paginated_response(orders_data).data
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({
