@@ -50,10 +50,26 @@ class ControllerOperator(viewsets.ViewSet):
         responses={200: SerializerOperator(many=True)},
     )
     def list(self, request):
-        operators = self.service.get_all_operators()
-        page = self.paginator.paginate_queryset(operators, request)
-        serializer = SerializerOperator(page, many=True, context={'request': request})
-        return self.paginator.get_paginated_response(serializer.data)
+        try:
+            company_id = request.company_id  # Obtener el company_id del request
+            
+            operators = self.service.get_all_operators(company_id)
+            page = self.paginator.paginate_queryset(operators, request)
+            serializer = SerializerOperator(page, many=True, context={'request': request})
+            
+            response_data = self.paginator.get_paginated_response(serializer.data).data
+            response_data['current_company_id'] = company_id  # Agregamos el company_id en la respuesta
+
+            return Response(response_data)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching operators: {str(e)}",
+                "messUser": "Error fetching operators",
+                "data": None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
     @extend_schema(
         summary="Create an operator (with Person, Sons y archivos)",
@@ -172,9 +188,9 @@ class ControllerOperator(viewsets.ViewSet):
         description="Get an operator by its internal DB ID (`id_operator`).",
         responses={200: SerializerOperator, 404: {"error": "Operator not found"}},
     )
-    def getOperatorById(self, request, operator_id):
+    def getOperatorById(self, request, id_person):
         try:
-            person = Person.objects.get(id_person=operator_id)
+            person = Person.objects.get(id_person=id_person)
             operator = Operator.objects.get(person=person)
             serializer = SerializerOperator(operator, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)

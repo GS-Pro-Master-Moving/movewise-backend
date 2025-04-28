@@ -1,3 +1,4 @@
+from typing import List
 from api.assign.models.Assign import Assign
 from api.operator.models.Operator import Operator
 from api.operator.repositories.RepositoryOperator import RepositoryOperator
@@ -11,8 +12,10 @@ class ServiceOperator(IServiceOperator):
         
     def create_operator(self, validated_data):
         pass  
-    def get_all_operators(self):
-        return self.repository.get_all()
+    # service.py
+    def get_all_operators(self, company_id) -> List[Operator]:
+        return self.repository.get_all(company_id)
+
     
     def get_all_assigns(self):
         return self.repository.get_all_assigns()
