@@ -6,7 +6,7 @@ from api.subscription.models import Subscription
 import jwt
 from django.conf import settings
 
-SAFE_METHODS = ("HEAD", "OPTIONS")
+SAFE_METHODS = ("GET","HEAD", "OPTIONS")
 EXEMPT_PATHS = ["/login/", "/register/", "/api/schema/", "/api/docs/"]
 
 class SubscriptionMiddleware:
@@ -24,7 +24,7 @@ class SubscriptionMiddleware:
         company_id = self._get_company_id(request)
         if not company_id:
             print("🔴 No company ID found in request")
-            return JsonResponse({"detail": "Company not found in token"}, status=401)
+            return JsonResponse({"detail": "Unauthorized. Valid authentication required."}, status=401)
 
         try:
             # Get company with related subscription and plan
@@ -72,7 +72,7 @@ class SubscriptionMiddleware:
 
         if not is_valid:
             return JsonResponse(
-                {"detail": "Subscription inactive - write operations blocked"}, 
+                {"detail": "Inactive subscription - write operations blocked"}, 
                 status=403
             )
 
@@ -87,24 +87,32 @@ class SubscriptionMiddleware:
     def _get_company_id(self, request):
         """Get company ID in priority order"""
         # 1. Check request context (set by authentication)
-        if hasattr(request, 'company_id'):
+        if hasattr(request, 'company_id') and request.company_id:
             print(f"🔑 Company ID from request context: {request.company_id}")
             return request.company_id
         
         # 2. Fallback to user/person object
-        if hasattr(request.user, 'company_id'):
+        if hasattr(request, 'user') and hasattr(request.user, 'company_id') and request.user.company_id:
             print(f"👤 Company ID from user object: {request.user.company_id}")
             return request.user.company_id
         
         # 3. Last resort: Check auth header directly
-        token = request.headers.get('Authorization', '').split()[-1]
-        if token:
-            try:
-                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-                print(f"🔍 Company ID from token payload: {payload.get('company_id')}")
-                return payload.get('company_id')
-            except jwt.PyJWTError:
-                print("⚠️ Failed to decode token for company ID")
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header and ' ' in auth_header:
+            token = auth_header.split()[-1]
+            if token:
+                try:
+                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+                    company_id = payload.get('company_id')
+                    if company_id:
+                        print(f"🔍 Company ID from token payload: {company_id}")
+                        return company_id
+                    else:
+                        print("⚠️ Token does not contain company_id")
+                except jwt.PyJWTError:
+                    print("⚠️ Failed to decode token for company ID")
+        else:
+            print("⚠️ No Authorization header found or invalid format")
         
         return None
 
