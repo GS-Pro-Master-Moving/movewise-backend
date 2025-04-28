@@ -13,6 +13,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import action
 from api.workCost.services.ServicesWorkCost import ServicesWorkCost
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import ValidationError, PermissionDenied
 
 class ControllerOrder(viewsets.ViewSet):
     """
@@ -298,57 +299,61 @@ class ControllerOrder(viewsets.ViewSet):
         responses={200: OrderSerializer, 400: {"error": "Invalid data"}, 403: {"error": "Cannot edit finalized order"}}
     )
 
-    #actualizacion parcial --> permite actualizar solo algunos campos del modelo sin necesidad de enviar todos los datos
     #partial update --> allows you to update only some fields of the model without having to send all the data
-    
     def partial_update(self, request, pk=None):
+        """
+        PATCH /orders/{key}/
+        """
+        #Fetch
         try:
-            # Get the order by its key
             order = Order.objects.get(key=pk)
-            #validation if the order status is finalized it cannot be updated
-            if order.payStatus == 1:
-                return Response({
-                    "status": "error",
-                    "messDev": "Order is finalized and cannot be modified",
-                    "messUser": "Cannot edit finalized orders",
-                    "data": None
-                }, status=status.HTTP_403_FORBIDDEN)
-
-            # the job field is handled
-            data = request.data.copy()
-            if "job" in data and isinstance(data["job"], (int, str)):
-                try:
-                    # We just check that it exists, the conversion will be done by the service
-                    Job.objects.get(id=data["job"])
-                except Job.DoesNotExist:
-                    return Response({
-                        "status": "error",
-                        "messDev": f"Job with ID {data['job']} does not exist",
-                        "messUser": "El trabajo especificado no existe",
-                        "data": None
-                    }, status=status.HTTP_400_BAD_REQUEST)
-
-            # Update the order using the service
-            updated_order = self.order_service.update_order(order, data)
-            
-            # Return the response with the updated data
-            return Response(OrderSerializer(updated_order).data, status=status.HTTP_200_OK) 
-        
         except Order.DoesNotExist:
+            return Response(..., status=status.HTTP_404_NOT_FOUND)
+
+        # Block finalized
+        if order.payStatus == 1:
+            return Response(..., status=status.HTTP_403_FORBIDDEN)
+
+        # Pre-validate job
+        if "job" in request.data:
+            try:
+                Job.objects.get(id=request.data["job"])
+            except Job.DoesNotExist:
+                return Response(..., status=status.HTTP_400_BAD_REQUEST)
+
+        # Delegate to service
+        try:
+            updated = ServicesOrder().update_order(order, request.data.copy(), request)
+            return Response({
+                "status": "success",
+                "messDev": "Order updated successfully",
+                "messUser": "Order updated",
+                "data": OrderSerializer(updated).data
+            }, status=status.HTTP_200_OK)
+
+        except ValidationError as ve:
             return Response({
                 "status": "error",
-                "messDev": "Order not found",
-                "messUser": "Order not found",
+                "messDev": str(ve),
+                "messUser": "Invalid data",
                 "data": None
-            }, status=status.HTTP_404_NOT_FOUND)
-        
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except PermissionDenied as pd:
+            return Response({
+                "status": "error",
+                "messDev": str(pd),
+                "messUser": "Permission denied",
+                "data": None
+            }, status=status.HTTP_403_FORBIDDEN)
+
         except Exception as e:
             return Response({
                 "status": "error",
-                "messDev": f"Error updating order: {str(e)}",
-                "messUser": f"Error updating order",
+                "messDev": f"Error updating order: {e}",
+                "messUser": "There was an error updating the order",
                 "data": None
-            }, status=status.HTTP_400_BAD_REQUEST)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         summary="Get all states in USA",

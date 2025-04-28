@@ -9,3 +9,6 @@ class SerializerTruck(serializers.ModelSerializer):
     class Meta:
         model = Truck
         fields = ["id_truck", "number_truck", "type", "name", "status", "category"]
+        extra_kwargs = {
+            'id_company': {'read_only': True}
+        }

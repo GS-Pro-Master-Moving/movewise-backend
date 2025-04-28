@@ -18,7 +18,8 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ["key", "key_ref", "date", "distance", "expense", "income", "weight", "status", "payStatus", "state_usa", "person", "job"]
         extra_kwargs = {
-            'id_company': {'read_only': True}  
+            'id_company': {'read_only': True},
+            'person':     {'read_only': True}, #no nested
         }
 
     def create(self, validated_data):
@@ -51,20 +52,15 @@ class OrderSerializer(serializers.ModelSerializer):
         )
     
     def update(self, instance, validated_data):
-        """
-        Updates an existing Order instance.
-        """
+        # 1. company‐scope guard
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'company_id'):
+            raise serializers.ValidationError("Company context missing")
 
-        # Handle 'person' update
-        if "person" in validated_data:
-            person_data = validated_data.pop("person")
-            person_serializer = PersonCreateFromOrderSerializer(instance.person, data=person_data, partial=True)
-            if person_serializer.is_valid():
-                person_serializer.save()
-            else:
-                raise serializers.ValidationError(person_serializer.errors)
+        if instance.id_company_id != request.company_id:
+            raise serializers.ValidationError("You do not have permission to update this order")
 
-        #handle job update
+        # 2. job field
         if "job" in validated_data:
             job_id = validated_data.pop("job")
             try:
@@ -72,7 +68,7 @@ class OrderSerializer(serializers.ModelSerializer):
             except Job.DoesNotExist:
                 raise serializers.ValidationError({"job": "Job not found"})
 
-        #update rest fields
+        # 3. other updatable fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
