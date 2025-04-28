@@ -12,3 +12,14 @@ class SubscriptionRepository:
     @staticmethod
     def create(data):
         return Subscription.objects.create(**data)
+
+    @staticmethod
+    def update(instance, data):
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+    @staticmethod
+    def delete(instance):
+        instance.delete()

@@ -1,11 +1,22 @@
 from api.subscription.repositories.SubscriptionRepository import SubscriptionRepository
 
 class SubscriptionService:
-    def list_subscriptions(self):
+    @staticmethod
+    def list_subscriptions():
         return SubscriptionRepository.get_all()
 
-    def get_subscription(self, subscription_id):
+    @staticmethod
+    def retrieve_subscription(subscription_id):
         return SubscriptionRepository.get_by_id(subscription_id)
 
-    def create_subscription(self, data):
+    @staticmethod
+    def create_subscription(data):
         return SubscriptionRepository.create(data)
+
+    @staticmethod
+    def update_subscription(instance, data):
+        return SubscriptionRepository.update(instance, data)
+
+    @staticmethod
+    def delete_subscription(instance):
+        return SubscriptionRepository.delete(instance)

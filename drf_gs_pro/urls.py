@@ -20,7 +20,7 @@ from api.workCost.controllers.ControllerWorkCost import ControllerWorkCost
 from api.costFuel.controllers.CostFuelController import ControllerCostFuel
 from api.son.controllers.ControllerSon import SonController
 from api.plan.controllers.PlanController import PlanController
-
+from api.subscription.controllers.SubscriptionController import SubscriptionController
 urlpatterns = [
     #login
     path('register/', UserRegister.as_view(), name='user-register'),
@@ -118,6 +118,11 @@ urlpatterns = [
     #Plan
     path('plans/',PlanController.as_view({'get':  'list','post': 'create'}),name='plans-list-create'),
     path('plans/<int:pk>/',PlanController.as_view({'get':'retrieve','delete': 'destroy', 'patch':  'partial_update'}),name='plans-detail'),
+    #Suscription
+    path('subscriptions/', SubscriptionController.as_view({'get': 'list', 'post': 'create'}), name='subscriptions-list-create'),
+    path('subscriptions/<int:pk>/', SubscriptionController.as_view({'get': 'retrieve', 'delete': 'destroy', 'patch': 'partial_update'}), name='subscriptions-detail'),
+
+
 ]
 
 if settings.DEBUG:
