@@ -37,7 +37,8 @@ urlpatterns = [
     path('orders/status/<str:pk>/', ControllerOrder.as_view({'patch': 'update_status'}), name='order-update-status'),
     path('orders/<str:pk>/summary-cost/', ControllerOrder.as_view({'get': 'SumaryCost'}), name='order-summary-cost'),
     path('orders/<str:pk>/deleteWithStatus/', ControllerOrder.as_view({'patch': 'delete_order_with_status'}), name='order-delete-with-status'),
-    # path('order_details/<str:pk>/', ControllerOrder.as_view({'get': 'get_order_details'}), name='order-details'),
+    path('order_details/<str:pk>/', ControllerOrder.as_view({'get': 'get_order_details'}), name='order-details'),
+    
     path('summary-list/', ControllerOrder.as_view({'get': 'summary_orders_list'}), name='order-summary-list'),
     path('order/list_pending/', ControllerOrder.as_view({'get': 'list_pending_orders'}), name='order-list-pending'),
     # jobs
@@ -123,6 +124,7 @@ urlpatterns = [
     path('workcost/order/<str:order_id>/', 
         ControllerWorkCost.as_view({'get': 'listByOrderId'}), 
         name='workcost-list-by-order-id'),
+    path('workCost/bulkCreate/', ControllerWorkCost.as_view({'post': 'bulk_create'}), name='workcost-bulk-create'),
 ]
 
 if settings.DEBUG:
