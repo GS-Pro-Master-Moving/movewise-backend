@@ -2,7 +2,7 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from api.assign_tool.services.ServicesAssignTool import ServicesAssignTool
-from api.assign_tool.serializers.SerializerAssignTool import SerializerAssignTool
+from api.assign_tool.serializers.SerializerAssignTool import SerializerAssignTool, SerializerAssignToolInput
 from api.order.models.Order import Order
 
 class ControllerAssignTool(viewsets.ViewSet):
@@ -67,32 +67,18 @@ class ControllerAssignTool(viewsets.ViewSet):
     def get_assigned_tools(self, request):
         """
         Get all tools assigned to an order.
-        
+
         Returns:
         - 200 OK: List of assigned tools.
         - 400 Bad Request: Invalid input data.
         """
-        serializer = SerializerAssignTool(data=request.data)
+        serializer = SerializerAssignToolInput(data=request.data)  # new serializer
         if serializer.is_valid():
-            order_id = serializer.validated_data['key']
+            order_id = serializer.validated_data['id_order']
             tools = self.services_assign_tool.get_assigned_tools(order_id)
-            return Response(SerializerAssignTool(tools, many=True).data, status=status.HTTP_200_OK)
+            return Response(SerializerAssignTool(tools, many=True).data, status=status.HTTP_200_OK) 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    def get_assigned_tools(self, request, key=None):
-        try:
-            assignments = self.services_assign_tool.get_assigned_tools(order_id=key)
-            serializer = SerializerAssignTool(assignments, many=True)
-            return Response({
-                "status": "success",
-                "data": serializer.data
-            }, status=status.HTTP_200_OK)
-        except Order.DoesNotExist:
-            return Response({
-                "status": "error",
-                "messDev": "Order not found",
-                "data": None
-            }, status=status.HTTP_404_NOT_FOUND)
+
     
     def bulk_create(self, request):
         """
