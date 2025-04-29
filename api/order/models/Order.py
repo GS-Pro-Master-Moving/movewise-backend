@@ -68,7 +68,13 @@ class Order(models.Model):
     expense = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)
     income = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True) 
     weight = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)  # Weight of charge
-    status = models.CharField(max_length=50,null=True, blank=True)
+    # states of the order
+    # It has 3 possible values: "pending", "finished", "inactive"
+    # "pending" means that the order is still active and can be modified
+    # "finished" means that the order is completed and cannot be modified
+    # "inactive" means that the order is no longer active and cannot be modified
+    # "en transito?"
+    status = models.CharField(max_length=50,null=True, blank=True, default="pending")
     payStatus = models.SmallIntegerField(null=True, blank=True) 
     evidence = models.URLField(null=True, blank=True)  # URL of evidence
     state_usa = models.CharField(

@@ -17,7 +17,11 @@ from datetime import datetime, timedelta
 from django.db.models.functions import ExtractWeek
 from api.payment.models.Payment import Payment
 from django.utils import timezone
-
+from api.order.services.ServicesOrder import ServicesOrder
+from api.order.serializers.OrderSerializer import OrderSerializer
+from api.truck.serializers.SerializerTruck import SerializerTruck
+from api.workCost.serializers.SerializerWorkCost import WorkCostSerializer
+from api.workCost.models.WorkCost import WorkCost
 class CustomPagination(pagination.PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
@@ -47,7 +51,121 @@ class ControllerAssign(viewsets.ViewSet):
         super().__init__(**kwargs)
         self.assign_service = ServicesAssign.ServicesAssign()  # Initialize the Assign service
         self.paginator = CustomPagination()
+        self.order_service = ServicesOrder()
     
+    @extend_schema(
+        summary="List orders with assignments and summaries",
+        description="Retrieves a paginated list of orders with their operators, vehicles, workhosts, summaryList and summaryCost.",
+        responses={
+            200: OpenApiResponse(
+                description="Orders and assignments retrieved successfully",
+                examples=[
+                    OpenApiExample(
+                        "Success",
+                        value={
+                            "count": 123,
+                            "next": "http://.../api/assign/?page=2",
+                            "previous": None,
+                            "results": [
+                                {
+                                    "/* Order data with operators, vehicles, workhosts, summaryList, summaryCost */"
+                                }
+                            ]
+                        }
+                    )
+                ]
+            ),
+            400: OpenApiResponse(
+                description="Invalid request parameters",
+                examples=[OpenApiExample(
+                    "InvalidParameters",
+                    value={"status": "error", "messDev": "<error>", "messUser": "Invalid request parameters.", "data": None}
+                )]
+            ),
+            403: OpenApiResponse(
+                description="Permission denied",
+                examples=[OpenApiExample(
+                    "PermissionDenied",
+                    value={"status": "error", "messDev": "<error>", "messUser": "You do not have permission to view these assignments.", "data": None}
+                )]
+            ),
+            500: OpenApiResponse(
+                description="Server error",
+                examples=[OpenApiExample(
+                    "ServerError",
+                    value={"status": "error", "messDev": "<error>", "messUser": "An unexpected error occurred while retrieving assignments.", "data": None}
+                )]
+            )
+        }
+        
+    )
+
+    def list(self, request):
+        """
+        GET /api/assign/
+        Returns paginated list of orders with their operators, vehicles,
+        workhosts (additional costs), summaryList and summaryCost.
+        """
+        try:
+            orders = self.order_service.get_all_orders()
+
+            paginator = self.paginator
+            page = paginator.paginate_queryset(orders, request, view=self)
+
+            resultados = []
+            for order in page:
+                order_data = OrderSerializer(order).data
+
+                assigns = (
+                    Assign.objects
+                        .filter(order=order)
+                        .select_related('operator__person', 'truck', 'payment')
+                )
+
+                order_data['operators'] = AssignOperatorSerializer(assigns, many=True).data
+
+                seen = set()
+                vehicles = []
+                for a in assigns:
+                    t = a.truck
+                    if t and t.id_truck not in seen:
+                        seen.add(t.id_truck)
+                        vehicles.append(SerializerTruck(t).data)
+                order_data['vehicles'] = vehicles
+
+                # work_costs = WorkCost.objects.filter(id_order=order.key)
+                # order_data['workcosts'] = WorkCostSerializer(work_costs, many=True).data
+
+                order_data['summaryCost'] = self.order_service.calculate_summary(order.key)
+
+                resultados.append(order_data)
+
+            return paginator.get_paginated_response(resultados)
+
+        except ValidationError as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "Invalid request parameters.",
+                "data":     None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except PermissionDenied as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "You do not have permission to view these assignments.",
+                "data":     None
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        except Exception as exc:
+            return Response({
+                "status":   "error",
+                "messDev":  str(exc),
+                "messUser": "An unexpected error occurred while retrieving assignments.",
+                "data":     None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @extend_schema(
         summary="Create multiple assignments",
         description="Creates multiple assignments at once using the provided data.",

@@ -123,3 +123,6 @@ class ServicesAssign:
             # Otras excepciones
             return None
 
+    def get_assigned_operators(self, order_id: UUID):
+        """Retrieves all operators assigned to a specific order"""
+        return self.repository.get_assigned_operators(order_id)

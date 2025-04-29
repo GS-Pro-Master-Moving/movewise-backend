@@ -113,3 +113,7 @@ class RepositoryAssign():
             id_pay=2  # Asegúrate de que este ID exista
         ).first()
         return existing_assign is not None
+
+    def get_assigned_operators(self, order_id: UUID):
+        """Recupera los operadores asignados a un pedido específico"""
+        return Assign.objects.filter(order__key=order_id).select_related('operator')
