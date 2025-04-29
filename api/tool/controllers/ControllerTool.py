@@ -12,7 +12,18 @@ class ControllerTool(viewsets.ViewSet):
         self.paginator = PageNumberPagination()  # Add a paginator instance
 
     def list(self, request):
-        """Obtiene todas las herramientas"""
-        tools = self.tool_service.get_all_tools()
-        paginated_tools = self.paginator.paginate_queryset(tools, request)  # Paginate the queryset
-        return self.paginator.get_paginated_response(ToolSerializer(paginated_tools, many=True).data)
+        "Get tools associated with the token company"
+        company_id = getattr(request, 'company_id', None)
+        if not company_id:
+            return Response(
+                {"detail": "The company ID was not found in the request"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        tools = self.tool_service.get_all_tools(company_id)
+        paginated_tools = self.paginator.paginate_queryset(tools, request)
+        serialized_data = ToolSerializer(paginated_tools, many=True).data
+        #add id 
+        response = self.paginator.get_paginated_response(serialized_data)
+        response.data['current_company_id'] = company_id
+        return response
