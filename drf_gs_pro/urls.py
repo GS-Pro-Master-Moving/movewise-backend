@@ -42,7 +42,8 @@ urlpatterns = [
     path('orders/status/<str:pk>/', ControllerOrder.as_view({'patch': 'update_status'}), name='order-update-status'),
     path('orders/<str:pk>/summary-cost/', ControllerOrder.as_view({'get': 'SumaryCost'}), name='order-summary-cost'),
     path('orders/<str:pk>/deleteWithStatus/', ControllerOrder.as_view({'patch': 'delete_order_with_status'}), name='order-delete-with-status'),
-    # path('order_details/<str:pk>/', ControllerOrder.as_view({'get': 'get_order_details'}), name='order-details'),
+    path('order_details/<str:pk>/', ControllerOrder.as_view({'get': 'get_order_details'}), name='order-details'),
+    
     path('summary-list/', ControllerOrder.as_view({'get': 'summary_orders_list'}), name='order-summary-list'),
     path('order/list_pending/', ControllerOrder.as_view({'get': 'list_pending_orders'}), name='order-list-pending'),
     # jobs
@@ -120,16 +121,22 @@ urlpatterns = [
         'delete': 'destroy'
     }), name='payment-detail'),
 
-    #WorkCost
-    path('workcost/', ControllerWorkCost.as_view({'get': 'list','post': 'create'}), name='workcost-list-create'),
-    path('workcost/order/<str:order_id>/', ControllerWorkCost.as_view({'get': 'listByOrderId'}), name='workcost-list-by-order-id'),
-
     #Plan
     path('plans/',PlanController.as_view({'get':  'list','post': 'create'}),name='plans-list-create'),
     path('plans/<int:pk>/',PlanController.as_view({'get':'retrieve','delete': 'destroy', 'patch':  'partial_update'}),name='plans-detail'),
     #Suscription
     path('subscriptions/', SubscriptionController.as_view({'get': 'list', 'post': 'create'}), name='subscriptions-list-create'),
     path('subscriptions/<int:pk>/', SubscriptionController.as_view({'get': 'retrieve', 'delete': 'destroy', 'patch': 'partial_update'}), name='subscriptions-detail'),
+    
+    #WorkCost
+    path('workcost/', ControllerWorkCost.as_view({
+    'get': 'list',
+    'post': 'create'
+    }), name='workcost-list-create'),
+    path('workcost/order/<str:order_id>/', 
+        ControllerWorkCost.as_view({'get': 'listByOrderId'}), 
+        name='workcost-list-by-order-id'),
+    path('workCost/bulkCreate/', ControllerWorkCost.as_view({'post': 'bulk_create'}), name='workcost-bulk-create'),
 ]
 
 
