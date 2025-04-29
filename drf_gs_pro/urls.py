@@ -21,6 +21,10 @@ from api.costFuel.controllers.CostFuelController import ControllerCostFuel
 from api.son.controllers.ControllerSon import SonController
 from api.plan.controllers.PlanController import PlanController
 from api.subscription.controllers.SubscriptionController import SubscriptionController
+
+#custom errors
+from api.common import error_handlers
+
 urlpatterns = [
     #login
     path('register/', UserRegister.as_view(), name='user-register'),
@@ -121,9 +125,13 @@ urlpatterns = [
     #Suscription
     path('subscriptions/', SubscriptionController.as_view({'get': 'list', 'post': 'create'}), name='subscriptions-list-create'),
     path('subscriptions/<int:pk>/', SubscriptionController.as_view({'get': 'retrieve', 'delete': 'destroy', 'patch': 'partial_update'}), name='subscriptions-detail'),
-
-
 ]
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+handler400 = error_handlers.custom_400_handler
+handler403 = error_handlers.custom_403_handler
+handler404 = error_handlers.custom_404_handler
+handler500 = error_handlers.custom_500_handler

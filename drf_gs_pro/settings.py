@@ -28,7 +28,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -140,7 +139,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',  # Requiere autenticación por defecto
-    ]
+    ],
+    'EXCEPTION_HANDLER': 'api.common.error_handlers.custom_exception_handler', #error handler 
 }
 
 
