@@ -8,20 +8,40 @@ class WorkCostPagination(pagination.PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
+    def get_paginated_response(self, data):
+        return Response({
+            'current_company_id': getattr(self.request, 'company_id', None),
+            'count': self.page.paginator.count,
+            'next': self.get_next_link(),
+            'previous': self.get_previous_link(),
+            'results': data
+        })
+
 class ControllerWorkCost(viewsets.ModelViewSet):
     queryset = WorkCost.objects.all()
     serializer_class = SerializerTruck
     pagination_class = WorkCostPagination
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+        company_id = getattr(request, 'company_id', None)
+        if not company_id:
+            return Response({"detail": "No company ID provided"}, status=400)
+
+        queryset = self.get_queryset().filter(id_order__id_company=company_id)
+
         page = self.paginate_queryset(queryset)
         if page is not None:
+            # Inyectamos el request en el paginador para que tenga acceso al company_id
+            if hasattr(self, 'paginator'):
+                self.paginator.request = request
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return Response({
+            "current_company_id": company_id,
+            "results": serializer.data
+        })
     
     def listByOrderId(self, request, *args, **kwargs):
         """
