@@ -31,7 +31,6 @@ class ControllerWorkCost(viewsets.ModelViewSet):
 
         page = self.paginate_queryset(queryset)
         if page is not None:
-            # Inyectamos el request en el paginador para que tenga acceso al company_id
             if hasattr(self, 'paginator'):
                 self.paginator.request = request
             serializer = self.get_serializer(page, many=True)
