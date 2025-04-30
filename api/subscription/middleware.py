@@ -7,7 +7,8 @@ import jwt
 from django.conf import settings
 
 SAFE_METHODS = ("GET","HEAD", "OPTIONS")
-EXEMPT_PATHS = ["/login/", "/register/", "/api/schema/", "/api/docs/"]
+EXEMPT_PATHS = ["/login/", "/register/", "/api/schema/", "/api/docs/", "/user/forgot-password/",           # <–– aquí
+    "/user/reset-password-confirm/", ]
 
 class SubscriptionMiddleware:
     def __init__(self, get_response):

@@ -21,7 +21,8 @@ from api.costFuel.controllers.CostFuelController import ControllerCostFuel
 from api.son.controllers.ControllerSon import SonController
 from api.plan.controllers.PlanController import PlanController
 from api.subscription.controllers.SubscriptionController import SubscriptionController
-
+from api.user.controllers.PasswordResetRequest import PasswordResetRequest
+from api.user.controllers.PasswordResetConfirm import PasswordResetConfirmView
 #custom errors
 from api.common import error_handlers
 
@@ -30,6 +31,10 @@ urlpatterns = [
     path('register/', UserRegister.as_view(), name='user-register'),
     path('login/', UserLogin.as_view(), name='user-login'),
 
+    #recover password
+    path('user/forgot-password/', PasswordResetRequest.as_view(), name='forgot-password'),
+    path('user/reset-password-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'), #view html
+    
     path('admin/', admin.site.urls),
     # Docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
@@ -127,7 +132,7 @@ urlpatterns = [
     #Suscription
     path('subscriptions/', SubscriptionController.as_view({'get': 'list', 'post': 'create'}), name='subscriptions-list-create'),
     path('subscriptions/<int:pk>/', SubscriptionController.as_view({'get': 'retrieve', 'delete': 'destroy', 'patch': 'partial_update'}), name='subscriptions-detail'),
-    
+
     #WorkCost
     path('workcost/', ControllerWorkCost.as_view({
     'get': 'list',
