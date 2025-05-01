@@ -35,15 +35,15 @@ ALLOWED_HOSTS = ['*']
 
 # Time in seconds before a recovery token expires
 PASSWORD_RESET_TIMEOUT = 30 * 60  # 30 min
-
-# SMTP Configuration for Outlook
+#Manager-Support@gspromastermoving.com
+# SMTP Configuration for Gmail
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.office365.com'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'Manager-Support@gspromastermoving.com'
-EMAIL_HOST_PASSWORD = 'TU_CONTRASEÑA_DE_APLICACIÓN'
-DEFAULT_FROM_EMAIL = 'MiApp <Manager-Support@gspromastermoving.com>'
+EMAIL_HOST_USER = 'movewiserecover@gmail.com'  
+EMAIL_HOST_PASSWORD = 'ncyi trfq tyus cmnv'  
+DEFAULT_FROM_EMAIL = 'MiApp <movewiserecover@gmail.com>'
 
 
 # Application definition
