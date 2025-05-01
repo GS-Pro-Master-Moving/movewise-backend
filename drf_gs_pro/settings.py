@@ -29,8 +29,24 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 
-# Application definition
+# =====================================* 
+# SMTP configuration for sending email * 🎶
+# =====================================* 
 
+# Time in seconds before a recovery token expires
+PASSWORD_RESET_TIMEOUT = 30 * 60  # 30 min
+
+# SMTP Configuration for Outlook
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.office365.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'Manager-Support@gspromastermoving.com'
+EMAIL_HOST_PASSWORD = 'TU_CONTRASEÑA_DE_APLICACIÓN'
+DEFAULT_FROM_EMAIL = 'MiApp <Manager-Support@gspromastermoving.com>'
+
+
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -47,12 +63,13 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # Agregamos el middleware de CORS
+    'corsheaders.middleware.CorsMiddleware',  # add CORS middleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "api.subscription.middleware.SubscriptionMiddleware", # middleware company in token
 ]
 
 # Configuración de CORS
@@ -89,7 +106,7 @@ ROOT_URLCONF = 'drf_gs_pro.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -116,7 +133,7 @@ WSGI_APPLICATION = 'drf_gs_pro.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  
-        'NAME': 'exampledb', 
+        'NAME': 'django_restframework_gs_pro', 
         'USER': 'root',  
         'PASSWORD': 'Oracle123', 
         'HOST': 'localhost',  
@@ -139,7 +156,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',  # Requiere autenticación por defecto
-    ]
+    ],
+    'EXCEPTION_HANDLER': 'api.common.error_handlers.custom_exception_handler', #error handler 
 }
 
 

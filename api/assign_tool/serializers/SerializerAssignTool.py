@@ -4,6 +4,9 @@ from api.tool.serializers.SerializerTool import ToolSerializer
 from api.tool.models.Tool import Tool
 from api.order.models.Order import Order
 
+class SerializerAssignToolInput(serializers.Serializer):
+    id_order = serializers.UUIDField()
+
 class SerializerAssignTool(serializers.ModelSerializer):
     # fields to read
     tool = ToolSerializer(source='id_tool', read_only=True)

@@ -58,9 +58,10 @@ class RepositoryOrder(IRepositoryOrder):
         order.save()
         return order
     
-    @staticmethod
-    def get_all_orders():
-        return Order.objects.all()
+    # @staticmethod
+    def get_all_orders(self, company_id):
+        # Only return orders for that company
+        return Order.objects.filter(id_company_id=company_id)
     
     @staticmethod
     def get_states():

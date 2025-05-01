@@ -4,9 +4,11 @@ from api.truck.repositories.IRepositoryTruck import IRepositoryTruck
 
 class RepositoryTruck(IRepositoryTruck):
 
-    def get_avaliable(self) -> List[Truck]:
-        """Returns a list of available (active) trucks."""
-        return Truck.objects.filter(status=True)
+    def get_avaliable(self, company_id) -> List[Truck]:
+        """
+        Returns a list of available (active) trucks for a specific company.
+        """
+        return Truck.objects.filter(status=True, id_company_id=company_id)
 
     def create_truck(self, truck_data: Dict) -> Truck:
         """Creates a new truck using a dictionary of data."""

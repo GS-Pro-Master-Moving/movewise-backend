@@ -5,6 +5,7 @@ from api.person.models.Person import Person
 from api.son.models.Son import Son
 from django.db import transaction
 from django.db import models
+from api.company.models.Company import Company
 
 class SonSerializer(serializers.ModelSerializer):
     class Meta:
@@ -61,7 +62,10 @@ class SerializerOperator(serializers.ModelSerializer):
     address      = serializers.CharField(source='person.address',     required=True)
     phone        = serializers.CharField(source='person.phone',       required=True)
     email        = serializers.EmailField(source='person.email',      required=False, allow_null=True)
-
+    id_company = serializers.IntegerField(
+        source='person.id_company_id',
+        read_only=True
+    )
     # Sons field
     sons = SonsField(
         required=False,
@@ -79,40 +83,49 @@ class SerializerOperator(serializers.ModelSerializer):
             'status',
             # Person fields
             'first_name', 'last_name', 'birth_date', 'type_id',
-            'id_number', 'address', 'phone', 'email',
+            'id_number', 'address', 'phone', 'email', 
+            'id_company',
             # Children
             'sons',
         ]
+        read_only_fields = ['id_company']
 
     def create(self, validated_data):
-        print(f"data hp {validated_data}")
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'company_id'):
+            raise serializers.ValidationError("Company context (company_id) missing")
+
+        # 1) Lookup the Company instance
+        try:
+            company = Company.objects.get(pk=request.company_id)
+        except Company.DoesNotExist:
+            raise serializers.ValidationError("Invalid company in token")
+
+        # 2) Pop and enrich person_data
         person_data = validated_data.pop('person')
+        person_data['id_company'] = company
+
+        # 3) Pop sons if any
         sons_data = validated_data.pop('sons', [])
 
+        # 4) Create Person + Operator + Sons in a transaction
         with transaction.atomic():
             person = Person.objects.create(**person_data)
             operator = Operator.objects.create(person=person, **validated_data)
-            # create children only if there is data
-            if sons_data:
-                # Ensure sons_data is a list of dictionaries
-                if isinstance(sons_data, list):
-                    for son in sons_data:
-                        # Debug what's coming in
-                        print("🧩 Creating son:", son, "Type:", type(son))
-                        if isinstance(son, dict):
-                            Son.objects.create(operator=operator, **son)
-                        elif isinstance(son, str):
-                            # Try to parse the string as JSON if it's a string
-                            try:
-                                son_dict = json.loads(son)
-                                Son.objects.create(operator=operator, **son_dict)
-                            except json.JSONDecodeError:
-                                print(f"❌ Could not parse son data: {son}")
-                        else:
-                            print(f"❌ Unexpected son data type: {type(son)}")
+
+            for son in sons_data:
+                # your existing logic for creating each Son…
+                if isinstance(son, dict):
+                    Son.objects.create(operator=operator, **son)
                 else:
-                    print(f"❌ sons_data is not a list: {type(sons_data)}")
-            
+                    # if string, parse JSON, etc.
+                    try:
+                        son_dict = json.loads(son)
+                        Son.objects.create(operator=operator, **son_dict)
+                    except Exception:
+                        # or skip / raise
+                        pass
+
             return operator
 
     def update(self, instance, validated_data):

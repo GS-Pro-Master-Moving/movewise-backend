@@ -22,16 +22,8 @@ class IRepositoryOrder:
     """
     Get all orders.
     """
-    def get_all_orders():
-        pass
-    """
-        Deletes an order if its status is "Finished".
-
-        Args:
-        - order_key: The key of the order to be deleted.
-
-        Returns:
-        - A message indicating the result of the operation.
+    def get_all_orders(self, company_id):
         """
-    def delete_order_with_status(self, order_key):
-        pass
+        Return all orders belonging to company_id.
+        """
+        raise NotImplementedError

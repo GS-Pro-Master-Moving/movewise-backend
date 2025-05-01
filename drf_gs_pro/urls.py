@@ -19,12 +19,22 @@ from api.payment.controllers.ControllerPayment import ControllerPayment
 from api.workCost.controllers.ControllerWorkCost import ControllerWorkCost
 from api.costFuel.controllers.CostFuelController import ControllerCostFuel
 from api.son.controllers.ControllerSon import SonController
+from api.plan.controllers.PlanController import PlanController
+from api.subscription.controllers.SubscriptionController import SubscriptionController
+from api.user.controllers.PasswordResetRequest import PasswordResetRequest
+from api.user.controllers.PasswordResetConfirm import PasswordResetConfirmView
+#custom errors
+from api.common import error_handlers
 
 urlpatterns = [
     #login
     path('register/', UserRegister.as_view(), name='user-register'),
     path('login/', UserLogin.as_view(), name='user-login'),
 
+    #recover password
+    path('user/forgot-password/', PasswordResetRequest.as_view(), name='forgot-password'),
+    path('user/reset-password-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'), #view html
+    
     path('admin/', admin.site.urls),
     # Docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
@@ -37,14 +47,15 @@ urlpatterns = [
     path('orders/status/<str:pk>/', ControllerOrder.as_view({'patch': 'update_status'}), name='order-update-status'),
     path('orders/<str:pk>/summary-cost/', ControllerOrder.as_view({'get': 'SumaryCost'}), name='order-summary-cost'),
     path('orders/<str:pk>/deleteWithStatus/', ControllerOrder.as_view({'patch': 'delete_order_with_status'}), name='order-delete-with-status'),
-    # path('order_details/<str:pk>/', ControllerOrder.as_view({'get': 'get_order_details'}), name='order-details'),
+    path('order_details/<str:pk>/', ControllerOrder.as_view({'get': 'get_order_details'}), name='order-details'),
+    
     path('summary-list/', ControllerOrder.as_view({'get': 'summary_orders_list'}), name='order-summary-list'),
     path('order/list_pending/', ControllerOrder.as_view({'get': 'list_pending_orders'}), name='order-list-pending'),
     # jobs
     path('jobs/', JobController.as_view({'get': 'list'}), name='job-list'),
     # operators
     path('operators/<int:operator_id>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-id'),
-    path('operators-by-id/<int:operator_id>/', ControllerOperator.as_view({'get': 'getOperatorById'}), name='operator-get-by-number-id'),
+    path('operators-by-id/<int:id_person>/', ControllerOperator.as_view({'get': 'getOperatorById'}), name='operator-get-by-number-id'),
     path('operators/', ControllerOperator.as_view({'post': 'create', 'get': 'list'}), name='operator-list-create'),
     path('operators/<int:operator_id>/patch/<str:field_name>/',ControllerOperator.as_view({'patch': 'patch_field'}), name='operator-patch-field'),
 
@@ -115,6 +126,13 @@ urlpatterns = [
         'delete': 'destroy'
     }), name='payment-detail'),
 
+    #Plan
+    path('plans/',PlanController.as_view({'get':  'list','post': 'create'}),name='plans-list-create'),
+    path('plans/<int:pk>/',PlanController.as_view({'get':'retrieve','delete': 'destroy', 'patch':  'partial_update'}),name='plans-detail'),
+    #Suscription
+    path('subscriptions/', SubscriptionController.as_view({'get': 'list', 'post': 'create'}), name='subscriptions-list-create'),
+    path('subscriptions/<int:pk>/', SubscriptionController.as_view({'get': 'retrieve', 'delete': 'destroy', 'patch': 'partial_update'}), name='subscriptions-detail'),
+
     #WorkCost
     path('workcost/', ControllerWorkCost.as_view({
     'get': 'list',
@@ -123,7 +141,14 @@ urlpatterns = [
     path('workcost/order/<str:order_id>/', 
         ControllerWorkCost.as_view({'get': 'listByOrderId'}), 
         name='workcost-list-by-order-id'),
+    path('workCost/bulkCreate/', ControllerWorkCost.as_view({'post': 'bulk_create'}), name='workcost-bulk-create'),
 ]
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+handler400 = error_handlers.custom_400_handler
+handler403 = error_handlers.custom_403_handler
+handler404 = error_handlers.custom_404_handler
+handler500 = error_handlers.custom_500_handler

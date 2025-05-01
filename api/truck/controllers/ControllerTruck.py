@@ -7,6 +7,8 @@ from api.truck.services.ServicesTruck import ServicesTruck
 from api.truck.serializers.SerializerTruck import SerializerTruck
 from api.truck.models.Truck import Truck
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
+from rest_framework.exceptions import ValidationError
+
 class ControllerTruck(viewsets.ViewSet):
     """
     Controller for managing trucks.
@@ -51,22 +53,31 @@ class ControllerTruck(viewsets.ViewSet):
 
     def get_avaliable(self, request):
         """
-        Returns a paginated list of available (active) trucks.
+        Returns a paginated list of available (active) trucks for the current company.
         """
         try:
-            trucks = self.truck_service.get_avaliable()
+            # Obtener company_id del request
+            company_id = request.company_id
 
-            # Paginación manual con PageNumberPagination
+            # Obtener camiones disponibles para esa empresa
+            trucks = self.truck_service.get_avaliable(company_id)
+
+            # Paginación manual
             paginator = pagination.PageNumberPagination()
-            paginator.page_size = request.query_params.get("page_size", 10)  # Tamaño configurable
+            paginator.page_size = request.query_params.get("page_size", 10)
             paginated_trucks = paginator.paginate_queryset(trucks, request)
 
-            return paginator.get_paginated_response({
+            # Agregar current company id al mensaje de respuesta
+            response_data = paginator.get_paginated_response({
                 "status": "success",
                 "messDev": "Available trucks fetched",
                 "messUser": "Available trucks fetched",
                 "data": SerializerTruck(paginated_trucks, many=True).data
-            })
+            }).data
+
+            response_data['current_company_id'] = company_id  # Agregar el ID de la compañía
+
+            return Response(response_data)
 
         except Exception as e:
             return Response({
@@ -78,38 +89,47 @@ class ControllerTruck(viewsets.ViewSet):
 
     def create(self, request):
         """
-        Creates a new truck.
-        Expected payload:
-        {
-            "number_truck": "ABC123",
+        Create a new truck using the company_id from the token.
+            Expected payload:
+            {
+            "truck_number": "ABC123",
             "type": "Cargo",
-            "rol": "Transport",
-            "name": "Big Truck"
-        }
+            "name": "Big Truck",
+            "category": "Optional"
+            }
         """
         serializer = SerializerTruck(data=request.data)
-        if serializer.is_valid():
-            try:
-                truck = self.truck_service.create_truck(serializer.validated_data)
-                return Response({
-                    "status": "success",
-                    "messDev": "Truck created successfully",
-                    "messUser": "Truck created successfully",
-                    "data": SerializerTruck(truck).data
-                }, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response({
-                    "status": "error",
-                    "messDev": f"Error creating truck: {str(e)}",
-                    "messUser": "There was an error creating the truck",
-                    "data": None
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response({
-            "status": "error",
-            "messDev": "Validation error",
-            "messUser": "Invalid data",
-            "data": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response({
+                "status": "error",
+                "messDev": "Validation error",
+                "messUser": "Invalid data",
+                "data": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # We also pass the request so that the service obtains company_id
+            truck = self.truck_service.create_truck(serializer.validated_data, request)
+            return Response({
+                "status": "success",
+                "messDev": "Truck created successfully",
+                "messUser": "Truck created successfully",
+                "data": SerializerTruck(truck).data
+            }, status=status.HTTP_201_CREATED)
+        except ValidationError as ve:
+            return Response({
+                "status": "error",
+                "messDev": str(ve),
+                "messUser": "Company validation error",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error creating truck: {e}",
+                "messUser": "There was a problem creating the truck",
+                "data": None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update_status(self, request, pk=None):
         """

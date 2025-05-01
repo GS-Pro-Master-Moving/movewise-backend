@@ -491,13 +491,15 @@ class ControllerAssign(viewsets.ViewSet):
     def list_assign_operator(self, request):
         """
         GET /api/assign/operators/?number_week=15&year=2025
-        Returns paginated assignments filtered by ISO week number and year, with week date range.
+        Returns paginated assignments filtered by ISO week number and year,
+        with week date range, **solo para operadores de la compañía actual**.
         """
         try:
-            number_week = request.query_params.get('number_week', None)
-            year_param = request.query_params.get('year', None)
+            company_id    = request.company_id
+            number_week   = request.query_params.get('number_week', None)
+            year_param    = request.query_params.get('year', None)
 
-            # validate year
+            # — Validate year —
             if year_param is not None:
                 try:
                     year = int(year_param)
@@ -513,31 +515,31 @@ class ControllerAssign(viewsets.ViewSet):
             else:
                 year = datetime.now().year
 
-            start_date = end_date = None
-            week_info = {}
-
+            # — Build queryset filtered by company_id ABOUT operator → person →
             qs = Assign.objects.select_related(
                 'operator__person',
                 'payment'
+            ).filter(
+                operator__person__id_company_id=company_id
             )
 
+            # — Filter by week if requested —
+            week_info = {}
             if number_week is not None:
                 try:
                     number_week = int(number_week)
                     if number_week < 1 or number_week > 53:
                         raise ValueError("Invalid week number. Must be between 1 and 53.")
 
-                    # Calculate week start date
                     start_date = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
-                    end_date = start_date + timedelta(days=6)
+                    end_date   = start_date + timedelta(days=6)
 
                     qs = qs.filter(assigned_at__date__range=(start_date.date(), end_date.date()))
-
                     week_info = {
                         "week_number": number_week,
                         "year": year,
                         "start_date": start_date.strftime("%Y-%m-%d"),
-                        "end_date": end_date.strftime("%Y-%m-%d"),
+                        "end_date":   end_date.strftime("%Y-%m-%d"),
                     }
 
                 except ValueError as e:
@@ -550,38 +552,42 @@ class ControllerAssign(viewsets.ViewSet):
 
             qs = qs.order_by('-assigned_at')
 
-            # Paginate
+           # — Pagination —
             page = self.paginator.paginate_queryset(qs, request, view=self)
             serializer = AssignOperatorSerializer(page, many=True)
             data = serializer.data
 
+           # — If there is no data, respond empty but with company_id —
             if not data:
                 return Response({
-                    "status":    "success",
-                    "messDev":   "No assignments found for the given week.",
-                    "messUser":  "There are no assignments for the selected week.",
-                    "data":      [],
-                    "week_info": week_info or None,
+                    "status":     "success",
+                    "messDev":    "No assignments found for the given week.",
+                    "messUser":   "There are no assignments for the selected week.",
+                    "data":       [],
+                    "week_info":  week_info or None,
                     "pagination": {
                         "count":     0,
                         "next":      None,
                         "previous":  None,
                         "page_size": self.paginator.page_size,
-                    }
+                    },
+                    "current_company_id": company_id
                 }, status=status.HTTP_200_OK)
 
+            # — Response with data and company_id —
             return Response({
-                "status":    "success",
-                "messDev":   "Assignments retrieved successfully",
-                "messUser":  "Assignments list fetched.",
-                "data":      data,
-                "week_info": week_info or None,
+                "status":     "success",
+                "messDev":    "Assignments retrieved successfully",
+                "messUser":   "Assignments list fetched.",
+                "data":       data,
+                "week_info":  week_info or None,
                 "pagination": {
                     "count":     self.paginator.page.paginator.count,
                     "next":      self.paginator.get_next_link(),
                     "previous":  self.paginator.get_previous_link(),
                     "page_size": self.paginator.page_size,
-                }
+                },
+                "current_company_id": company_id
             }, status=status.HTTP_200_OK)
 
         except ValidationError as exc:
@@ -607,7 +613,6 @@ class ControllerAssign(viewsets.ViewSet):
                 "messUser": "An unexpected error occurred while retrieving assignments.",
                 "data":     None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
     @extend_schema(
