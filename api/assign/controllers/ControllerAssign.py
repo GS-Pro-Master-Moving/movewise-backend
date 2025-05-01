@@ -552,13 +552,24 @@ class ControllerAssign(viewsets.ViewSet):
 
             qs = qs.order_by('-assigned_at')
 
-           # — Pagination —
-            page = self.paginator.paginate_queryset(qs, request, view=self)
-            serializer = AssignOperatorSerializer(page, many=True)
-            data = serializer.data
-
-           # — If there is no data, respond empty but with company_id —
-            if not data:
+            # — Crear una lista personalizada con los datos necesarios incluyendo id_operator e id_payment —
+            results = []
+            for assign in qs:
+                # Primero, serializamos con el serializador existente para una instancia
+                serialized_data = AssignOperatorSerializer(assign).data
+                
+                # Añadimos los campos adicionales que necesitamos
+                serialized_data['id_operator'] = assign.operator_id  # Acceso directo al ID usando _id
+                serialized_data['id_payment'] = assign.payment_id if assign.payment_id else None  # Acceso directo al ID
+                
+                results.append(serialized_data)
+                
+            # — Paginación manual de los resultados —
+            paginator = self.paginator
+            page = paginator.paginate_queryset(results, request, view=self)
+            
+            # — If there is no data, respond empty but with company_id —
+            if not page:
                 return Response({
                     "status":     "success",
                     "messDev":    "No assignments found for the given week.",
@@ -569,7 +580,7 @@ class ControllerAssign(viewsets.ViewSet):
                         "count":     0,
                         "next":      None,
                         "previous":  None,
-                        "page_size": self.paginator.page_size,
+                        "page_size": paginator.page_size,
                     },
                     "current_company_id": company_id
                 }, status=status.HTTP_200_OK)
@@ -579,13 +590,13 @@ class ControllerAssign(viewsets.ViewSet):
                 "status":     "success",
                 "messDev":    "Assignments retrieved successfully",
                 "messUser":   "Assignments list fetched.",
-                "data":       data,
+                "data":       page,
                 "week_info":  week_info or None,
                 "pagination": {
-                    "count":     self.paginator.page.paginator.count,
-                    "next":      self.paginator.get_next_link(),
-                    "previous":  self.paginator.get_previous_link(),
-                    "page_size": self.paginator.page_size,
+                    "count":     paginator.page.paginator.count if hasattr(paginator, 'page') else len(results),
+                    "next":      paginator.get_next_link(),
+                    "previous":  paginator.get_previous_link(),
+                    "page_size": paginator.page_size,
                 },
                 "current_company_id": company_id
             }, status=status.HTTP_200_OK)
@@ -613,7 +624,6 @@ class ControllerAssign(viewsets.ViewSet):
                 "messUser": "An unexpected error occurred while retrieving assignments.",
                 "data":     None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
     @extend_schema(
         summary="Create a new assignment",
