@@ -13,11 +13,13 @@ from api.job.models.Job import Job
 from api.order.serializers.StatesSerializer import StatesUSASerializer
 from api.order.models.Order import StatesUSA
 from django.http import JsonResponse
-from rest_framework.decorators import action
+from rest_framework.decorators import action, parser_classes
 from api.truck.models.Truck import Truck
 from api.workCost.services.ServicesWorkCost import ServicesWorkCost
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ValidationError, PermissionDenied
+from rest_framework.parsers import MultiPartParser, FormParser
+from api.order.serializers.SerializerOrderEvidence import SerializerOrderEvidence
 
 class ControllerOrder(viewsets.ViewSet):
     """
@@ -77,7 +79,7 @@ class ControllerOrder(viewsets.ViewSet):
 
             paginator = PageNumberPagination()
             paginated = paginator.paginate_queryset(orders, request)
-            serialized = OrderSerializer(paginated, many=True)
+            serialized = OrderSerializer(paginated, many=True, context={'request': request})
 
             return Response({
                 "status": "success",
@@ -111,7 +113,7 @@ class ControllerOrder(viewsets.ViewSet):
             paginated_orders = paginator.paginate_queryset(orders, request)
 
             # Serialización
-            serialized_orders = OrderSerializer(paginated_orders, many=True)
+            serialized_orders = OrderSerializer(paginated_orders, many=True, context={'request': request})
             orders_data = serialized_orders.data
 
             # Instanciar servicio de CostFuel
@@ -405,7 +407,7 @@ class ControllerOrder(viewsets.ViewSet):
             cost_fuel = cost_fuel_service.get_by_order(pk)
             print("Cost Fuel:", cost_fuel)
             # Serialize the order data
-            serialized_order = OrderSerializer(order)
+            serialized_order = OrderSerializer(order, context={'request': request})
             # Serialize the cost fuel data
             serialized_cost_fuel = SerializerCostFuel(cost_fuel, many=True)
             # Serualize the assigned operators data
@@ -494,7 +496,7 @@ class ControllerOrder(viewsets.ViewSet):
             paginated_orders = paginator.paginate_queryset(pending_orders, request)
 
             # Serialize the paginated data
-            serialized_orders = OrderSerializer(paginated_orders, many=True)
+            serialized_orders = OrderSerializer(paginated_orders, many=True, context={'request': request})
 
             # Return the paginated response
             return paginator.get_paginated_response(serialized_orders.data)
@@ -506,4 +508,50 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error fetching pending orders",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        summary="Update order evidence",
+        description="Updates the evidence image for an order. Accepts multipart/form-data with an image file.",
+        request={
+            'multipart/form-data': SerializerOrderEvidence
+        },
+        responses={200: SerializerOrderEvidence}
+    )
+    @parser_classes([MultiPartParser, FormParser])
+    def update_evidence(self, request, pk):
+        try:
+            order = Order.objects.get(key=pk)
+        except Order.DoesNotExist:
+            return Response(
+                {"error": "Order not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check if there's a file in the request
+        if 'evidence' not in request.FILES:
+            return Response(
+                {
+                    "message": "Validation error",
+                    "errors": {"evidence": ["No file was submitted."]}
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Delete old file if exists
+        if order.evidence:
+            order.evidence.delete(save=False)
+
+        # Update with new file
+        order.evidence = request.FILES['evidence']
+        order.save()
+
+        # Serialize and return response
+        serializer = SerializerOrderEvidence(order, context={'request': request})
+        return Response(
+            {
+                "message": "Evidence updated successfully",
+                "data": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
 
