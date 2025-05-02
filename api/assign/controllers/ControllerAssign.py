@@ -1266,12 +1266,13 @@ class ControllerAssign(viewsets.ViewSet):
                 )
             
             # Query the Assign model to find all assignments related to this order
-            assigned_operators = Assign.objects.filter(order__key=order_key).select_related('operator')
+            assigned_operators = Assign.objects.filter(order__key=order_key).select_related('operator__person')
             
             # Prepare the response data with operator and person details
             operator_data = []
             for assignment in assigned_operators:
                 operator = assignment.operator
+                person = operator.person if hasattr(operator, 'person') else None
                 
                 # Since Operator inherits from Person, all Person fields are directly accessible on operator
                 operator_info = {
@@ -1283,30 +1284,28 @@ class ControllerAssign(viewsets.ViewSet):
                     "size_t_shift": operator.size_t_shift,
                     "name_t_shift": operator.name_t_shift,
                     "salary": operator.salary,
-                    "photo": operator.photo,
+                    "photo": operator.photo.url if operator.photo else None,
+                    "license_front": operator.license_front.url if operator.license_front else None,
+                    "license_back": operator.license_back.url if operator.license_back else None,
                     "status": operator.status,
                     "assigned_at": assignment.assigned_at,
                     "additional_costs": assignment.additional_costs,
                     # Getting the operator's role in the assign
                     "rol": assignment.rol,
-                    # Person fields (inherited fields)
-                    "first_name": operator.first_name if hasattr(operator, 'first_name') else None,
-                    "last_name": operator.last_name if hasattr(operator, 'last_name') else None,
-                    "identification": operator.identification if hasattr(operator, 'identification') else None,
-                    "email": operator.email if hasattr(operator, 'email') else None,
-                    "phone": operator.phone if hasattr(operator, 'phone') else None,
-                    "address": operator.address if hasattr(operator, 'address') else None,
+                    # Person fields from the related Person model
+                    "first_name": person.first_name if person else None,
+                    "last_name": person.last_name if person else None,
+                    "identification": person.id_number if person else None,
+                    "email": person.email if person else None,
+                    "phone": person.phone if person else None,
+                    "address": person.address if person else None,
                 }
-                # Optionally include user and company information if needed
-                if hasattr(operator, 'user') and operator.user:
+                
+                # Add company information if available
+                if person and person.id_company:
                     operator_info.update({
-                        "username": operator.user.user_name,
-                    })
-                    
-                if hasattr(operator, 'id_company') and operator.id_company:
-                    operator_info.update({
-                        "company_id": operator.id_company.id,
-                        "company_name": operator.id_company.name if hasattr(operator.id_company, 'name') else None,
+                        "company_id": person.id_company.id,
+                        "company_name": person.id_company.name if hasattr(person.id_company, 'name') else None,
                     })
                     
                 operator_data.append(operator_info)
