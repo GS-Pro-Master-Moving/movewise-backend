@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 from api.costFuel.serializers.SerializerCostFuel import SerializerCostFuel
 from api.assign.models.Assign import Assign
-from api.assign.services.ServicesAssign import ServicesAssign
 from api.costFuel.services.ServicesCostFuel import ServicesCostFuel
 from api.operator.serializers.SerializerOperator import SerializerOperator
 from api.order.serializers.OrderSerializer import OrderSerializer
@@ -414,12 +413,14 @@ class ControllerOrder(viewsets.ViewSet):
             serialized_operators = SerializerOperator(
                 [op.operator for op in assigned_operators], many=True
             )
+            
+            
             # Prepare the response data
             response = {
                 "order": serialized_order.data,
                 "assigned_operators": serialized_operators.data,
                 "cost_fuel": serialized_cost_fuel.data,
-                #"assigned_trucks": [truck for truck in assigned_trucks]
+                "assigned_trucks": assigned_trucks
             }
             # Return the detailed order as a JSON response
             return Response(response, status=status.HTTP_200_OK)

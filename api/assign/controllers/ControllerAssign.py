@@ -1237,8 +1237,9 @@ class ControllerAssign(viewsets.ViewSet):
             )
         }
     )
-    
-    def get_assigned_operators(self,order_key):
+        
+    def get_assigned_operators(self, request, order_key=None):
+        print("Getting into controller")
         """
         Retrieves all operators assigned to a specific order.
         
@@ -1251,67 +1252,79 @@ class ControllerAssign(viewsets.ViewSet):
         Returns:
             - HTTP 200 OK with the list of assigned operators if the order exists
             - HTTP 404 Not Found if the order does not exist
+            - HTTP 500 Internal Server Error for unexpected errors
         """
-        # Check if the order exists
         try:
-            order = Order.objects.get(key=order_key)
-        except Order.DoesNotExist:
+            print("Fetching assigned operators for order:", order_key)
+            # Check if the order exists
+            try:
+                order = Order.objects.get(key=order_key)
+            except Order.DoesNotExist:
+                return Response(
+                    {"status": "error", "messUser": "Orden no encontrada", "messDev": f"Order with key={order_key} does not exist"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Query the Assign model to find all assignments related to this order
+            assigned_operators = Assign.objects.filter(order__key=order_key).select_related('operator')
+            
+            # Prepare the response data with operator and person details
+            operator_data = []
+            for assignment in assigned_operators:
+                operator = assignment.operator
+                
+                # Since Operator inherits from Person, all Person fields are directly accessible on operator
+                operator_info = {
+                    # Operator-specific fields
+                    "id": operator.id_operator,
+                    "number_licence": operator.number_licence,
+                    "code": operator.code,
+                    "n_children": operator.n_children,
+                    "size_t_shift": operator.size_t_shift,
+                    "name_t_shift": operator.name_t_shift,
+                    "salary": operator.salary,
+                    "photo": operator.photo,
+                    "status": operator.status,
+                    "assigned_at": assignment.assigned_at,
+                    "additional_costs": assignment.additional_costs,
+                    # Getting the operator's role in the assign
+                    "rol": assignment.rol,
+                    # Person fields (inherited fields)
+                    "first_name": operator.first_name if hasattr(operator, 'first_name') else None,
+                    "last_name": operator.last_name if hasattr(operator, 'last_name') else None,
+                    "identification": operator.identification if hasattr(operator, 'identification') else None,
+                    "email": operator.email if hasattr(operator, 'email') else None,
+                    "phone": operator.phone if hasattr(operator, 'phone') else None,
+                    "address": operator.address if hasattr(operator, 'address') else None,
+                }
+                # Optionally include user and company information if needed
+                if hasattr(operator, 'user') and operator.user:
+                    operator_info.update({
+                        "username": operator.user.user_name,
+                    })
+                    
+                if hasattr(operator, 'id_company') and operator.id_company:
+                    operator_info.update({
+                        "company_id": operator.id_company.id,
+                        "company_name": operator.id_company.name if hasattr(operator.id_company, 'name') else None,
+                    })
+                    
+                operator_data.append(operator_info)
+            
             return Response(
-                {"status": "error", "messUser": "Orden no encontrada", "messDev": f"Order with key={order_key} does not exist"},
-                status=status.HTTP_404_NOT_FOUND
+                operator_data, 
+                status=status.HTTP_200_OK
             )
         
-        # Query the Assign model to find all assignments related to this order
-        # Use select_related to also fetch the related operator information
-        # Since Operator inherits from Person, we don't need to explicitly select "person"
-        assigned_operators = Assign.objects.filter(order__key=order_key).select_related('operator')
-        
-        # Prepare the response data with operator and person details
-        operator_data = []
-        for assignment in assigned_operators:
-            operator = assignment.operator
-            
-            # Since Operator inherits from Person, all Person fields are directly accessible on operator
-            operator_info = {
-                # Operator-specific fields
-                "id": operator.id_operator,
-                "number_licence": operator.number_licence,
-                "code": operator.code,
-                "n_children": operator.n_children,
-                "size_t_shift": operator.size_t_shift,
-                "name_t_shift": operator.name_t_shift,
-                "salary": operator.salary,
-                "photo": operator.photo,
-                "status": operator.status,
-                "assigned_at": assignment.assigned_at,
-                "additional_costs": assignment.additional_costs,
-                # Getting the operator's role in the assign
-                "rol": assignment.rol,
-                # Person fields (inherited fields)
-                "first_name": operator.first_name if hasattr(operator, 'first_name') else None,
-                "last_name": operator.last_name if hasattr(operator, 'last_name') else None,
-                "identification": operator.identification if hasattr(operator, 'identification') else None,
-                "email": operator.email if hasattr(operator, 'email') else None,
-                "phone": operator.phone if hasattr(operator, 'phone') else None,
-                "address": operator.address if hasattr(operator, 'address') else None,
-            }
-            # Optionally include user and company information if needed
-            if hasattr(operator, 'user') and operator.user:
-                operator_info.update({
-                    "username": operator.user.user_name,
-                })
-                
-            if hasattr(operator, 'id_company') and operator.id_company:
-                operator_info.update({
-                    "company_id": operator.id_company.id,
-                    "company_name": operator.id_company.name if hasattr(operator.id_company, 'name') else None,
-                    # Add other company fields as needed
-                })
-                
-            operator_data.append(operator_info)
-        
-        return Response(
-            operator_data, 
-            status=status.HTTP_200_OK
-        )
+        except Exception as e:
+            # Handle unexpected errors
+            return Response(
+                {
+                    "status": "error",
+                    "messUser": "Ocurrió un error inesperado al recuperar los operadores asignados.",
+                    "messDev": str(e),
+                    "data": None
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
