@@ -2,10 +2,14 @@ import uuid
 from django.db import models
 from api.operator.models.Operator import Operator
 from api.person.models import Person 
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
 
 from api.job.models.Job import Job
 from api.tool.models.Tool import Tool
 from api.company.models.Company import Company
+from api.utils import upload_evidence_file
 
 # Possible States from USA
 class StatesUSA(models.TextChoices):
@@ -76,7 +80,7 @@ class Order(models.Model):
     # "en transito?"
     status = models.CharField(max_length=50,null=True, blank=True, default="pending")
     payStatus = models.SmallIntegerField(null=True, blank=True) 
-    evidence = models.URLField(null=True, blank=True)  # URL of evidence
+    evidence = models.ImageField(upload_to=upload_evidence_file, null=True, blank=True)  # Changed to ImageField
     state_usa = models.CharField(
         max_length=2, 
         choices=StatesUSA.choices,
@@ -121,4 +125,21 @@ class Order(models.Model):
     
     def __str__(self):
         return f"Order {self.key} - {self.person.id_person if self.person else 'No Person Assigned'}"
+
+    def compress_image(self, image_field):
+        try:
+            image = Image.open(image_field)
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            buffer = BytesIO()
+            image.save(buffer, format='JPEG', optimize=True, quality=60)  # adjust quality
+            return ContentFile(buffer.getvalue(), name=image_field.name)
+        except Exception as e:
+            print(f"Error compressing image: {e}")
+            return image_field  # if it fails, use original image
+
+    def save(self, *args, **kwargs):
+        if self.evidence:
+            self.evidence = self.compress_image(self.evidence)
+        super().save(*args, **kwargs)
 

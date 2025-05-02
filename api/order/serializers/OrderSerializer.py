@@ -3,6 +3,7 @@ from api.order.models.Order import Order
 from api.person.serializers.PersonCreateFromOrderSerializer import PersonCreateFromOrderSerializer
 from api.job.models import Job  
 from api.company.models.Company import Company
+from django.conf import settings
 
 class OrderSerializer(serializers.ModelSerializer):
     """
@@ -13,14 +14,26 @@ class OrderSerializer(serializers.ModelSerializer):
     """
 
     person = PersonCreateFromOrderSerializer()
+    evidence = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
-        fields = ["key", "key_ref", "date", "distance", "expense", "income", "weight", "status", "payStatus", "state_usa", "person", "job"]
+        fields = ["key", "key_ref", "date", "distance", "expense", "income", "weight", "status", "payStatus", "evidence", "state_usa", "person", "job"]
         extra_kwargs = {
             'id_company': {'read_only': True},
             'person':     {'read_only': True}, #no nested
         }
+
+    def get_evidence(self, obj):
+        if obj.evidence:
+            if settings.USE_S3:
+                return f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/{obj.evidence.name}"
+            else:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.evidence.url)
+                return obj.evidence.url
+        return None
 
     def create(self, validated_data):
         request = self.context.get('request')
