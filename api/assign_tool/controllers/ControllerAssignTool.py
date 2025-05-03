@@ -4,10 +4,17 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 from api.assign_tool.services.ServicesAssignTool import ServicesAssignTool
 from api.assign_tool.serializers.SerializerAssignTool import SerializerAssignTool, SerializerAssignToolInput
 from api.order.models.Order import Order
+from rest_framework import pagination
+from rest_framework.response import Response
 
+class CustomPagination(pagination.PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 class ControllerAssignTool(viewsets.ViewSet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.paginator = CustomPagination()  
         self.services_assign_tool = ServicesAssignTool()
         
     def assign_tool(self, request):
@@ -64,22 +71,28 @@ class ControllerAssignTool(viewsets.ViewSet):
                 "message": "Assignment not found"
             }, status=status.HTTP_404_NOT_FOUND)
     
-    def get_assigned_tools(self, request):
+    def get_assigned_tools(self, request, *args, **kwargs):
         """
-        Get all tools assigned to an order.
-
-        Returns:
-        - 200 OK: List of assigned tools.
-        - 400 Bad Request: Invalid input data.
+        Get all tools assigned to an order (paginado).
         """
-        serializer = SerializerAssignToolInput(data=request.data)  # new serializer
-        if serializer.is_valid():
-            order_id = serializer.validated_data['id_order']
-            tools = self.services_assign_tool.get_assigned_tools(order_id)
-            return Response(SerializerAssignTool(tools, many=True).data, status=status.HTTP_200_OK) 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    
+        try:
+            order_id = self.kwargs.get('key', None)
+            if not order_id:
+                order_id = request.query_params.get('id_order') or request.data.get('id_order')
+            
+            if not order_id:
+                return Response({"id_order": ["Campo requerido"]}, status=status.HTTP_400_BAD_REQUEST)
+            
+            queryset = self.services_assign_tool.get_assigned_tools(order_id)
+            page = self.paginator.paginate_queryset(queryset, request)
+            
+            serializer = SerializerAssignTool(page, many=True)
+            
+            return self.paginator.get_paginated_response(serializer.data)
+        
+        except Exception as e:
+            print("Error:", str(e))
+            return Response({"detail": "Error interno"}, status=500)
     def bulk_create(self, request):
         """
         Create multiple assignments in bulk.
