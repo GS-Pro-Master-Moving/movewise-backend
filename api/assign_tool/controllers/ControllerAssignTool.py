@@ -64,22 +64,35 @@ class ControllerAssignTool(viewsets.ViewSet):
                 "message": "Assignment not found"
             }, status=status.HTTP_404_NOT_FOUND)
     
-    def get_assigned_tools(self, request):
+    def get_assigned_tools(self, request, *args, **kwargs):  # <-- Agregar args y kwargs
         """
         Get all tools assigned to an order.
-
-        Returns:
-        - 200 OK: List of assigned tools.
-        - 400 Bad Request: Invalid input data.
         """
-        serializer = SerializerAssignToolInput(data=request.data)  # new serializer
-        if serializer.is_valid():
-            order_id = serializer.validated_data['id_order']
+        try:
+            # Obtener el key de la URL
+            order_id = self.kwargs.get('key', None)
+            
+            # Si no viene en la URL, buscar en query params o body
+            if not order_id:
+                order_id = request.query_params.get('id_order') or request.data.get('id_order')
+            
+            if not order_id:
+                return Response(
+                    {"id_order": ["This field is required."]},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Llamar al servicio
             tools = self.services_assign_tool.get_assigned_tools(order_id)
-            return Response(SerializerAssignTool(tools, many=True).data, status=status.HTTP_200_OK) 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(SerializerAssignTool(tools, many=True).data, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            print("Server Error:", str(e))  # Log del error real
+            return Response(
+                {"detail": "Internal server error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-    
     def bulk_create(self, request):
         """
         Create multiple assignments in bulk.
