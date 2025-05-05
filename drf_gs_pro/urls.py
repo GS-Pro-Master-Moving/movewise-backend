@@ -55,7 +55,7 @@ urlpatterns = [
     # jobs
     path('jobs/', JobController.as_view({'get': 'list'}), name='job-list'),
     # operators
-    path('operators/<int:operator_id>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-id'),
+    path('operators/<int:document_number>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-document'),
     path('operators-by-id/<int:id_person>/', ControllerOperator.as_view({'get': 'getOperatorById'}), name='operator-get-by-number-id'),
     path('operators/', ControllerOperator.as_view({'post': 'create', 'get': 'list'}), name='operator-list-create'),
     path('operators/<int:operator_id>/patch/<str:field_name>/',ControllerOperator.as_view({'patch': 'patch_field'}), name='operator-patch-field'),
@@ -79,7 +79,7 @@ urlpatterns = [
     path('assignTool/', ControllerAssignTool.as_view({'post': 'assign_tool'}), name='assign-tool'),
     path('assignTools/', ControllerAssignTool.as_view({'post': 'bulk_create'}), name='assign-tool'),
     path('unassignTool/', ControllerAssignTool.as_view({'delete': 'unassign_tool'}), name='unassign-tool'),
-    path('assignedTools/', ControllerAssignTool.as_view({'get': 'get_assigned_tools'}), name='assigned-tools'),
+    # path('assignedTools/', ControllerAssignTool.as_view({'get': 'get_assigned_tools'}), name='assigned-tools'),
     path('assignTool/order/<str:key>/', ControllerAssignTool.as_view({'get': 'get_assigned_tools'}), name='assigned-tools-by-order'),
     # Trucks
     path('truck-by-id/<int:id_truck>/', ControllerTruck.as_view({'get': 'get_truck_by_id'}), name='truck-get-by-id'),    

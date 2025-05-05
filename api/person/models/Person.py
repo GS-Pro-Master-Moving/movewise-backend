@@ -17,4 +17,27 @@ class Person(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_staff(self):
+        return False
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def pk(self):
+        # DRF a veces usa .pk para identificar al user
+        return self.id_person
+
+    # Para que request.user.company_id funcione sin que tengas que volver
+    # a leer el token en el middleware:
+    @property
+    def company_id(self):
+        return self.id_company.id
  

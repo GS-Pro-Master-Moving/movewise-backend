@@ -35,9 +35,9 @@ class ControllerOperator(viewsets.ViewSet):
         description="Get an operator by number_id, including person information.",
         responses={200: SerializerOperator, 404: {"error": "Operator not found"}},
     )
-    def getOperatorByNumberId(self, request, operator_id):
+    def getOperatorByNumberId(self, request, document_number):
         try:
-            person = Person.objects.get(id_number=operator_id)
+            person = Person.objects.get(id_number=document_number)
             operator = Operator.objects.get(person=person)
             serializer = SerializerOperator(operator)
             return Response(serializer.data, status=status.HTTP_200_OK)
