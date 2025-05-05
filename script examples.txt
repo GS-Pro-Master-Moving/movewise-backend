@@ -7,11 +7,7 @@ VALUES
 (4, 'Bob', 'Brown', '1988-02-18', 4567890123, '321 Maple St', 654321098, 'DNI', 'bob.brown@example.com'),
 (5, 'Charlie', 'Davis', '1995-07-30', 5678901234, '987 Elm St', 543210987, 'ID_CARD', 'charlie.davis@example.com');
 
-INSERT INTO api_job (id, name, id_company) VALUES
-(1, 'd', 1),
-(2, 'p', 1),
-(3, 'p/c', 1),
-(4, 'load', 1);
+
 
 INSERT INTO api_truck (id_truck, number_truck, type, category, name) VALUES
 (5, 'TRK-001', 'Cargo', 'Transport', 'Big Truck'),
