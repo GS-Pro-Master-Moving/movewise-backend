@@ -120,7 +120,13 @@ class ControllerOperator(viewsets.ViewSet):
         except Operator.DoesNotExist:
             return Response({"message": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        # Create a mutable copy of request.data to modify if needed
+        data = request.data.copy()
+        
+        # Handle file uploads separately before serializer processing
         files = request.FILES
+        
+        # Delete existing files only if they're being replaced
         if 'photo' in files and operator.photo:
             operator.photo.delete(save=False)
         if 'license_front' in files and operator.license_front:
@@ -128,12 +134,21 @@ class ControllerOperator(viewsets.ViewSet):
         if 'license_back' in files and operator.license_back:
             operator.license_back.delete(save=False)
 
+        # Only include the files that were actually uploaded
+        file_fields = ['photo', 'license_front', 'license_back']
+        for field in file_fields:
+            if field not in files:
+                # Remove the field from data if it's not being updated
+                if field in data:
+                    data.pop(field)
+
         serializer = SerializerOperator(
             operator,
-            data=request.data,
+            data=data,
             partial=True,
             context={'request': request}
         )
+        
         if serializer.is_valid():
             try:
                 with transaction.atomic():
@@ -159,6 +174,7 @@ class ControllerOperator(viewsets.ViewSet):
             "errors": serializer.errors,
             "status": status.HTTP_400_BAD_REQUEST
         }, status=status.HTTP_400_BAD_REQUEST)
+        
     @extend_schema(
         summary="Patch a single field of an operator",
         description="Updates a specific field (name_t_shift or size_t_shift).",
