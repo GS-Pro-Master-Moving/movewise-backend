@@ -511,12 +511,12 @@ class ControllerOrder(viewsets.ViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        summary="Update order evidence",
-        description="Updates the evidence image for an order. Accepts multipart/form-data with an image file.",
-        request={
-            'multipart/form-data': SerializerOrderEvidence
-        },
-        responses={200: SerializerOrderEvidence}
+    summary="Update order evidence",
+    description="Updates the evidence image for an order. Accepts multipart/form-data with an image file.",
+    request={
+        'multipart/form-data': SerializerOrderEvidence
+    },
+    responses={200: SerializerOrderEvidence}
     )
     @parser_classes([MultiPartParser, FormParser])
     def update_evidence(self, request, pk):
@@ -544,7 +544,9 @@ class ControllerOrder(viewsets.ViewSet):
 
         # Update with new file
         order.evidence = request.FILES['evidence']
-        order.save()
+        
+        # IMPORTANT: Only update the evidence field to prevent affecting dispatch_ticket
+        order.save(update_fields=['evidence'])
 
         # Serialize and return response
         serializer = SerializerOrderEvidence(order, context={'request': request})
@@ -555,4 +557,3 @@ class ControllerOrder(viewsets.ViewSet):
             },
             status=status.HTTP_200_OK
         )
-

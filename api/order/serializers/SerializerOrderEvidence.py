@@ -28,6 +28,8 @@ class SerializerOrderEvidence(serializers.ModelSerializer):
             
             # Set new file
             instance.evidence = validated_data['evidence']
-            instance.save()
             
-        return instance 
+            # Only update the evidence field to prevent other fields from being processed
+            instance.save(update_fields=['evidence'])
+            
+        return instance

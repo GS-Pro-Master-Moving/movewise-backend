@@ -13,6 +13,9 @@ from api.assign.serializers.SerializerAssign import AssignOperatorSerializer
 from api.truck.serializers.SerializerTruck import SerializerTruck
 from api.assign.models.Assign import Assign
 from django.shortcuts import get_object_or_404
+import os
+from django.core.files.storage import default_storage
+from django.conf import settings
 
 class ServicesOrder(IServicesOrder):
     def __init__(self):
@@ -36,35 +39,19 @@ class ServicesOrder(IServicesOrder):
         return self.repository.create_order(data)
     
     def update_order(self, order, data: dict, request) -> Order:
-        """
-        Applies a partial update to `order` *only if* it belongs to
-        request.company_id. Drops any 'person' key silently.
-        """
-        # Guard company context
-        if not hasattr(request, 'company_id'):
-            raise ValidationError("Company context missing")
-
         if order.id_company_id != request.company_id:
-            raise PermissionDenied("You do not have permission to modify this order")
+            raise PermissionDenied("No tienes permiso para modificar esta orden")
 
-        # Drop person (we don’t update it here)
-        data.pop("person", None)
+        for field in ['key_ref', 'date', 'distance', 'expense', 'income', 'weight', 'status']:
+            if field in data:
+                setattr(order, field, data[field])
 
-        # Handle job
         if "job" in data:
-            job_id = data.pop("job")
-            try:
-                order.job = Job.objects.get(id=job_id)
-            except Job.DoesNotExist:
-                raise ValidationError("The specified job does not exist")
+            job = get_object_or_404(Job, id=data["job"])
+            order.job = job
 
-        # Apply other fields
-        for key, val in data.items():
-            setattr(order, key, val)
-
-        order.save()
         return order
-    
+
     def get_states_usa(self):
         return [(state.value, state.label) for state in StatesUSA]
 
