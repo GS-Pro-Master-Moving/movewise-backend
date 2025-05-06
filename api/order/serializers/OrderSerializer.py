@@ -27,7 +27,7 @@ class OrderSerializer(serializers.ModelSerializer):
         allow_null=True,
         use_url=True,    # when serializing returns URL instead of binary
     )
-    dispatch_ticket_url = serializers.SerializerMethodField(read_only=True)
+    dispatch_ticket_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Order
@@ -44,10 +44,12 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_evidence(self, obj):
         if not obj.evidence:
             return None
+            
         if settings.USE_S3:
             return f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/{obj.evidence.name}"
+        
         request = self.context.get('request')
-        return request.build_absolute_uri(obj.evidence.url)
+        return request.build_absolute_uri(obj.evidence.url) if request else obj.evidence.url  
     
     def validate_dispatch_ticket(self, value):
         """
@@ -90,8 +92,9 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_dispatch_ticket_url(self, obj):
         if not obj.dispatch_ticket:
             return None
+            
         request = self.context.get('request')
-        return request.build_absolute_uri(obj.dispatch_ticket.url)
+        return request.build_absolute_uri(obj.dispatch_ticket.url) if request else obj.dispatch_ticket.url  # ¡Y aquí!
 
     def update(self, instance, validated_data):
         person_data = validated_data.pop('person', None)

@@ -184,39 +184,46 @@ class ControllerOrder(viewsets.ViewSet):
             responses={200: OrderSerializer(many=True), 400: {"error": "Invalid data or evidence not found"}}
         )
     def update_status(self, request, pk=None):
-        try:
-            # Get the order by its key
-            order = Order.objects.get(key=pk)
-            #validation if the order status is finalized it cannot be updated
-            if order.payStatus == 1:
-                return Response({
-                    "status": "error",
-                    "messDev": "Order is finalized and cannot be modified",
-                    "messUser": "Cannot edit finalized orders",
-                    "data": None
-                }, status=status.HTTP_403_FORBIDDEN)
+        order = get_object_or_404(Order, key=pk)
+        
+        # Validar si la orden ya está finalizada
+        if order.status == 'finished':
+            return Response(
+                {"error": "Esta orden ya está finalizada. No se puede modificar."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            # Update the order using the service
-            updated_order = self.order_service.update_status(request.data["url"], order)
-            
-            # Return the response with the updated data
-            return Response(OrderSerializer(updated_order).data, status=status.HTTP_200_OK) 
+        # Validar estado
+        valid_statuses = ["pending", "in progress", "finished"]
+        status_param = request.data.get("status", "").lower()
         
-        except Order.DoesNotExist:
-            return Response({
-                "status": "error",
-                "messDev": "Order not found",
-                "messUser": "Order not found",
-                "data": None
-            }, status=status.HTTP_404_NOT_FOUND)
+        if status_param not in valid_statuses:
+            return Response(
+                {"error": f"Estado inválido. Los estados válidos son: {', '.join(valid_statuses)}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validar evidencia
+        if 'evidence' not in request.FILES:
+            return Response(
+                {"error": "El campo 'evidence' es obligatorio."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         
-        except Exception as e:
-            return Response({
-                "status": "error",
-                "messDev": f"Error updating order: {str(e)}",
-                "messUser": f"Error updating order",
-                "data": None
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Eliminar archivo antiguo
+        if order.evidence:
+            order.evidence.delete(save=False)
+
+        # Actualizar evidencia y estado
+        order.evidence = request.FILES['evidence']
+        order.status = status_param
+        order.save()  # Guarda ambos campos (evidence y status)
+
+        # Serializar con contexto request
+        serializer = OrderSerializer(order, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
     @extend_schema(
         summary="Create a new order",
         description="Creates an order with the given data and returns the created entity.",
@@ -534,6 +541,8 @@ class ControllerOrder(viewsets.ViewSet):
     },
     responses={200: SerializerOrderEvidence}
     )
+
+    #just update image
     def update_evidence(self, request, pk):
         try:
             order = Order.objects.get(key=pk)

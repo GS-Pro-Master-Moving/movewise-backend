@@ -8,17 +8,18 @@ class SerializerOrderEvidence(serializers.ModelSerializer):
         fields = ['evidence']
 
     def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        if instance.evidence:
-            if settings.USE_S3:
-                ret['evidence'] = f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/{instance.evidence.name}"
-            else:
-                request = self.context.get('request')
-                if request:
-                    ret['evidence'] = request.build_absolute_uri(instance.evidence.url)
-                else:
-                    ret['evidence'] = instance.evidence.url
-        return ret
+        evidence_url = (
+            instance.evidence.url 
+            if instance.evidence 
+            else None
+        )
+        
+        if evidence_url and not settings.USE_S3:
+            request = self.context.get('request')
+            if request:
+                evidence_url = request.build_absolute_uri(evidence_url)
+        
+        return {'evidence': evidence_url}
 
     def update(self, instance, validated_data):
         if 'evidence' in validated_data:
