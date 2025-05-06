@@ -3,6 +3,8 @@ from django.db import models
 from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
+import logging
+import os
 
 from api.operator.models.Operator import Operator
 from api.person.models import Person
@@ -10,6 +12,8 @@ from api.job.models.Job import Job
 from api.tool.models.Tool import Tool
 from api.company.models.Company import Company
 from api.utils import upload_evidence_file, _upload_dispatch_file
+
+logger = logging.getLogger(__name__)
 
 # Possible States from USA
 class StatesUSA(models.TextChoices):
@@ -76,8 +80,8 @@ class Order(models.Model):
     payStatus = models.SmallIntegerField(null=True, blank=True)
 
     # Image fields
-    dispatch_ticket = models.ImageField(upload_to=_upload_dispatch_file,null=True,blank=True,max_length=255)
-    evidence = models.ImageField(upload_to=upload_evidence_file,null=True, blank=True,max_length=255)
+    dispatch_ticket = models.ImageField(upload_to=_upload_dispatch_file, null=True, blank=True, max_length=255)
+    evidence = models.ImageField(upload_to=upload_evidence_file, null=True, blank=True, max_length=255)
 
     state_usa = models.CharField(
         max_length=2,
@@ -121,44 +125,67 @@ class Order(models.Model):
     def compress_image(self, image_field):
         try:
             if not image_field or not hasattr(image_field, 'path'):
+                logger.debug(f"Image field has no path: {image_field}")
                 return image_field
                 
+            if not os.path.exists(image_field.path):
+                logger.warning(f"Image path does not exist: {image_field.path}")
+                return image_field
+                
+            # Open the image for compression
             image = Image.open(image_field)
+            logger.debug(f"Opened image for compression: {image_field.name} ({image.width}x{image.height})")
+            
+            # Convert to RGB if necessary
             if image.mode != 'RGB':
+                logger.debug(f"Converting image from {image.mode} to RGB")
                 image = image.convert('RGB')
                 
+            # Resize if too large
             max_size = (1200, 1200)
             if image.width > max_size[0] or image.height > max_size[1]:
+                logger.debug(f"Resizing image from {image.width}x{image.height} to fit within {max_size}")
                 image.thumbnail(max_size, Image.LANCZOS)
                 
+            #Compress and buffer
             buffer = BytesIO()
             image.save(buffer, format='JPEG', optimize=True, quality=60)
+            logger.debug(f"Compressed image size: {len(buffer.getvalue())} bytes")
             
             filename = image_field.name.split('/')[-1]
+            logger.debug(f"Created ContentFile with name: {filename}")
+            
             return ContentFile(buffer.getvalue(), name=filename)
         except Exception as e:
-            print(f"Error compressing image: {e}")
+            logger.error(f"Error compressing image: {str(e)}")
             return image_field
 
     def save(self, *args, **kwargs):
-        # Handle update_fields parameter
+        logger.debug(f"Saving order {self.key}")
+        # Get update_fields if exists
         update_fields = kwargs.get('update_fields')
-        
-        # Check if it's an existing object (has a primary key) or a new one
+        logger.debug(f"Update fields specified: {update_fields}")
+
+        # Check if it is a new or existing object
         is_new = not self.pk
+        logger.debug(f"Is new object: {is_new}")
         
-        # For new objects or complete saves, compress both images
         if is_new or not update_fields:
+            logger.debug("Processing all images for new object or full save")
             if self.evidence:
+                logger.debug(f"Compressing evidence: {self.evidence.name}")
                 self.evidence = self.compress_image(self.evidence)
             if self.dispatch_ticket:
+                logger.debug(f"Compressing dispatch_ticket: {self.dispatch_ticket.name}")
                 self.dispatch_ticket = self.compress_image(self.dispatch_ticket)
-        # For partial updates, only compress the specified fields
         elif update_fields:
             if 'evidence' in update_fields and self.evidence:
+                logger.debug(f"Compressing evidence in partial update: {self.evidence.name}")
                 self.evidence = self.compress_image(self.evidence)
             if 'dispatch_ticket' in update_fields and self.dispatch_ticket:
+                logger.debug(f"Compressing dispatch_ticket in partial update: {self.dispatch_ticket.name}")
                 self.dispatch_ticket = self.compress_image(self.dispatch_ticket)
         
-        # Call parent save method
-        super().save(*args, **kwargs)
+        logger.debug("Calling parent save method")
+        super(Order, self).save(*args, **kwargs)
+        logger.debug(f"Order {self.key} saved successfully")

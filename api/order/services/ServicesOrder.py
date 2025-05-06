@@ -25,6 +25,7 @@ class ServicesOrder(IServicesOrder):
         if not company_id:
             raise ValidationError("Company context missing")
         return self.repository.get_all_orders(company_id)
+
         
     def update_status(self, url, order):
         self.repository.update_status(url,order)
@@ -40,7 +41,7 @@ class ServicesOrder(IServicesOrder):
     
     def update_order(self, order, data: dict, request) -> Order:
         if order.id_company_id != request.company_id:
-            raise PermissionDenied("No tienes permiso para modificar esta orden")
+            raise PermissionDenied("You do not have permission to modify this order.")
 
         for field in ['key_ref', 'date', 'distance', 'expense', 'income', 'weight', 'status']:
             if field in data:
@@ -49,7 +50,9 @@ class ServicesOrder(IServicesOrder):
         if "job" in data:
             job = get_object_or_404(Job, id=data["job"])
             order.job = job
-
+        
+        order.save()
+        
         return order
 
     def get_states_usa(self):

@@ -6,6 +6,7 @@ from api.job.models import Job
 from api.company.models.Company import Company
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.shortcuts import get_object_or_404
 import base64
 import uuid
 import os
@@ -19,24 +20,25 @@ class OrderSerializer(serializers.ModelSerializer):
     - Devuelve evidence y dispatch_ticket como URLs (local o S3).
     """
     
-    person = PersonCreateFromOrderSerializer()
+    person = PersonCreateFromOrderSerializer(required=False)
     evidence = serializers.SerializerMethodField()
     dispatch_ticket = Base64ImageField(
         required=False,
         allow_null=True,
         use_url=True,    # when serializing returns URL instead of binary
     )
+    dispatch_ticket_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Order
         fields = [
             "key", "key_ref", "date", "distance", "expense", "income",
-            "weight", "status", "payStatus", "evidence", "dispatch_ticket",
+            "weight", "status", "payStatus", "evidence", "dispatch_ticket", "dispatch_ticket_url",
             "state_usa", "person", "job"
         ]
+
         extra_kwargs = {
             'id_company': {'read_only': True},
-            'person':     {'read_only': True},
         }
     
     def get_evidence(self, obj):
@@ -49,17 +51,17 @@ class OrderSerializer(serializers.ModelSerializer):
     
     def validate_dispatch_ticket(self, value):
         """
-        Validación adicional para asegurar que las imágenes no sean demasiado grandes
+        Additional validation to ensure images are not too large
         """
         if value:
             if value.size > 5 * 1024 * 1024:  # 5MB
-                raise serializers.ValidationError("La imagen es demasiado grande. El tamaño máximo es 5MB.")
+                raise serializers.ValidationError("The image is too large. The maximum size is 5MB.")
                 
             # Comprueba el formato
             valid_formats = ['jpeg', 'jpg', 'png']
             img_format = value.name.split('.')[-1].lower()
             if img_format not in valid_formats:
-                raise serializers.ValidationError(f"Formato no soportado. Use: {', '.join(valid_formats)}")
+                raise serializers.ValidationError(f"Unsupported format. Use: {', '.join(valid_formats)}")
         
         return value
     
@@ -70,40 +72,46 @@ class OrderSerializer(serializers.ModelSerializer):
         
         company = Company.objects.get(pk=request.company_id)
         
-        person_data = validated_data.pop("person")
-        person_serializer = PersonCreateFromOrderSerializer(
-            data=person_data, context={'request': request}
-        )
-        person_serializer.is_valid(raise_exception=True)
-        person = person_serializer.save()
+        person_data = validated_data.pop("person", None)
+        if person_data:
+            person_serializer = PersonCreateFromOrderSerializer(
+                data=person_data, context={'request': request}
+            )
+            person_serializer.is_valid(raise_exception=True)
+            person = person_serializer.save()
+        else:
+            raise serializers.ValidationError("Person data is required for creating an order")
         
         return Order.objects.create(
             id_company=company,
             person=person,
             **validated_data
         )
-    
-    def update(self, instance, validated_data):
+    def get_dispatch_ticket_url(self, obj):
+        if not obj.dispatch_ticket:
+            return None
         request = self.context.get('request')
-        
-        if not request or not hasattr(request, 'company_id'):
-            raise serializers.ValidationError("Company context missing")
-        if instance.id_company_id != request.company_id:
-            raise serializers.ValidationError("You do not have permission to update this order")
+        return request.build_absolute_uri(obj.dispatch_ticket.url)
 
-        if "job" in validated_data:
-            job_id = validated_data.pop("job")
-            instance.job = get_object_or_404(Job, id=job_id)
+    def update(self, instance, validated_data):
+        person_data = validated_data.pop('person', None)
 
-        if "dispatch_ticket" in validated_data:
+        # Check if the dispatch_ticket image is updated
+        if 'dispatch_ticket' in validated_data:
+            # If there is a previous image, remove it from the file system
             if instance.dispatch_ticket:
-                old_image_path = instance.dispatch_ticket.path
-                if os.path.isfile(old_image_path):
-                    os.remove(old_image_path)
-            instance.dispatch_ticket = validated_data.pop("dispatch_ticket")
+                instance.dispatch_ticket.delete(save=False)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+        if person_data:
+            ps = PersonCreateFromOrderSerializer(
+                instance=instance.person,
+                data=person_data,
+                partial=True,
+                context=self.context
+            )
+            ps.is_valid(raise_exception=True)
+            ps.save()
 
-        instance.save()
-        return instance
+        return super().update(instance, validated_data)
+
+

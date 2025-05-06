@@ -29,7 +29,7 @@ def upload_operator_license_back(instance, filename):
     filename = f"{uuid.uuid4()}.{ext}"
     return os.path.join('operators', 'licenses', 'back', filename)
 
-#order images
+#order images in api/utils.py
 def upload_evidence_file(instance, filename):
     from django.conf import settings
 
