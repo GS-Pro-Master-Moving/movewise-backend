@@ -1,15 +1,19 @@
 import uuid
 from django.db import models
-from api.operator.models.Operator import Operator
-from api.person.models import Person 
 from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
+import logging
+import os
 
+from api.operator.models.Operator import Operator
+from api.person.models import Person
 from api.job.models.Job import Job
 from api.tool.models.Tool import Tool
 from api.company.models.Company import Company
-from api.utils import upload_evidence_file
+from api.utils import upload_evidence_file, _upload_dispatch_file
+
+logger = logging.getLogger(__name__)
 
 # Possible States from USA
 class StatesUSA(models.TextChoices):
@@ -65,81 +69,123 @@ class StatesUSA(models.TextChoices):
     WYOMING = "WY", "Wyoming"
     
 class Order(models.Model):
-    key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Unique ID for DB
-    key_ref = models.CharField(max_length=50,null=True, blank=True)
-    date = models.DateField(null=True, blank=True)  # Order date
-    distance = models.PositiveIntegerField(null=True, blank=True) # Order income
-    expense = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)
-    income = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True) 
-    weight = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)  # Weight of charge
-    # states of the order
-    # It has 3 possible values: "pending", "finished", "inactive"
-    # "pending" means that the order is still active and can be modified
-    # "finished" means that the order is completed and cannot be modified
-    # "inactive" means that the order is no longer active and cannot be modified
-    # "en transito?"
-    status = models.CharField(max_length=50,null=True, blank=True, default="pending")
-    payStatus = models.SmallIntegerField(null=True, blank=True) 
-    evidence = models.ImageField(upload_to=upload_evidence_file, null=True, blank=True)  # Changed to ImageField
+    key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    key_ref = models.CharField(max_length=50, null=True, blank=True)
+    date = models.DateField(null=True, blank=True)
+    distance = models.PositiveIntegerField(null=True, blank=True)
+    expense = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    income = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    weight = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    status = models.CharField(max_length=50, null=True, blank=True, default="pending")
+    payStatus = models.SmallIntegerField(null=True, blank=True)
+
+    # Image fields
+    dispatch_ticket = models.ImageField(upload_to=_upload_dispatch_file, null=True, blank=True, max_length=255)
+    evidence = models.ImageField(upload_to=upload_evidence_file, null=True, blank=True, max_length=255)
+
     state_usa = models.CharField(
-        max_length=2, 
+        max_length=2,
         choices=StatesUSA.choices,
-        null=True, blank=True
+        null=True,
+        blank=True
     )
-    # By the moment person its created everytime there is a register
-    # even when the email its registered
+
     id_company = models.ForeignKey(
         Company,
         related_name='orders',
         on_delete=models.CASCADE,
-        db_column='id_company',
-        null=False,
-        blank=True
+        db_column='id_company'
     )
-    person = models.ForeignKey( # Person realtion
-        Person, 
-        related_name='orders', 
+    person = models.ForeignKey(
+        Person,
+        related_name='orders',
         on_delete=models.CASCADE,
-        db_column="id_person"  
+        db_column="id_person"
     )
-
-    job = models.ForeignKey(  # Job realtion
-        Job, 
-        related_name="orders", 
+    job = models.ForeignKey(
+        Job,
+        related_name="orders",
         on_delete=models.CASCADE,
         db_column="id_job"
     )
-
     assign = models.ManyToManyField(
-        Operator, 
-        through="Assign", 
-        related_name="assigned_operators",
-        db_column="id_assign")
-
-    tool = models.ManyToManyField(
-        Tool, 
-        through="AssignTool", 
-        related_name="order_tools",
-        db_column="id_tool"
+        Operator,
+        through="Assign",
+        related_name="assigned_operators"
     )
-    
+    tool = models.ManyToManyField(
+        Tool,
+        through="AssignTool",
+        related_name="order_tools"
+    )
+
     def __str__(self):
         return f"Order {self.key} - {self.person.id_person if self.person else 'No Person Assigned'}"
 
     def compress_image(self, image_field):
         try:
+            if not image_field or not hasattr(image_field, 'path'):
+                logger.debug(f"Image field has no path: {image_field}")
+                return image_field
+                
+            if not os.path.exists(image_field.path):
+                logger.warning(f"Image path does not exist: {image_field.path}")
+                return image_field
+                
+            # Open the image for compression
             image = Image.open(image_field)
+            logger.debug(f"Opened image for compression: {image_field.name} ({image.width}x{image.height})")
+            
+            # Convert to RGB if necessary
             if image.mode != 'RGB':
+                logger.debug(f"Converting image from {image.mode} to RGB")
                 image = image.convert('RGB')
+                
+            # Resize if too large
+            max_size = (1200, 1200)
+            if image.width > max_size[0] or image.height > max_size[1]:
+                logger.debug(f"Resizing image from {image.width}x{image.height} to fit within {max_size}")
+                image.thumbnail(max_size, Image.LANCZOS)
+                
+            #Compress and buffer
             buffer = BytesIO()
-            image.save(buffer, format='JPEG', optimize=True, quality=60)  # adjust quality
-            return ContentFile(buffer.getvalue(), name=image_field.name)
+            image.save(buffer, format='JPEG', optimize=True, quality=60)
+            logger.debug(f"Compressed image size: {len(buffer.getvalue())} bytes")
+            
+            filename = image_field.name.split('/')[-1]
+            logger.debug(f"Created ContentFile with name: {filename}")
+            
+            return ContentFile(buffer.getvalue(), name=filename)
         except Exception as e:
-            print(f"Error compressing image: {e}")
-            return image_field  # if it fails, use original image
+            logger.error(f"Error compressing image: {str(e)}")
+            return image_field
 
     def save(self, *args, **kwargs):
-        if self.evidence:
-            self.evidence = self.compress_image(self.evidence)
-        super().save(*args, **kwargs)
+        logger.debug(f"Saving order {self.key}")
+        # Get update_fields if exists
+        update_fields = kwargs.get('update_fields')
+        logger.debug(f"Update fields specified: {update_fields}")
 
+        # Check if it is a new or existing object
+        is_new = not self.pk
+        logger.debug(f"Is new object: {is_new}")
+        
+        if is_new or not update_fields:
+            logger.debug("Processing all images for new object or full save")
+            if self.evidence:
+                logger.debug(f"Compressing evidence: {self.evidence.name}")
+                self.evidence = self.compress_image(self.evidence)
+            if self.dispatch_ticket:
+                logger.debug(f"Compressing dispatch_ticket: {self.dispatch_ticket.name}")
+                self.dispatch_ticket = self.compress_image(self.dispatch_ticket)
+        elif update_fields:
+            if 'evidence' in update_fields and self.evidence:
+                logger.debug(f"Compressing evidence in partial update: {self.evidence.name}")
+                self.evidence = self.compress_image(self.evidence)
+            if 'dispatch_ticket' in update_fields and self.dispatch_ticket:
+                logger.debug(f"Compressing dispatch_ticket in partial update: {self.dispatch_ticket.name}")
+                self.dispatch_ticket = self.compress_image(self.dispatch_ticket)
+        
+        logger.debug("Calling parent save method")
+        super(Order, self).save(*args, **kwargs)
+        logger.debug(f"Order {self.key} saved successfully")

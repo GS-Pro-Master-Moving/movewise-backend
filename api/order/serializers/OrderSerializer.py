@@ -1,89 +1,120 @@
 from rest_framework import serializers
+from drf_extra_fields.fields import Base64ImageField
 from api.order.models.Order import Order
 from api.person.serializers.PersonCreateFromOrderSerializer import PersonCreateFromOrderSerializer
-from api.job.models import Job  
+from api.job.models import Job
 from api.company.models.Company import Company
 from django.conf import settings
+from django.core.files.base import ContentFile
+from django.shortcuts import get_object_or_404
+import base64
+import uuid
+import os
 
 class OrderSerializer(serializers.ModelSerializer):
     """
     Serializer for the Order model.
-
-    - Includes a nested PersonCreateFromOrderSerializer for the `person` field.
-    - Validates and creates the associated Person instance before creating the Order.
+     
+    - Nested PersonCreateFromOrderSerializer en `person`.
+    - Recibe dispatch_ticket en Base64 dentro del JSON.
+    - Devuelve evidence y dispatch_ticket como URLs (local o S3).
     """
-
-    person = PersonCreateFromOrderSerializer()
+    
+    person = PersonCreateFromOrderSerializer(required=False)
     evidence = serializers.SerializerMethodField()
-
+    dispatch_ticket = Base64ImageField(
+        required=False,
+        allow_null=True,
+        use_url=True,    # when serializing returns URL instead of binary
+    )
+    dispatch_ticket_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Order
-        fields = ["key", "key_ref", "date", "distance", "expense", "income", "weight", "status", "payStatus", "evidence", "state_usa", "person", "job"]
+        fields = [
+            "key", "key_ref", "date", "distance", "expense", "income",
+            "weight", "status", "payStatus", "evidence", "dispatch_ticket", "dispatch_ticket_url",
+            "state_usa", "person", "job"
+        ]
+
         extra_kwargs = {
             'id_company': {'read_only': True},
-            'person':     {'read_only': True}, #no nested
         }
-
+    
     def get_evidence(self, obj):
-        if obj.evidence:
-            if settings.USE_S3:
-                return f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/{obj.evidence.name}"
-            else:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(obj.evidence.url)
-                return obj.evidence.url
-        return None
-
+        if not obj.evidence:
+            return None
+            
+        if settings.USE_S3:
+            return f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/{obj.evidence.name}"
+        
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.evidence.url) if request else obj.evidence.url  
+    
+    def validate_dispatch_ticket(self, value):
+        """
+        Additional validation to ensure images are not too large
+        """
+        if value:
+            if value.size > 5 * 1024 * 1024:  # 5MB
+                raise serializers.ValidationError("The image is too large. The maximum size is 5MB.")
+                
+            # Comprueba el formato
+            valid_formats = ['jpeg', 'jpg', 'png']
+            img_format = value.name.split('.')[-1].lower()
+            if img_format not in valid_formats:
+                raise serializers.ValidationError(f"Unsupported format. Use: {', '.join(valid_formats)}")
+        
+        return value
+    
     def create(self, validated_data):
         request = self.context.get('request')
         if not request or not hasattr(request, 'company_id'):
             raise serializers.ValidationError("Company context missing")
-
-        # Get companty instace
-        try:
-            company = Company.objects.get(pk=request.company_id)
-        except Company.DoesNotExist:
-            raise serializers.ValidationError("Invalid company in token")
-
-        # process person 
-        person_data = validated_data.pop("person")
-        person_serializer = PersonCreateFromOrderSerializer(
-            data=person_data,
-            context={'request': request}
-        )
         
-        if not person_serializer.is_valid():
-            raise serializers.ValidationError({"person": person_serializer.errors})
-            
-        person = person_serializer.save()
-
+        company = Company.objects.get(pk=request.company_id)
+        
+        person_data = validated_data.pop("person", None)
+        if person_data:
+            person_serializer = PersonCreateFromOrderSerializer(
+                data=person_data, context={'request': request}
+            )
+            person_serializer.is_valid(raise_exception=True)
+            person = person_serializer.save()
+        else:
+            raise serializers.ValidationError("Person data is required for creating an order")
+        
         return Order.objects.create(
-            id_company=company, #full instance
+            id_company=company,
             person=person,
             **validated_data
         )
-    
-    def update(self, instance, validated_data):
-        # 1. company‐scope guard
+    def get_dispatch_ticket_url(self, obj):
+        if not obj.dispatch_ticket:
+            return None
+            
         request = self.context.get('request')
-        if not request or not hasattr(request, 'company_id'):
-            raise serializers.ValidationError("Company context missing")
+        return request.build_absolute_uri(obj.dispatch_ticket.url) if request else obj.dispatch_ticket.url  # ¡Y aquí!
 
-        if instance.id_company_id != request.company_id:
-            raise serializers.ValidationError("You do not have permission to update this order")
+    def update(self, instance, validated_data):
+        person_data = validated_data.pop('person', None)
 
-        # 2. job field
-        if "job" in validated_data:
-            job_id = validated_data.pop("job")
-            try:
-                instance.job = Job.objects.get(id=job_id)
-            except Job.DoesNotExist:
-                raise serializers.ValidationError({"job": "Job not found"})
+        # Check if the dispatch_ticket image is updated
+        if 'dispatch_ticket' in validated_data:
+            # If there is a previous image, remove it from the file system
+            if instance.dispatch_ticket:
+                instance.dispatch_ticket.delete(save=False)
 
-        # 3. other updatable fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+        if person_data:
+            ps = PersonCreateFromOrderSerializer(
+                instance=instance.person,
+                data=person_data,
+                partial=True,
+                context=self.context
+            )
+            ps.is_valid(raise_exception=True)
+            ps.save()
 
-        instance.save()
-        return instance
+        return super().update(instance, validated_data)
+
+

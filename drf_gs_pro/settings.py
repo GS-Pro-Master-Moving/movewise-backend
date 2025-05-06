@@ -28,7 +28,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
 # =====================================* 
 # SMTP configuration for sending email * 🎶
 # =====================================* 
