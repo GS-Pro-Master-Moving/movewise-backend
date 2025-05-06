@@ -186,10 +186,10 @@ class ControllerOrder(viewsets.ViewSet):
     def update_status(self, request, pk=None):
         order = get_object_or_404(Order, key=pk)
         
-        # Validar si la orden ya está finalizada
+        # Validate if the order is already completed
         if order.status == 'finished':
             return Response(
-                {"error": "Esta orden ya está finalizada. No se puede modificar."},
+                {"error": "This order is already finalized. It cannot be modified."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -199,14 +199,14 @@ class ControllerOrder(viewsets.ViewSet):
         
         if status_param not in valid_statuses:
             return Response(
-                {"error": f"Estado inválido. Los estados válidos son: {', '.join(valid_statuses)}."},
+                {"error": f"Invalid state. Valid states are: {', '.join(valid_statuses)}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Validar evidencia
         if 'evidence' not in request.FILES:
             return Response(
-                {"error": "El campo 'evidence' es obligatorio."},
+                {"error": "The 'evidence' field is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         
@@ -241,9 +241,9 @@ class ControllerOrder(viewsets.ViewSet):
         - 201 Created: If the order is successfully created.
         - 400 Bad Request: If the request contains invalid data.
         """
-        logger.info("=== STARTING ORDER CREATION ===")
-        logger.debug(f"Request headers: {request.headers}")
-        logger.debug(f"Request data: {request.data}")
+        # logger.info("=== STARTING ORDER CREATION ===")
+        # logger.debug(f"Request headers: {request.headers}")
+        # logger.debug(f"Request data: {request.data}")
         
         serializer = OrderSerializer(
             data=request.data,
