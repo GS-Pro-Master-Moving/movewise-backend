@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from api.workCost.models.WorkCost import WorkCost
-
+from api.order.models.Order import Order
+from api.order.serializers.OrderSerializer import OrderSerializer # use orderserializer
 
 class WorkCostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,3 +16,11 @@ class SerializerTruck(serializers.ModelSerializer):
     class Meta:
         model = WorkCost
         fields = "__all__"
+
+class WorkCostWithOrderInfoSerializer(serializers.ModelSerializer):
+    order = OrderSerializer(source="id_order", read_only=True)
+
+    class Meta:
+        model = WorkCost
+        fields = "__all__"
+

@@ -139,6 +139,7 @@ urlpatterns = [
     'get': 'list',
     'post': 'create'
     }), name='workcost-list-create'),
+    path('workcost-with-orders/<str:order_id>/', ControllerWorkCost.as_view({'get':'list_with_order'}), name="list-workcost-order"),
     path('workcost/order/<str:order_id>/', 
         ControllerWorkCost.as_view({'get': 'listByOrderId'}), 
         name='workcost-list-by-order-id'),

@@ -2,6 +2,7 @@ from rest_framework import viewsets, pagination
 from rest_framework.response import Response
 from api.workCost.models.WorkCost import WorkCost
 from api.workCost.serializers.SerializerWorkCost import SerializerTruck
+from api.workCost.serializers.SerializerWorkCost import WorkCostWithOrderInfoSerializer
 
 class WorkCostPagination(pagination.PageNumberPagination):
     page_size = 10
@@ -22,6 +23,32 @@ class ControllerWorkCost(viewsets.ModelViewSet):
     serializer_class = SerializerTruck
     pagination_class = WorkCostPagination
 
+
+    # views/work_cost.py
+    def list_with_order(self, request, *args, **kwargs):
+        company_id = getattr(request, 'company_id', None)
+        if not company_id:
+            return Response({"detail": "No company ID provided"}, status=400)
+
+        queryset = self.get_queryset().filter(id_order__id_company=company_id)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            if hasattr(self, 'paginator'):
+                self.paginator.request = request
+            serializer = WorkCostWithOrderInfoSerializer(page, many=True)
+            return self.get_paginated_response({
+                "current_company_id": company_id,
+                "results": serializer.data
+            })
+
+        serializer = WorkCostWithOrderInfoSerializer(queryset, many=True)
+        return Response({
+            "current_company_id": company_id,
+            "results": serializer.data
+        })
+
+    
     def list(self, request, *args, **kwargs):
         company_id = getattr(request, 'company_id', None)
         if not company_id:
