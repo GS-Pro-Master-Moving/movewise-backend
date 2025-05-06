@@ -5,10 +5,9 @@ from PIL import Image
 from django.core.files.base import ContentFile
 from django.db import models
 from api.person.models import Person
-from api.utils import upload_operator_file as util_upload_operator_file
+from api.utils import upload_operator_photo,upload_operator_license_front,upload_operator_license_back
 
 class Operator(models.Model):
-    upload_operator_file = util_upload_operator_file
     id_operator = models.AutoField(primary_key=True)
 
     person = models.OneToOneField(
@@ -27,18 +26,18 @@ class Operator(models.Model):
 
     # Image fields with separate upload paths to avoid conflicts
     photo = models.ImageField(
-        upload_to=lambda instance, filename: os.path.join('operators', 'photos', f"{uuid.uuid4()}.{filename.split('.')[-1]}"),
-        null=True, 
+        upload_to=upload_operator_photo,
+        null=True,
         blank=True
     )
     license_front = models.ImageField(
-        upload_to=lambda instance, filename: os.path.join('operators', 'licenses', 'front', f"{uuid.uuid4()}.{filename.split('.')[-1]}"),
-        null=True, 
+        upload_to=upload_operator_license_front,
+        null=True,
         blank=True
     )
     license_back = models.ImageField(
-        upload_to=lambda instance, filename: os.path.join('operators', 'licenses', 'back', f"{uuid.uuid4()}.{filename.split('.')[-1]}"),
-        null=True, 
+        upload_to=upload_operator_license_back,
+        null=True,
         blank=True
     )
 

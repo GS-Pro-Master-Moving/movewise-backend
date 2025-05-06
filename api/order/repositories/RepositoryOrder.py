@@ -60,8 +60,7 @@ class RepositoryOrder(IRepositoryOrder):
     
     # @staticmethod
     def get_all_orders(self, company_id):
-        # Only return orders for that company
-        return Order.objects.filter(id_company_id=company_id)
+        return Order.objects.filter(id_company_id=company_id, status='pending')
     
     @staticmethod
     def get_states():

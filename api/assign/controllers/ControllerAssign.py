@@ -107,8 +107,10 @@ class ControllerAssign(viewsets.ViewSet):
         workhosts (additional costs), summaryList and summaryCost.
         """
         try:
-            orders = self.order_service.get_all_orders()
 
+            company_id    = request.company_id
+            orders = self.order_service.get_all_orders(company_id)
+            print(f'ordenes: {orders}')
             paginator = self.paginator
             page = paginator.paginate_queryset(orders, request, view=self)
 

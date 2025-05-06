@@ -6,7 +6,9 @@ class PersonCreateFromOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
         fields = ["email", "first_name", "last_name"]
-
+        extra_kwargs = {
+            'email': {'validators': []},
+        }
     def create(self, validated_data):
         #get company_id from the request
         request = self.context.get('request')

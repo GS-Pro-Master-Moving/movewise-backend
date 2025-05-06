@@ -1,3 +1,6 @@
+import traceback
+import logging
+
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
@@ -19,8 +22,15 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.parsers import MultiPartParser, FormParser
 from api.order.serializers.SerializerOrderEvidence import SerializerOrderEvidence
+from django.shortcuts import get_object_or_404
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+# Configuración de logging
+logger = logging.getLogger(__name__)
 
 class ControllerOrder(viewsets.ViewSet):
+    lookup_field = 'key'
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
+
     """
     Controller for managing Order entities.
 
@@ -174,39 +184,46 @@ class ControllerOrder(viewsets.ViewSet):
             responses={200: OrderSerializer(many=True), 400: {"error": "Invalid data or evidence not found"}}
         )
     def update_status(self, request, pk=None):
-        try:
-            # Get the order by its key
-            order = Order.objects.get(key=pk)
-            #validation if the order status is finalized it cannot be updated
-            if order.payStatus == 1:
-                return Response({
-                    "status": "error",
-                    "messDev": "Order is finalized and cannot be modified",
-                    "messUser": "Cannot edit finalized orders",
-                    "data": None
-                }, status=status.HTTP_403_FORBIDDEN)
+        order = get_object_or_404(Order, key=pk)
+        
+        # Validate if the order is already completed
+        if order.status == 'finished':
+            return Response(
+                {"error": "This order is already finalized. It cannot be modified."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            # Update the order using the service
-            updated_order = self.order_service.update_status(request.data["url"], order)
-            
-            # Return the response with the updated data
-            return Response(OrderSerializer(updated_order).data, status=status.HTTP_200_OK) 
+        # Validar estado
+        valid_statuses = ["pending", "in progress", "finished"]
+        status_param = request.data.get("status", "").lower()
         
-        except Order.DoesNotExist:
-            return Response({
-                "status": "error",
-                "messDev": "Order not found",
-                "messUser": "Order not found",
-                "data": None
-            }, status=status.HTTP_404_NOT_FOUND)
+        if status_param not in valid_statuses:
+            return Response(
+                {"error": f"Invalid state. Valid states are: {', '.join(valid_statuses)}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validar evidencia
+        if 'evidence' not in request.FILES:
+            return Response(
+                {"error": "The 'evidence' field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         
-        except Exception as e:
-            return Response({
-                "status": "error",
-                "messDev": f"Error updating order: {str(e)}",
-                "messUser": f"Error updating order",
-                "data": None
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Eliminar archivo antiguo
+        if order.evidence:
+            order.evidence.delete(save=False)
+
+        # Actualizar evidencia y estado
+        order.evidence = request.FILES['evidence']
+        order.status = status_param
+        order.save()  # Guarda ambos campos (evidence y status)
+
+        # Serializar con contexto request
+        serializer = OrderSerializer(order, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
     @extend_schema(
         summary="Create a new order",
         description="Creates an order with the given data and returns the created entity.",
@@ -224,25 +241,25 @@ class ControllerOrder(viewsets.ViewSet):
         - 201 Created: If the order is successfully created.
         - 400 Bad Request: If the request contains invalid data.
         """
-        print("\n=== STARTING ORDER CREATION ===")
-        print("Request headers:", request.headers)
-        print("Request data:", request.data)
+        # logger.info("=== STARTING ORDER CREATION ===")
+        # logger.debug(f"Request headers: {request.headers}")
+        # logger.debug(f"Request data: {request.data}")
         
         serializer = OrderSerializer(
             data=request.data,
-            context={'request': request}  # IMPORTAN SEND CONTEXT
+            context={'request': request}
         )
         
         if not serializer.is_valid():
-            print("Serializer errors:", serializer.errors)
+            logger.error(f"Serializer errors: {serializer.errors}")
             return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             order = serializer.save()
-            print("Order created successfully:", order.key)
-            return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+            logger.info(f"Order created successfully: {order.key}")
+            return Response(OrderSerializer(order, context={'request': request}).data, status=status.HTTP_201_CREATED)
         except Exception as e:
-            print("Critical error:", str(e))
+            logger.exception(f"Critical error during order creation: {str(e)}")
             return Response(
                 {"error": f"Error creating order: {str(e)}"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -262,58 +279,62 @@ class ControllerOrder(viewsets.ViewSet):
     def partial_update(self, request, pk=None):
         """
         PATCH /orders/{key}/
+        Partially updates an order.
         """
-        #Fetch
-        try:
-            order = Order.objects.get(key=pk)
-        except Order.DoesNotExist:
-            return Response(..., status=status.HTTP_404_NOT_FOUND)
 
-        # Block finalized
+        # 3) get an order or 404
+        order = get_object_or_404(Order, key=pk)
+
+        # 4) block is finished
         if order.payStatus == 1:
-            return Response(..., status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "Cannot edit finalized order"},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-        # Pre-validate job
-        if "job" in request.data:
-            try:
-                Job.objects.get(id=request.data["job"])
-            except Job.DoesNotExist:
-                return Response(..., status=status.HTTP_400_BAD_REQUEST)
+        if not hasattr(request, 'company_id'):
+            request.company_id = order.id_company_id
+            logger.debug(f"Forced request.company_id = {request.company_id}")
 
-        # Delegate to service
+        serializer = OrderSerializer(
+            order,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
+
         try:
-            updated = ServicesOrder().update_order(order, request.data.copy(), request)
-            return Response({
-                "status": "success",
-                "messDev": "Order updated successfully",
-                "messUser": "Order updated",
-                "data": OrderSerializer(updated).data
-            }, status=status.HTTP_200_OK)
+            #validate & save
+            serializer.is_valid(raise_exception=True)
+            updated_order = serializer.save()
+            logger.info(f"Order updated successfully: {updated_order.key}")
+
+            # serializer output
+            out_data = OrderSerializer(updated_order, context={'request': request}).data
+            return Response(out_data, status=status.HTTP_200_OK)
 
         except ValidationError as ve:
-            return Response({
-                "status": "error",
-                "messDev": str(ve),
-                "messUser": "Invalid data",
-                "data": None
-            }, status=status.HTTP_400_BAD_REQUEST)
+            logger.warning(f"Validation errors: {ve.detail}")
+            return Response(
+                {"error": ve.detail},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         except PermissionDenied as pd:
-            return Response({
-                "status": "error",
-                "messDev": str(pd),
-                "messUser": "Permission denied",
-                "data": None
-            }, status=status.HTTP_403_FORBIDDEN)
+            logger.warning(f"Permission denied: {pd}")
+            return Response(
+                {"error": str(pd)},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         except Exception as e:
-            return Response({
-                "status": "error",
-                "messDev": f"Error updating order: {e}",
-                "messUser": "There was an error updating the order",
-                "data": None
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            tb = traceback.format_exc()
+            print("🔴 TRACEBACK:\n", tb)
+            logger.error("❌ Exception in partial_update:\n" + tb)
+            return Response(
+                {"error": f"{e.__class__.__name__}: {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     @extend_schema(
         summary="Get all states in USA",
         description="Returns a list of all states in USA.",
@@ -341,8 +362,9 @@ class ControllerOrder(viewsets.ViewSet):
         - 400 Bad Request: If an error occurs.
         """
         try:
+            company_id = request.company_id
             # Get all orders using the service
-            orders = self.order_service.get_all_orders()
+            orders = self.order_service.get_all_orders(company_id)
 
             # Paginate the queryset
             paginator = PageNumberPagination()
@@ -486,8 +508,9 @@ class ControllerOrder(viewsets.ViewSet):
     )
     def list_pending_orders(self, request):
         try:
+            company_id = request.company_id
             # Get all orders using the service
-            orders = self.order_service.get_all_orders()
+            orders = self.order_service.get_all_orders(company_id)
 
             # Filter the orders to get only those with status "Pending"
             pending_orders = [order for order in orders if order.status == "Pending"]
@@ -511,14 +534,15 @@ class ControllerOrder(viewsets.ViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        summary="Update order evidence",
-        description="Updates the evidence image for an order. Accepts multipart/form-data with an image file.",
-        request={
-            'multipart/form-data': SerializerOrderEvidence
-        },
-        responses={200: SerializerOrderEvidence}
+    summary="Update order evidence",
+    description="Updates the evidence image for an order. Accepts multipart/form-data with an image file.",
+    request={
+        'multipart/form-data': SerializerOrderEvidence
+    },
+    responses={200: SerializerOrderEvidence}
     )
-    @parser_classes([MultiPartParser, FormParser])
+
+    #just update image
     def update_evidence(self, request, pk):
         try:
             order = Order.objects.get(key=pk)
@@ -544,7 +568,9 @@ class ControllerOrder(viewsets.ViewSet):
 
         # Update with new file
         order.evidence = request.FILES['evidence']
-        order.save()
+        
+        # IMPORTANT: Only update the evidence field to prevent affecting dispatch_ticket
+        order.save(update_fields=['evidence'])
 
         # Serialize and return response
         serializer = SerializerOrderEvidence(order, context={'request': request})
@@ -555,4 +581,3 @@ class ControllerOrder(viewsets.ViewSet):
             },
             status=status.HTTP_200_OK
         )
-
