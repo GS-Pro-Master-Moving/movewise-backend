@@ -105,6 +105,81 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error in listing orders",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+    @extend_schema(
+    summary="List all orders with their assigned operators",
+    description="Returns a list of all orders with detailed information about assigned operators.",
+    responses={200: OrderSerializer(many=True)}
+    )
+    @extend_schema(
+    summary="List all orders with their assigned operators and cost summary",
+    description="Returns a list of all orders with detailed information about assigned operators and cost summary.",
+    responses={200: OrderSerializer(many=True)}
+    )
+    def list_orders_with_operators_and_summary(self, request):
+        """
+        Lists all orders with their assigned operators' information and cost summary.
+        
+        Returns:
+        - 200 OK: A JSON object containing the paginated list of orders with operators and cost summary.
+        - 400 Bad Request: If an error occurs during processing.
+        """
+        try:
+            company_id = request.company_id
+            orders = self.order_service.get_all_orders(company_id)
+
+            # Paginate the queryset
+            paginator = PageNumberPagination()
+            paginated_orders = paginator.paginate_queryset(orders, request)
+            
+            result = []
+            
+            for order in paginated_orders:
+                # Get operators assigned to this order
+                assigned_operators = Assign.objects.filter(order__key=order.key).select_related(
+                    'operator', 
+                    'operator__person'
+                )
+                
+                # Serialize order data
+                order_data = OrderSerializer(order, context={'request': request}).data
+                
+                # Calculate the summary for this order using the existing service method
+                summary_data = self.order_service.calculate_summary(order.key)
+                
+                # Serialize assigned operators
+                operators_data = []
+                for assignment in assigned_operators:
+                    operator_data = {
+                        'id_assign': assignment.id,
+                        'operator_id': assignment.operator.id_operator,
+                        'code': assignment.operator.code,
+                        'first_name': assignment.operator.person.first_name,
+                        'last_name': assignment.operator.person.last_name,
+                        'role': assignment.rol,
+                        'assigned_at': assignment.assigned_at,
+                        'salary': assignment.operator.salary,
+                    }
+                    operators_data.append(operator_data)
+                
+                # Combine order, operators, and summary data
+                order_with_operators_and_summary = {
+                    'order': order_data,
+                    'assigned_operators': operators_data,
+                    'summary': summary_data
+                }
+                
+                result.append(order_with_operators_and_summary)
+            
+            return paginator.get_paginated_response(result)
+            
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching orders with operators and summary: {str(e)}",
+                "messUser": "Error fetching orders with operators and summary",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
     
     def list_with_fuel(self, request):
         """
