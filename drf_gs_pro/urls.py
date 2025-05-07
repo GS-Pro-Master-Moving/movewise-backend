@@ -49,7 +49,7 @@ urlpatterns = [
     path('orders/<str:pk>/summary-cost/', ControllerOrder.as_view({'get': 'SumaryCost'}), name='order-summary-cost'),
     path('orders/<str:pk>/deleteWithStatus/', ControllerOrder.as_view({'patch': 'delete_order_with_status'}), name='order-delete-with-status'),
     path('order_details/<str:pk>/', ControllerOrder.as_view({'get': 'get_order_details'}), name='order-details'),
-    
+    path('orders-with-operators-and-summary/', ControllerOrder.as_view({'get': 'list_orders_with_operators_and_summary'}), name='orders-with-operators-and-summary'),
     path('summary-list/', ControllerOrder.as_view({'get': 'summary_orders_list'}), name='order-summary-list'),
     path('order/list_pending/', ControllerOrder.as_view({'get': 'list_pending_orders'}), name='order-list-pending'),
     # jobs
