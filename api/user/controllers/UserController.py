@@ -1,6 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from api.company.serializers.company_serializer import CompanySerializer
+from api.company.services.ServicesCompany import ServicesCompany
 from api.person.serializers.PersonSerializer import PersonSerializer
 
 from api.user.serializers.UserSerializer import UserSerializer
@@ -10,7 +12,7 @@ from api.user.services.ServicesUser import ServicesUser
 from api.user.authentication import JWTAuthentication
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from rest_framework.permissions import AllowAny
-
+from django.db import transaction
 class UserRegister(APIView):
     permission_classes = [AllowAny]  
     authentication_classes = []
@@ -63,7 +65,8 @@ class UserRegister(APIView):
             user = user_serializer.save()
             return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
         return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
+        
 class UserLogin(APIView):
     permission_classes = [AllowAny] 
     authentication_classes = []

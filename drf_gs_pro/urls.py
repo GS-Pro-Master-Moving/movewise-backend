@@ -29,6 +29,7 @@ from api.common import error_handlers
 urlpatterns = [
     #login
     path('register/', UserRegister.as_view(), name='user-register'),
+    path('registerWithCompany/', CompanyViewSet.as_view({'post':'RegisterUserWithCompany'}), name='user-register-with-company'),
     path('login/', UserLogin.as_view(), name='user-login'),
 
     #recover password
@@ -115,7 +116,9 @@ urlpatterns = [
         'patch': 'partial_update',
         'delete': 'destroy'
     }), name='company-detail'),
-
+    path('getTermsAndConditions/', CompanyViewSet.as_view({
+        'get': 'get_terms_and_conditions'}),
+        name='terms-and-conditions'),
     # Payments
     path('payments/', ControllerPayment.as_view({
         'get': 'list',
