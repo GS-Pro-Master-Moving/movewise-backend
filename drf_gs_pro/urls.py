@@ -23,6 +23,7 @@ from api.plan.controllers.PlanController import PlanController
 from api.subscription.controllers.SubscriptionController import SubscriptionController
 from api.user.controllers.PasswordResetRequest import PasswordResetRequest
 from api.user.controllers.PasswordResetConfirm import PasswordResetConfirmView
+from api.order.controllers.ControllerStates import OrderStatesController
 #custom errors
 from api.common import error_handlers
 
@@ -40,9 +41,11 @@ urlpatterns = [
     # Docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'), 
+    #order states no auth
+    path('orders-states/',OrderStatesController.as_view(),name='order-get-states'),
     # orders
     path('orders-with-costFuel/', ControllerOrder.as_view({'get':'list_with_fuel'}), name="orders-with-costFuel"),
-    path('orders-states/', ControllerOrder.as_view({'get': 'get_states'}), name='order-get-states'),
+    # path('orders-states/', ControllerOrder.as_view({'get': 'get_states'}), name='order-get-states'),
     path('orders/', ControllerOrder.as_view({'post': 'create','get':'list_all' }), name='order-create'),
     path('orders/<str:pk>/evidence/', ControllerOrder.as_view({'patch': 'update_evidence'}), name='order-update-evidence'),
     path('orders/<str:pk>/', ControllerOrder.as_view({'patch': 'partial_update'}), name='order-update'),
