@@ -646,9 +646,6 @@ class ControllerOrder(viewsets.ViewSet):
         description="Returns a list of all states in USA.",
         responses={200: StatesUSASerializer(many=True)}
     )
-    @action(detail=False, methods=['get'], url_path='states')
-    @permission_classes([AllowAny])  # Permitir acceso a cualquier usuario
-    @authentication_classes([])  # Deshabilitar autenticación
     def get_states(self, request):
         try:
             states = [{'code': state.value, 'name': state.label} for state in StatesUSA]
