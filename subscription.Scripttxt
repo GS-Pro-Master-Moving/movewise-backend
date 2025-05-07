@@ -1,0 +1,9 @@
+INSERT INTO api_plan (id_plan, name, price, duration_months)
+VALUES (1, 'Basic Plan', 29.99, 1);
+
+INSERT INTO api_subscription (id_subscription, id_plan, start_date, end_date, status)
+VALUES (1, 1, '2025-05-01', '2025-06-01', 'active');
+
+UPDATE api_company
+SET subscription_id = 1
+WHERE id=  1;
