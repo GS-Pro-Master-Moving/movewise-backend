@@ -40,3 +40,4 @@ class ServicesCompany(IServicesCompany):
     
     def delete_company(self, id):
         return self.repository.delete(id)
+    

@@ -24,6 +24,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from api.order.serializers.SerializerOrderEvidence import SerializerOrderEvidence
 from django.shortcuts import get_object_or_404
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import permission_classes, authentication_classes
 # Configuración de logging
 logger = logging.getLogger(__name__)
 
@@ -410,24 +412,7 @@ class ControllerOrder(viewsets.ViewSet):
                 {"error": f"{e.__class__.__name__}: {e}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    @extend_schema(
-        summary="Get all states in USA",
-        description="Returns a list of all states in USA.",
-        responses={200: StatesUSASerializer(many=True)}
-    )
-    @action(detail=False, methods=['get'], url_path='states')
-    def get_states(self, request):
-        try:
-            states = [{'code': state.value, 'name': state.label} for state in StatesUSA]
-            return JsonResponse(states, safe=False)
-        except Exception as e:
-            error_response = {
-                "status": "error",
-                "messDev": f"Error fetching states: {str(e)}",
-                "messUser": f"Error fetching states",
-                "data": None
-            }
-            return JsonResponse(error_response, status=400)
+    
     def summary_orders_list(self, request):
         """
         Retrieves a paginated list of orders with a summary of costs.
@@ -656,3 +641,23 @@ class ControllerOrder(viewsets.ViewSet):
             },
             status=status.HTTP_200_OK
         )
+    @extend_schema(
+        summary="Get all states in USA",
+        description="Returns a list of all states in USA.",
+        responses={200: StatesUSASerializer(many=True)}
+    )
+    @action(detail=False, methods=['get'], url_path='states')
+    @permission_classes([AllowAny])  # Permitir acceso a cualquier usuario
+    @authentication_classes([])  # Deshabilitar autenticación
+    def get_states(self, request):
+        try:
+            states = [{'code': state.value, 'name': state.label} for state in StatesUSA]
+            return JsonResponse(states, safe=False)
+        except Exception as e:
+            error_response = {
+                "status": "error",
+                "messDev": f"Error fetching states: {str(e)}",
+                "messUser": f"Error fetching states",
+                "data": None
+            }
+            return JsonResponse(error_response, status=400)
