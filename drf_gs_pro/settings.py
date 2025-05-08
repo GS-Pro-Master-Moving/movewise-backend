@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config 
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,10 +21,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-o+s5zq-=qes+3110%t+%wi%mrmi+mlsmk%o6bgep_(eht%y3k+'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = ['*']
 
@@ -34,15 +34,15 @@ ALLOWED_HOSTS = ['*']
 
 # Time in seconds before a recovery token expires
 PASSWORD_RESET_TIMEOUT = 30 * 60  # 30 min
-#Manager-Support@gspromastermoving.com
+
 # SMTP Configuration for Gmail
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'movewiserecover@gmail.com'  
-EMAIL_HOST_PASSWORD = 'ncyi trfq tyus cmnv'  
-DEFAULT_FROM_EMAIL = 'MiApp <movewiserecover@gmail.com>'
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_PORT = config('EMAIL_PORT', cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
 
 # Application definition
@@ -131,12 +131,12 @@ WSGI_APPLICATION = 'drf_gs_pro.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',  
-        'NAME': 'django-restframework-gs-pro', 
-        'USER': 'root',  
-        'PASSWORD': 'Oracle123', 
-        'HOST': 'localhost',  
-        'PORT': '3306',  
+        'ENGINE': config('DB_ENGINE'),
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'", 
         }
@@ -202,23 +202,48 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-#image managment
-USE_S3 = config('USE_S3', default=False, cast=bool)
+# Configuración mejorada para Digital Ocean Spaces en settings.py
+
+# Image management
+USE_S3 = config('USE_S3', default=not DEBUG, cast=bool)
 
 if USE_S3:
     INSTALLED_APPS += ['storages']
-
+    
+    # Configuración básica de S3/Spaces
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-
     AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = config('AWS_S3_ENDPOINT_URL', default=None)
-
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = False  # publc URL 
-    MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
+    AWS_S3_ENDPOINT_URL = config('AWS_S3_ENDPOINT_URL')
+    
+    # Configuración regional para Digital Ocean Spaces
+    AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default=None)
+    AWS_S3_SIGNATURE_VERSION = config('AWS_S3_SIGNATURE_VERSION', default='s3v4')
+    
+    # Configuración de cache y seguridad
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',  # 1 día de cache
+    }
+    AWS_S3_FILE_OVERWRITE = False  # Evita sobrescribir archivos con el mismo nombre
+    AWS_DEFAULT_ACL = 'public-read'  # Configuración de permisos - ajusta según necesidad
+    AWS_LOCATION = 'media'  # Ubicación base dentro del bucket
+    
+    # URLs públicas para archivos
+    AWS_QUERYSTRING_AUTH = False  # Desactiva la autenticación en URLs
+    
+    # Define URL for media files
+    if AWS_S3_ENDPOINT_URL and AWS_STORAGE_BUCKET_NAME:
+        if 'AWS_LOCATION' in locals():
+            MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/{AWS_LOCATION}/"
+        else:
+            MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
+    else:
+        MEDIA_URL = '/media/'
 else:
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
+
+# Configuración de tamaño máximo de archivos
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB

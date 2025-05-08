@@ -1,11 +1,10 @@
-import uuid
-import os
-from io import BytesIO
-from PIL import Image
-from django.core.files.base import ContentFile
 from django.db import models
 from api.person.models import Person
-from api.utils import upload_operator_photo,upload_operator_license_front,upload_operator_license_back
+from api.utils.s3utils import upload_operator_photo, upload_operator_license_front, upload_operator_license_back
+from api.utils.image_processor import ImageProcessor
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Operator(models.Model):
     id_operator = models.AutoField(primary_key=True)
@@ -49,68 +48,52 @@ class Operator(models.Model):
     class DoesNotExist(Exception):
         pass
 
-    def compress_image(self, image_field):
-        if not image_field:
-            return image_field
-            
-        try:
-            # Check if this is a newly uploaded file or an existing one
-            if hasattr(image_field, 'path'):
-                image = Image.open(image_field.path)
-            else:
-                image = Image.open(image_field)
-                
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-                
-            buffer = BytesIO()
-            image.save(buffer, format='JPEG', optimize=True, quality=60)  # adjust quality
-            
-            # Create a new filename to avoid cache issues
-            original_name = os.path.basename(image_field.name)
-            new_name = f"{uuid.uuid4()}.jpg"
-            
-            return ContentFile(buffer.getvalue(), name=new_name)
-        except Exception as e:
-            print(f"Error compressing image: {e}")
-            return image_field  # if it fails, use original image
-
     def save(self, *args, **kwargs):
         # Track if each field has been modified to only compress changed images
         is_new = self._state.adding
         
+        # Configure image processor with appropriate prefixes for better organization
+        processor = ImageProcessor()
+        
         if is_new:
             # For new instances, compress all provided images
             if self.photo:
-                self.photo = self.compress_image(self.photo)
+                logger.debug(f"Compressing new operator photo")
+                self.photo = processor.compress_image(self.photo, prefix="operator_photo")
             if self.license_front:
-                self.license_front = self.compress_image(self.license_front)
+                logger.debug(f"Compressing new operator license front")
+                self.license_front = processor.compress_image(self.license_front, prefix="license_front")
             if self.license_back:
-                self.license_back = self.compress_image(self.license_back)
+                logger.debug(f"Compressing new operator license back")
+                self.license_back = processor.compress_image(self.license_back, prefix="license_back")
         else:
             # For updates, only compress images that are being updated
             try:
                 old_instance = Operator.objects.get(pk=self.pk)
                 
-                # Check if photo has changed
-                if self.photo and self.photo != old_instance.photo:
-                    self.photo = self.compress_image(self.photo)
+                # Check if photo has changed - compare by name to avoid path access
+                if self.photo and (not old_instance.photo or self.photo.name != old_instance.photo.name):
+                    logger.debug(f"Compressing updated operator photo")
+                    self.photo = processor.compress_image(self.photo, prefix="operator_photo")
                     
                 # Check if license_front has changed
-                if self.license_front and self.license_front != old_instance.license_front:
-                    self.license_front = self.compress_image(self.license_front)
+                if self.license_front and (not old_instance.license_front or self.license_front.name != old_instance.license_front.name):
+                    logger.debug(f"Compressing updated operator license front")
+                    self.license_front = processor.compress_image(self.license_front, prefix="license_front")
                     
                 # Check if license_back has changed
-                if self.license_back and self.license_back != old_instance.license_back:
-                    self.license_back = self.compress_image(self.license_back)
+                if self.license_back and (not old_instance.license_back or self.license_back.name != old_instance.license_back.name):
+                    logger.debug(f"Compressing updated operator license back")
+                    self.license_back = processor.compress_image(self.license_back, prefix="license_back")
                     
             except Operator.DoesNotExist:
                 # Fallback if old instance can't be found
+                logger.warning(f"Could not find existing Operator with ID {self.pk} for comparison")
                 if self.photo:
-                    self.photo = self.compress_image(self.photo)
+                    self.photo = processor.compress_image(self.photo, prefix="operator_photo")
                 if self.license_front:
-                    self.license_front = self.compress_image(self.license_front)
+                    self.license_front = processor.compress_image(self.license_front, prefix="license_front")
                 if self.license_back:
-                    self.license_back = self.compress_image(self.license_back)
+                    self.license_back = processor.compress_image(self.license_back, prefix="license_back")
 
         super().save(*args, **kwargs)

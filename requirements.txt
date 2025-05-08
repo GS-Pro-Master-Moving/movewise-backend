@@ -23,4 +23,4 @@ python-decouple
 boto3 
 django-storages
 Pillow #compress images
-pip install drf-extra-fields
+drf-extra-fields
