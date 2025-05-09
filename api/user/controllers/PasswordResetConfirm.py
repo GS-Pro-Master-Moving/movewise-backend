@@ -6,7 +6,6 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.auth import get_user_model
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-
 User = get_user_model()
 
 class PasswordResetConfirmView(View):
@@ -50,6 +49,7 @@ class PasswordResetConfirmView(View):
         })
 
     def post(self, request):
+        email = request.POST.get("email", "").strip().lower()  
         uidb64 = request.POST.get('uid')
         token = request.POST.get('token')
         new_password = request.POST.get('new_password')
@@ -57,37 +57,27 @@ class PasswordResetConfirmView(View):
 
         context = {'uid': uidb64, 'token': token}
 
-        # 1) Validate that the passwords match
         if not new_password or new_password != confirm:
-            context['error'] = "Passwords do not match."
+            context['error'] = "Las contraseñas no coinciden."
             return render(request, 'reset_password.html', context)
 
-        # 2) Decode the UID and get the user
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
-        except Exception:
-            context['error'] = "Invalid link."
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            context['error'] = "Enlace inválido."
             return render(request, 'reset_password.html', context)
 
-        # 3) Verify the token's validity
         token_gen = PasswordResetTokenGenerator()
         if not token_gen.check_token(user, token):
             context['no_permission'] = True
-            context['message'] = "The link has expired or is invalid."
+            context['message'] = "El enlace ha expirado o es inválido."
             return render(request, 'reset_password.html', context)
 
-        # 4) Change the password and save
         user.set_password(new_password)
         user.save()
-        
-        # 5) La siguiente línea fuerza que el token quede expirado
-        # PasswordResetTokenGenerator basado en last_login o password
-        # Actualizamos el campo que afecta la validez del token
-        user.save(update_fields=['password'])
-        
-        # 6) Redirigir a una página de éxito o mostrar mensaje
+
         return render(request, 'reset_password.html', {
-            'success': "Your password has been successfully changed. You can now login with your new password.",
-            'completed': True  # Flag para ocultar el formulario y mostrar solo el mensaje
+            'success': "Contraseña actualizada correctamente.",
+            'completed': True
         })
