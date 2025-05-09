@@ -24,3 +24,5 @@ boto3
 django-storages
 Pillow #compress images
 drf-extra-fields
+sib_api_v3_sdk
+django-anymail

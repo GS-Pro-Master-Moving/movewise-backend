@@ -16,7 +16,6 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -24,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['*']
 
@@ -35,14 +34,19 @@ ALLOWED_HOSTS = ['*']
 # Time in seconds before a recovery token expires
 PASSWORD_RESET_TIMEOUT = 30 * 60  # 30 min
 
-# SMTP Configuration for Gmail
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = config('EMAIL_HOST')
-EMAIL_PORT = config('EMAIL_PORT', cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+# SMTP ConSENDINBLUE_API_KEY figuration for Gmail
+EMAIL_BACKEND = 'anymail.backends.sendinblue.EmailBackend'
+
+SENDINBLUE_API_KEY = config('SENDINBLUE_API_KEY') 
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
+
+ANYMAIL = {
+    "SENDINBLUE_API_KEY": SENDINBLUE_API_KEY,  
+    "SENDINBLUE_SEND_DEFAULTS": {
+        "tags": ["movewise", "password-reset"],
+    },
+}
+
 
 
 # Application definition
@@ -57,6 +61,7 @@ INSTALLED_APPS = [
     'drf_spectacular', # Documentation
     'rest_framework',
     'corsheaders',  # Agregamos corsheaders
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -138,7 +143,8 @@ DATABASES = {
         'HOST': config('DB_HOST'),
         'PORT': config('DB_PORT'),
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'", 
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'ssl': {'ssl-mode': 'REQUIRED'} 
         }
     }
 }

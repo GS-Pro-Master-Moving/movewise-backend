@@ -26,6 +26,7 @@ from api.user.controllers.PasswordResetConfirm import PasswordResetConfirmView
 from api.order.controllers.ControllerStates import OrderStatesController
 #custom errors
 from api.common import error_handlers
+from anymail.webhooks import sendinblue
 
 urlpatterns = [
     #login
@@ -34,6 +35,7 @@ urlpatterns = [
     path('login/', UserLogin.as_view(), name='user-login'),
 
     #recover password
+    # path('anymail/sendinblue/tracking/', sendinblue.tracking_webhook, name='sendinblue_tracking'),
     path('user/forgot-password/', PasswordResetRequest.as_view(), name='forgot-password'),
     path('user/reset-password-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'), #view html
     
