@@ -1,65 +1,65 @@
-INSERT INTO api_tool (name, id_job) 
-VALUES 
-('uña metalica', 1),
-('Martillo', 1),
-('4 wheeler', 1),
-('Hand truck', 1),
-('Home protection', 1),
-('Comercial bins', 1)
-;
-
-INSERT INTO api_tool (name, id_job) 
-VALUES 
-('Tape gun', 2),
-('1.5', 2),
-('3.0', 2),
-('4.5', 2),
-('Dish', 2),
-('Mirror', 2),
-('Wordrobe', 2),
-('Bars', 2),
-('Mattres bags', 2),
-('Tape', 2),
-('Inventarios', 2),
-('Stickers', 2),
-('Seals', 2),
-('Brown paper', 2),
-('Paper blanco', 2),
-('Shiki weapp', 2),
-('Tv box', 2)
-;
-
-INSERT INTO api_tool (name, id_job) 
-VALUES 
-('Papel blanco', 3),
-('Brown papper', 3),
-('Tape', 3),
-('Shiki wrapp', 3),
-('1.5', 3),
-('3.0', 3),
-('4.5', 3),
-('Wardrobe(flat)', 3),
-('Dish pack', 3),
-('Mirror', 3),
-('Tv box', 3),
-('Mattres bags', 3),
-('Puntillas', 3),
-('Seals night value and crates',3),
-('Hojas de inventarios', 3),
-('Stickers', 3),
-('Hand-truck', 3),
+INSERT INTO api_tool (name, id_job)
+VALUES
+('metal nail', 3),
+('Hammer', 3),
 ('4 wheeler', 3),
-('Bag for protection house', 3)
+('Hand truck', 3),
+('Home protection', 3),
+('Commercial bins', 3)
 ;
 
-INSERT INTO api_tool (name, id_job) 
-VALUES 
+INSERT INTO api_tool (name, id_job)
+VALUES
+('Tape gun', 1),
+('1.5', 1),
+('3.0', 1),
+('4.5', 1),
+('Dish', 1),
+('Mirror', 1),
+('Wardrobe', 1),
+('Bars', 1),
+('Mattress bags', 1),
+('Tape', 1),
+('Inventories', 1),
+('Stickers', 1),
+('Seals', 1),
+('Brown paper', 1),
+('White paper', 1),
+('Shiki wrap', 1),
+('Tv box', 1)
+;
+
+INSERT INTO api_tool (name, id_job)
+VALUES
+('White paper', 2),
+('Brown paper', 2),
+('Tape', 2),
+('Shiki wrap', 2),
+('1.5', 2),
+('2.0', 2),
+('4.5', 2),
+('Wardrobe(flat)', 2),
+('Dish pack', 2),
+('Mirror', 2),
+('Tv box', 2),
+('Mattress bags', 2),
+('Small nails', 2),
+('Seals night value and crates',2),
+('Inventory sheets', 2),
+('Stickers', 2),
+('Hand-truck', 2),
+('4 wheeler', 2),
+('Bag for house protection', 2)
+;
+
+INSERT INTO api_tool (name, id_job)
+VALUES
 ('Blankets', 4),
-('Rubber vans - Tape', 4),
+('Rubber bands - Tape', 4),
 ('4 wheeler', 4),
 ('Hand truck', 4),
 ('Mirrors', 4),
 ('Extra boxes', 4),
-('Shiki wrapp', 4),
+('Shiki wrap', 4),
 ('Home protection', 4)
 ;
