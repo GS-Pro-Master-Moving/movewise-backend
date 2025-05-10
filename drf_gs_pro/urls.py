@@ -24,6 +24,7 @@ from api.subscription.controllers.SubscriptionController import SubscriptionCont
 from api.user.controllers.PasswordResetRequest import PasswordResetRequest
 from api.user.controllers.PasswordResetConfirm import PasswordResetConfirmView
 from api.order.controllers.ControllerStates import OrderStatesController
+from api.person.controllers.ControllerPerson import ControllerPerson
 #custom errors
 from api.common import error_handlers
 from anymail.webhooks import sendinblue
@@ -58,6 +59,7 @@ urlpatterns = [
     path('orders-with-operators-and-summary/', ControllerOrder.as_view({'get': 'list_orders_with_operators_and_summary'}), name='orders-with-operators-and-summary'),
     path('summary-list/', ControllerOrder.as_view({'get': 'summary_orders_list'}), name='order-summary-list'),
     path('order/list_pending/', ControllerOrder.as_view({'get': 'list_pending_orders'}), name='order-list-pending'),
+    path('person/<int:person_id>/', ControllerPerson.as_view({'get':'retrieve'}), name="get-person"),
     # jobs
     path('jobs/', JobController.as_view({'get': 'list'}), name='job-list'),
     # operators
