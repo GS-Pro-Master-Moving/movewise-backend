@@ -9,6 +9,7 @@ from api.tool.models.Tool import Tool
 from api.company.models.Company import Company
 from api.utils.s3utils import upload_evidence_file, upload_dispatch_file
 from api.utils.image_processor import ImageProcessor
+from api.customerFactory.models.CustomerFactory import CustomerFactory
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,16 @@ class Order(models.Model):
         through="AssignTool",
         related_name="order_tools"
     )
+    #add customerFactory relationship in order
+    customer_factory = models.ForeignKey(
+        CustomerFactory,
+        related_name='orders',
+        on_delete=models.SET_NULL,
+        db_column='id_factory',
+        null=True,
+        blank=True
+    )
+
 
     def __str__(self):
         return f"Order {self.key} - {self.person.id_person if self.person else 'No Person Assigned'}"
