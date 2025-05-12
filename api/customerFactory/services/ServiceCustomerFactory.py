@@ -19,4 +19,6 @@ class ServicesCustomerFactory:
 
     def delete(self, id):
         entity = self.get(id)
-        return self.repository.delete(entity) if entity else None
+        if not entity:
+            return None
+        return self.repository.delete(entity)

@@ -19,3 +19,4 @@ class RepositoryCustomerFactory:
 
     def delete(self, instance):
         instance.delete()
+        return True

@@ -67,7 +67,7 @@ urlpatterns = [
 
     #CustomerFactory
     path('customer-factories/', CustomerFactoryController.as_view({'get': 'list','post': 'create'}), name='customer-factory-list'),
-    path('customer-factories/<int:pk>/', CustomerFactoryController.as_view({'get': 'retrieve','patch': 'update','delete': 'destroy'}), name='customer-factory-detai'),
+    path('customer-factories/<int:pk>/', CustomerFactoryController.as_view({'get': 'retrieve','patch': 'partial_update','delete': 'destroy'}), name='customer-factory-detai'),
     
     # operators
     path('operators/<int:document_number>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-document'),

@@ -44,5 +44,5 @@ class CustomerFactoryController(viewsets.ViewSet):
     def destroy(self, request, pk=None):
         deleted = self.service.delete(pk)
         if deleted is None:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({"error":"Customer factory not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error":"Customer Factory deleted succesfully"}, status=status.HTTP_200_OK)
