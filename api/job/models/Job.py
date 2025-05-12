@@ -2,9 +2,9 @@ from django.db import models
 from api.company.models.Company import Company
 
 class Job(models.Model):
-    id = models.IntegerField(primary_key=True, editable=False)  
+    id = models.AutoField(primary_key=True, editable=False)  
     name = models.CharField(
-        max_length=10, 
+        max_length=100, 
         unique=True
     )
 

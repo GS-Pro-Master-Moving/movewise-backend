@@ -10,7 +10,7 @@ class Person(models.Model):
     birth_date = models.DateField(null=True, blank=True)
     phone = models.BigIntegerField(null=True, blank=True)
     address = models.CharField(max_length=100, null=True, blank=True)
-    id_number = models.BigIntegerField(null=True, blank=True, unique=True)
+    id_number = models.CharField(null=True, blank=True, unique=True, max_length=50)
     type_id = models.CharField(max_length=100, null=True, blank=True)
     email = models.EmailField(max_length=100, unique=True, null=True, blank=True)
     id_company = models.ForeignKey(Company, on_delete=models.CASCADE, db_column="id_company")
