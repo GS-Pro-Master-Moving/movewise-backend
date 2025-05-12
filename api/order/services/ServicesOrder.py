@@ -74,6 +74,8 @@ class ServicesOrder(IServicesOrder):
             try:
                 # Retrieve the order by its primary key
                 order = Order.objects.get(key=order_key)
+                customer_factory = order.customer_factory.id_factory
+                print(f'tratando de obtener custom factoyr: {customer_factory}')
 
                 # Expense
                 expense = float(order.expense or 0)
@@ -121,6 +123,7 @@ class ServicesOrder(IServicesOrder):
                     "workCost": total_work_cost,
                     "driverSalaries": driver_salaries,
                     "otherSalaries": other_salaries,
+                    "customer_factory": customer_factory,
                     "totalCost": total_cost,
                 }
 
