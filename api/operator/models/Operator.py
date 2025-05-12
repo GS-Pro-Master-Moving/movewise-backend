@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.query import QuerySet
 from api.person.models import Person
 from api.utils.s3utils import upload_operator_photo, upload_operator_license_front, upload_operator_license_back
 from api.utils.image_processor import ImageProcessor
@@ -6,7 +7,26 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+class OperatorQuerySet(QuerySet):
+    def active(self):
+        """Filtrar solo operadores activos."""
+        return self.filter(status='active')
+
+class OperatorManager(models.Manager):
+    def get_queryset(self):
+        """Retorna un QuerySet personalizado."""
+        return OperatorQuerySet(self.model, using=self._db)
+    
+    def active(self):
+        """Retorna solo operadores activos."""
+        return self.get_queryset().active()
+
 class Operator(models.Model):
+    STATUS_CHOICES = (
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+    )
+
     id_operator = models.AutoField(primary_key=True)
 
     person = models.OneToOneField(
@@ -40,13 +60,28 @@ class Operator(models.Model):
         blank=True
     )
 
-    status = models.CharField(max_length=50, null=True, blank=True)
+    status = models.CharField(
+        max_length=50, 
+        choices=STATUS_CHOICES,
+        default='active',
+        null=True, 
+        blank=True
+    )
+
+    # Definir el manager por defecto y el manager personalizado
+    objects = OperatorManager()
+    all_objects = models.Manager()  # Manager que incluye todos los objetos, activos e inactivos
 
     def __str__(self):
         return f"Operator {self.id_operator} - {self.person.id_number if self.person else 'No Person Assigned'}"
 
     class DoesNotExist(Exception):
         pass
+    
+    def soft_delete(self):
+        """Marca el operador como inactivo en lugar de eliminarlo."""
+        self.status = 'inactive'
+        self.save()
 
     def save(self, *args, **kwargs):
         # Track if each field has been modified to only compress changed images
@@ -69,7 +104,7 @@ class Operator(models.Model):
         else:
             # For updates, only compress images that are being updated
             try:
-                old_instance = Operator.objects.get(pk=self.pk)
+                old_instance = Operator.all_objects.get(pk=self.pk)
                 
                 # Check if photo has changed - compare by name to avoid path access
                 if self.photo and (not old_instance.photo or self.photo.name != old_instance.photo.name):

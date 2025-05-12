@@ -11,10 +11,36 @@ class RepositoryOperator(IRepositoryOperator):
         return Assign.objects.all()
     
     def get_all(self, company_id) -> List[Operator]:
-        return Operator.objects.filter(person__id_company=company_id)
+        # Filtrar solo operadores activos de la compañía especificada
+        return Operator.objects.active().filter(person__id_company=company_id)
+    
+    def get_by_id(self, operator_id: int):
+        # Obtener un operador activo por ID
+        try:
+            return Operator.objects.active().get(id_operator=operator_id)
+        except Operator.DoesNotExist:
+            return None
+    
+    def get_by_number_id(self, document_number: str):
+        # Obtener un operador activo por número de documento
+        try:
+            return Operator.objects.active().get(person__id_number=document_number)
+        except Operator.DoesNotExist:
+            return None
     
     def update_name_t_shift(self, operator_id: int, new_name_t_shift: str):
-        Operator.objects.filter(id_operator=operator_id).update(name_t_shift=new_name_t_shift)
+        # Actualizar solo operadores activos
+        Operator.objects.active().filter(id_operator=operator_id).update(name_t_shift=new_name_t_shift)
 
     def update_size_t_shift(self, operator_id: int, new_size_t_shift: str):
-        Operator.objects.filter(id_operator=operator_id).update(size_t_shift=new_size_t_shift)
+        # Actualizar solo operadores activos
+        Operator.objects.active().filter(id_operator=operator_id).update(size_t_shift=new_size_t_shift)
+    
+    def soft_delete(self, operator_id: int):
+        # Realizar soft delete cambiando status a 'inactive'
+        try:
+            operator = Operator.objects.get(id_operator=operator_id)
+            operator.soft_delete()
+            return True
+        except Operator.DoesNotExist:
+            return False
