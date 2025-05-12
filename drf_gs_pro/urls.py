@@ -25,6 +25,7 @@ from api.user.controllers.PasswordResetRequest import PasswordResetRequest
 from api.user.controllers.PasswordResetConfirm import PasswordResetConfirmView
 from api.order.controllers.ControllerStates import OrderStatesController
 from api.person.controllers.ControllerPerson import ControllerPerson
+from api.customerFactory.controllers.ControllerCustomerFactory import CustomerFactoryController
 #custom errors
 from api.common import error_handlers
 from anymail.webhooks import sendinblue
@@ -61,7 +62,13 @@ urlpatterns = [
     path('order/list_pending/', ControllerOrder.as_view({'get': 'list_pending_orders'}), name='order-list-pending'),
     path('person/<int:person_id>/', ControllerPerson.as_view({'get':'retrieve'}), name="get-person"),
     # jobs
-    path('jobs/', JobController.as_view({'get': 'list'}), name='job-list'),
+    path('jobs/', JobController.as_view({'get': 'list','post': 'create'}), name='job-list'),
+    path('jobs/<int:pk>/', JobController.as_view({'get': 'retrieve','patch': 'partial_update','delete': 'destroy'}), name='job-detail'),
+
+    #CustomerFactory
+    path('customer-factories/', CustomerFactoryController.as_view({'get': 'list','post': 'create'}), name='customer-factory-list'),
+    path('customer-factories/<int:pk>/', CustomerFactoryController.as_view({'get': 'retrieve','patch': 'update','delete': 'destroy'}), name='customer-factory-detai'),
+    
     # operators
     path('operators/<int:document_number>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-document'),
     path('operators-by-id/<int:id_person>/', ControllerOperator.as_view({'get': 'getOperatorById'}), name='operator-get-by-number-id'),
