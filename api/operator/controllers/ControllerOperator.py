@@ -1,7 +1,8 @@
 from rest_framework import viewsets, status, pagination
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiRequest
+from rest_framework.decorators import action
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from django.db import IntegrityError, transaction
 
 from api.operator.models.Operator import Operator
@@ -22,7 +23,7 @@ class ControllerOperator(viewsets.ViewSet):
     Controller for managing Operator entities.
     """
 
-    #allow get multipar/form-data file and text
+    # allow get multipar/form-data file and text
     parser_classes = [MultiPartParser, FormParser]
 
     def __init__(self, **kwargs):
@@ -37,12 +38,15 @@ class ControllerOperator(viewsets.ViewSet):
     )
     def getOperatorByNumberId(self, request, document_number):
         try:
-            person = Person.objects.get(id_number=document_number)
-            operator = Operator.objects.get(person=person)
+            operator = self.service.get_operator_by_number_id(document_number)
+            if not operator:
+                return Response({"error": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
+                
             serializer = SerializerOperator(operator)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except (Person.DoesNotExist, Operator.DoesNotExist):
-            return Response({"error": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": f"Error fetching operator: {str(e)}"}, 
+                           status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         summary="List operators with pagination",
@@ -106,19 +110,25 @@ class ControllerOperator(viewsets.ViewSet):
             "status": status.HTTP_400_BAD_REQUEST
         }
         return Response(error_message, status=status.HTTP_400_BAD_REQUEST)
-    #temporaly alias
+    # temporaly alias
     def create_operator_person(self, request):
         return self.create(request)
     
     @extend_schema(
-    summary="Patch operator and person",
-    description="Updates whole operator and reemplaza imágenes borrando las anteriores"
+        summary="Patch operator and person",
+        description="Updates whole operator and reemplaza imágenes borrando las anteriores"
     )
     def update_operator_person(self, request, id_operator):
         try:
-            operator = Operator.objects.get(id_operator=id_operator)
-        except Operator.DoesNotExist:
-            return Response({"message": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
+            # Verificar que el operador exista y esté activo
+            operator = self.service.get_operator_by_id(id_operator)
+            if not operator:
+                return Response({"message": "Operator not found or inactive"}, 
+                               status=status.HTTP_404_NOT_FOUND)
+                
+        except Exception as e:
+            return Response({"message": f"Error fetching operator: {str(e)}"}, 
+                           status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Create a mutable copy of request.data to modify if needed
         data = request.data.copy()
@@ -185,6 +195,10 @@ class ControllerOperator(viewsets.ViewSet):
         responses={200: {"message": "Updated"}, 400: {"error": "Bad request"}},
     )
     def patch_field(self, request, operator_id, field_name):
+        # Verificar que el operador exista y esté activo
+        if not self.service.get_operator_by_id(operator_id):
+            return Response({"error": "Operator not found or inactive"}, status=status.HTTP_404_NOT_FOUND)
+            
         serializer = SerializerOperatorUpdate(data=request.data)
         if serializer.is_valid():
             new_value = serializer.validated_data['new_value']
@@ -207,8 +221,39 @@ class ControllerOperator(viewsets.ViewSet):
     def getOperatorById(self, request, id_person):
         try:
             person = Person.objects.get(id_person=id_person)
-            operator = Operator.objects.get(person=person)
+            operator = Operator.objects.active().get(person=person)
             serializer = SerializerOperator(operator, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (Person.DoesNotExist, Operator.DoesNotExist):
             return Response({"error": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    @extend_schema(
+        summary="Delete an operator (soft delete)",
+        description="Mark an operator as inactive instead of physically deleting it.",
+        responses={
+            200: {"message": "Operator deleted successfully"},
+            404: {"error": "Operator not found"},
+            500: {"error": "Internal server error"}
+        },
+    )
+    @action(detail=True, methods=['delete'])
+    def delete(self, request, pk=None):
+        try:
+            # Verifica primero si el operador existe y está activo
+            operator = self.service.get_operator_by_id(pk)
+            if not operator:
+                return Response({"error": "Operator not found or already inactive"}, 
+                               status=status.HTTP_404_NOT_FOUND)
+            
+            # Realiza el soft delete
+            result = self.service.delete_operator(pk)
+            if result:
+                return Response({"message": "Operator deleted successfully"}, 
+                               status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Failed to delete operator"}, 
+                               status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({"error": f"Error deleting operator: {str(e)}"}, 
+                           status=status.HTTP_500_INTERNAL_SERVER_ERROR)
