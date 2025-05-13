@@ -5,7 +5,7 @@ from api.person.models.Person import Person
 class PersonCreateFromOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
-        fields = ["email", "first_name", "last_name"]
+        fields = ["email", "first_name", "last_name", "phone", "address"]
         extra_kwargs = {
             'email': {'validators': []},
         }
@@ -32,6 +32,8 @@ class PersonCreateFromOrderSerializer(serializers.ModelSerializer):
                 email=validated_data["email"],
                 first_name=validated_data["first_name"],
                 last_name=validated_data["last_name"],
+                phone=validated_data["phone"],
+                address=validated_data["address"],
                 id_company_id=company_id  # inject company_id
             )
             print(f"New person created: {person.id_person}")
