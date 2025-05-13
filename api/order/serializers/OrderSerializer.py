@@ -75,6 +75,7 @@ class OrderSerializer(serializers.ModelSerializer):
         company = Company.objects.get(pk=request.company_id)
         
         person_data = validated_data.pop("person", None)
+        print(f'debug person data: {person_data}')
         if person_data:
             person_serializer = PersonCreateFromOrderSerializer(
                 data=person_data, context={'request': request}
