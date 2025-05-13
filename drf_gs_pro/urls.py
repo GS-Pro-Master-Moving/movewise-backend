@@ -24,6 +24,8 @@ from api.subscription.controllers.SubscriptionController import SubscriptionCont
 from api.user.controllers.PasswordResetRequest import PasswordResetRequest
 from api.user.controllers.PasswordResetConfirm import PasswordResetConfirmView
 from api.order.controllers.ControllerStates import OrderStatesController
+from api.person.controllers.ControllerPerson import ControllerPerson
+from api.customerFactory.controllers.ControllerCustomerFactory import CustomerFactoryController
 #custom errors
 from api.common import error_handlers
 from anymail.webhooks import sendinblue
@@ -58,14 +60,21 @@ urlpatterns = [
     path('orders-with-operators-and-summary/', ControllerOrder.as_view({'get': 'list_orders_with_operators_and_summary'}), name='orders-with-operators-and-summary'),
     path('summary-list/', ControllerOrder.as_view({'get': 'summary_orders_list'}), name='order-summary-list'),
     path('order/list_pending/', ControllerOrder.as_view({'get': 'list_pending_orders'}), name='order-list-pending'),
+    path('person/<int:person_id>/', ControllerPerson.as_view({'get':'retrieve'}), name="get-person"),
     # jobs
-    path('jobs/', JobController.as_view({'get': 'list'}), name='job-list'),
+    path('jobs/', JobController.as_view({'get': 'list','post': 'create'}), name='job-list'),
+    path('jobs/<int:pk>/', JobController.as_view({'get': 'retrieve','patch': 'partial_update','delete': 'destroy'}), name='job-detail'),
+
+    #CustomerFactory
+    path('customer-factories/', CustomerFactoryController.as_view({'get': 'list','post': 'create'}), name='customer-factory-list'),
+    path('customer-factories/<int:pk>/', CustomerFactoryController.as_view({'get': 'retrieve','patch': 'partial_update','delete': 'destroy'}), name='customer-factory-detai'),
+    
     # operators
     path('operators/<int:document_number>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-document'),
     path('operators-by-id/<int:id_person>/', ControllerOperator.as_view({'get': 'getOperatorById'}), name='operator-get-by-number-id'),
     path('operators/', ControllerOperator.as_view({'post': 'create', 'get': 'list'}), name='operator-list-create'),
     path('operators/<int:operator_id>/patch/<str:field_name>/',ControllerOperator.as_view({'patch': 'patch_field'}), name='operator-patch-field'),
-
+    path('operators/<int:pk>/delete/', ControllerOperator.as_view({'delete': 'delete'}), name='operator-delete'),
     path('operators/create/',ControllerOperator.as_view({'post': 'create_operator_person'}), name='operator-create-person'),
     path('operators/update/<int:id_operator>/', ControllerOperator.as_view({'patch': 'update_operator_person'}), name='operator-update-person'),
     # assigns

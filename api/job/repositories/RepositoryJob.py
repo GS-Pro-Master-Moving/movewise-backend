@@ -1,8 +1,25 @@
 from api.job.models.Job import Job
 
 class RepositoryJob:
-    
-    @staticmethod
-    def get_all_jobs():
-        """Get all jobs"""
+
+    def get_all_jobs(self):
         return Job.objects.all()
+
+    def get_job_by_id(self, id):
+        return Job.objects.filter(pk=id).first()
+
+    def create_job(self, data, company_id):
+        return Job.objects.create(
+            name=data.get('name'),
+            id_company_id=company_id
+        )
+
+    def update_job(self, job_instance, data):
+        for attr, value in data.items():
+            setattr(job_instance, attr, value)
+        job_instance.save(update_fields=list(data.keys()))
+        return job_instance
+
+    def delete_job(self, job_instance):
+        job_instance.delete()
+        return True
