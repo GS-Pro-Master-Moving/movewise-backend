@@ -10,6 +10,7 @@ from api.company.models.Company import Company
 from api.utils.s3utils import upload_evidence_file, upload_dispatch_file
 from api.utils.image_processor import ImageProcessor
 from api.customerFactory.models.CustomerFactory import CustomerFactory
+from storages.backends.s3boto3 import S3Boto3Storage
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +79,8 @@ class Order(models.Model):
     payStatus = models.SmallIntegerField(null=True, blank=True)
 
     # Image fields
-    dispatch_ticket = models.ImageField(upload_to=upload_dispatch_file, null=True, blank=True, max_length=255)
-    evidence = models.ImageField(upload_to=upload_evidence_file, null=True, blank=True, max_length=255)
+    dispatch_ticket = models.ImageField(upload_to=upload_dispatch_file,storage=S3Boto3Storage(), null=True, blank=True, max_length=255)
+    evidence = models.ImageField(upload_to=upload_evidence_file,storage=S3Boto3Storage(), null=True, blank=True, max_length=255)
 
     state_usa = models.CharField(
         max_length=2,

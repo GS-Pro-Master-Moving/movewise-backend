@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 def get_s3_file_path(instance, filename, folder):
     """
     Genera rutas organizadas para S3/DO Spaces con estructura:
-    companies/<company_id>/<folder>/<uuid>_<timestamp>.<ext>
+    media/companies/<company_id>/<folder>/<uuid>_<timestamp>.<ext>
     """
-    ext = filename.split('.')[-1]
+    ext = filename.split('.')[-1].lower()
     unique_filename = f"{uuid.uuid4().hex}_{int(timezone.now().timestamp())}.{ext}"
     
     # Obtener company_id desde el modelo
@@ -25,11 +25,12 @@ def get_s3_file_path(instance, filename, folder):
     elif hasattr(instance, 'person') and hasattr(instance.person, 'id_company_id'):
         company_id = instance.person.id_company_id
     
-    # Construir ruta final
+    # Construir ruta final con prefijo 'media/'
+    base_path = 'media'  
     if company_id:
-        return os.path.join('companies', str(company_id), folder, unique_filename)
+        return os.path.join(base_path, 'companies', str(company_id), folder, unique_filename)
     else:
-        return os.path.join(folder, unique_filename)
+        return os.path.join(base_path, folder, unique_filename)
 
 # =====================================================================
 # Funciones para Operadores (Operator)
@@ -77,7 +78,7 @@ def upload_evidence_file(instance, filename):
     else:
         local_folder = os.path.join(settings.MEDIA_ROOT, 'evidences')
         os.makedirs(local_folder, exist_ok=True)
-        ext = filename.split('.')[-1]
+        ext = filename.split('.')[-1].lower()
         return os.path.join('evidences', f"{uuid.uuid4()}.{ext}")
 
 def upload_dispatch_file(instance, filename):
@@ -87,6 +88,6 @@ def upload_dispatch_file(instance, filename):
     else:
         local_folder = os.path.join(settings.MEDIA_ROOT, 'dispatch_tickets')
         os.makedirs(local_folder, exist_ok=True)
-        ext = filename.split('.')[-1]
+        ext = filename.split('.')[-1].lower()
         short_uuid = str(uuid.uuid4()).split('-')[0]
         return os.path.join('dispatch_tickets', f"{short_uuid}.{ext}")
