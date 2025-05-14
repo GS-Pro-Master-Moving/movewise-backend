@@ -6,5 +6,5 @@ VALUES (1, 1, '2025-05-01', '2026-06-01', 'active');
 
 
 insert into api_company (license_number,name,address,zip_code,created_at,subscription_id) values ('87-2840518','GS PRO MASTERMOVING', '1545 glandwater','34744','2025-05-13',1);
-insert into api_job (name,id_company) values ('PACK', 1), ('PACK AND LOAD',1), ('DELIVERY',1), ('LOOSE',1);
+insert into api_job (name,id_company) values ('PACK', 4), ('PACK AND LOAD',4), ('DELIVERY',4), ('LOOSE',4);
 insert into api_customerfactory (name) values ('GS PRO MASTER MOVING'), ('BEKINS'),('COLEMAN'),('HARRISON');

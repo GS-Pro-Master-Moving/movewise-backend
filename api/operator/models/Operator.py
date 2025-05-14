@@ -4,6 +4,7 @@ from api.person.models import Person
 from api.utils.s3utils import upload_operator_photo, upload_operator_license_front, upload_operator_license_back
 from api.utils.image_processor import ImageProcessor
 import logging
+from storages.backends.s3boto3 import S3Boto3Storage
 
 logger = logging.getLogger(__name__)
 
@@ -46,16 +47,19 @@ class Operator(models.Model):
     # Image fields with separate upload paths to avoid conflicts
     photo = models.ImageField(
         upload_to=upload_operator_photo,
+        storage=S3Boto3Storage(),
         null=True,
         blank=True
     )
     license_front = models.ImageField(
         upload_to=upload_operator_license_front,
+        storage=S3Boto3Storage(),
         null=True,
         blank=True
     )
     license_back = models.ImageField(
         upload_to=upload_operator_license_back,
+        storage=S3Boto3Storage(),
         null=True,
         blank=True
     )
