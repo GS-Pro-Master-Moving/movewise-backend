@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',  # Agregamos corsheaders
     'anymail',
+    'storages'
 ]
 
 MIDDLEWARE = [
@@ -214,10 +215,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 USE_S3 = config('USE_S3', default=not DEBUG, cast=bool)
 
 if USE_S3:
-    INSTALLED_APPS += ['storages']
-    
     # Configuración básica de S3/Spaces
+    from storages.backends.s3boto3 import S3Boto3Storage
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    print("DEFAULT_FILE_STORAGE =", DEFAULT_FILE_STORAGE)
+
     AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
