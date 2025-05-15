@@ -124,7 +124,7 @@ urlpatterns = [
     # Crear una nueva herramienta
     path('tools/create/', ControllerTool.as_view({'post': 'create'}), name='tool-create'),
     # Eliminar (desactivar) una herramienta por ID
-    path('tools/<int:pk>/delete/', ControllerTool.as_view({'delete': 'delete'}), name='tool-delete'),
+    path('tools/<int:pk>/delete/', ControllerTool.as_view({'patch': 'delete'}), name='tool-delete'),
     
     # Companies
     path('companies/', CompanyViewSet.as_view({
