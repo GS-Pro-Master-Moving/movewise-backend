@@ -116,9 +116,16 @@ urlpatterns = [
         'put': 'put',
         'delete': 'delete'
     }), name='son-detail'),
+    
     #tools
     path('tools/', ControllerTool.as_view({'get': 'list'}), name='tool-list'),
-
+    # Obtener una herramienta por ID
+    path('tools/<int:pk>/', ControllerTool.as_view({'get': 'retrieve'}), name='tool-retrieve'),
+    # Crear una nueva herramienta
+    path('tools/create/', ControllerTool.as_view({'post': 'create'}), name='tool-create'),
+    # Eliminar (desactivar) una herramienta por ID
+    path('tools/<int:pk>/delete/', ControllerTool.as_view({'patch': 'delete'}), name='tool-delete'),
+    
     # Companies
     path('companies/', CompanyViewSet.as_view({
         'get': 'list',
