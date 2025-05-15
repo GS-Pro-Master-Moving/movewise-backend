@@ -24,6 +24,10 @@ class ServiceOperator(IServiceOperator):
     def get_operator_by_number_id(self, document_number: str):
         return self.repository.get_by_number_id(document_number)
     
+    def get_operator_by_code(self, code: str):
+        print(f'codigo en el servicio: {code}')
+        return self.repository.get_by_code(code)
+    
     def get_all_assigns(self):
         return self.repository.get_all_assigns()
     

@@ -32,6 +32,23 @@ class ControllerOperator(viewsets.ViewSet):
         self.paginator = CustomPagination()
 
     @extend_schema(
+        summary="Get an operator by code operator",
+        description="Get an operator by code, including person information.",
+        responses={200: SerializerOperator, 404: {"error": "Operator not found"}},
+    )
+    def getOperatorByCode(self, request, code):
+        print(">> buscado código:", code)
+        try:
+            operator = self.service.get_operator_by_code(code)
+            if not operator:
+                return Response({"error": "Operator not found"}, status=status.HTTP_404_NOT_FOUND)
+                
+            serializer = SerializerOperator(operator)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Error fetching operator: {str(e)}"}, 
+                           status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    @extend_schema(
         summary="Get an operator by number_id",
         description="Get an operator by number_id, including person information.",
         responses={200: SerializerOperator, 404: {"error": "Operator not found"}},
