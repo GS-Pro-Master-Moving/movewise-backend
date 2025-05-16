@@ -7,6 +7,11 @@ class Job(models.Model):
         max_length=100, 
         unique=True
     )
+    # State of the job
+    state = models.BooleanField(
+        default=True,
+        db_column='ACTIVE'
+    )
 
     # FK a Company
     id_company = models.ForeignKey(

@@ -14,7 +14,7 @@ class JobController(viewsets.ViewSet):
         self.job_service = ServicesJob()
 
     @extend_schema(
-        summary="List all jobs",
+        summary="List all jobs that are active",
         responses={200: OpenApiResponse(response=SerializerJob(many=True))}
     )
     def list(self, request):
@@ -56,6 +56,19 @@ class JobController(viewsets.ViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(SerializerJob(job).data)
 
+    @extend_schema(
+        summary="Set state of a job inactive",
+        request=SerializerJob,
+        responses={200: OpenApiResponse(response=SerializerJob)}
+    )
+    def set_inactive(self, request, pk=None):
+        serializer = SerializerJob(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        print("pk:", pk)
+        job = self.job_service.set_inactive(pk)
+        if not job:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(SerializerJob(job).data)
     @extend_schema(
         summary="delete a job",
         responses={204: OpenApiResponse(description="No Content")}
