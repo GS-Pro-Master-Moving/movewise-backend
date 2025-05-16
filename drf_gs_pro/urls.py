@@ -26,6 +26,8 @@ from api.user.controllers.PasswordResetConfirm import PasswordResetConfirmView
 from api.order.controllers.ControllerStates import OrderStatesController
 from api.person.controllers.ControllerPerson import ControllerPerson
 from api.customerFactory.controllers.ControllerCustomerFactory import CustomerFactoryController
+from api.user.controllers.UserDetailUpdate import UserDetailUpdate
+from api.user.controllers.UserDetailUpdate import AdminUserDetailUpdate
 #custom errors
 from api.common import error_handlers
 from anymail.webhooks import sendinblue
@@ -35,6 +37,11 @@ urlpatterns = [
     path('register/', UserRegister.as_view(), name='user-register'),
     path('registerWithCompany/', CompanyViewSet.as_view({'post':'RegisterUserWithCompany'}), name='user-register-with-company'),
     path('login/', UserLogin.as_view(), name='user-login'),
+    path('profile/', UserDetailUpdate.as_view(), name='user-profile'),
+    path('profile/<int:pk>/', UserDetailUpdate.as_view(), name='user-profile-by-id'),
+    
+    # Ruta para administradores
+    path('admin/', AdminUserDetailUpdate.as_view(), name='admin-profile'),
 
     #recover password
     # path('anymail/sendinblue/tracking/', sendinblue.tracking_webhook, name='sendinblue_tracking'),
