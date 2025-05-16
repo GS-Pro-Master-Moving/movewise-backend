@@ -2,8 +2,16 @@ from api.job.models.Job import Job
 
 class RepositoryJob:
 
+    def set_inactive(self, id):
+        job = self.get_job_by_id(id)
+        if not job:
+            return None
+        job.state = False
+        job.save(update_fields=['state'])
+        return job
+
     def get_all_jobs(self):
-        return Job.objects.all()
+        return Job.objects.filter(state=True).all()
 
     def get_job_by_id(self, id):
         return Job.objects.filter(pk=id).first()
