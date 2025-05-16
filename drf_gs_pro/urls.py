@@ -64,7 +64,7 @@ urlpatterns = [
     # jobs
     path('jobs/', JobController.as_view({'get': 'list','post': 'create'}), name='job-list'),
     path('jobs/<int:pk>/', JobController.as_view({'get': 'retrieve','patch': 'partial_update','delete': 'destroy'}), name='job-detail'),
-
+    path('job/<int:pk>/delete/', JobController.as_view({'patch': 'set_inactive'}), name='job-delete'),
     #CustomerFactory
     path('customer-factories/', CustomerFactoryController.as_view({'get': 'list','post': 'create'}), name='customer-factory-list'),
     path('customer-factories/<int:pk>/', CustomerFactoryController.as_view({'get': 'retrieve','patch': 'partial_update','delete': 'destroy'}), name='customer-factory-detai'),
