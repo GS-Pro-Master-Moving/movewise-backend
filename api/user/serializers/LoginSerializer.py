@@ -3,7 +3,7 @@ from rest_framework import serializers
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
     password = serializers.CharField(required=False, write_only=True)
-    id_number = serializers.IntegerField(required=False)
+    id_number = serializers.CharField(required=False)
 
     def validate(self, data):
         email = data.get('email')
