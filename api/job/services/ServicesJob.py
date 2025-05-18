@@ -5,6 +5,12 @@ class ServicesJob:
     def __init__(self):
         self.repository = RepositoryJob()
 
+    def set_inactive(self, id):
+        job = self.get_job(id)
+        if not job:
+            return None
+        return self.repository.set_inactive(id)
+
     def get_all_jobs(self):
         return self.repository.get_all_jobs()
 

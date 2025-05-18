@@ -38,7 +38,8 @@ class Operator(models.Model):
     )
 
     number_licence = models.CharField(max_length=100, null=True, blank=True)
-    code = models.CharField(max_length=100, null=True, blank=True)
+    # code = models.CharField(max_length=100, null=True, blank=True)
+    code = models.CharField(max_length=100, null=True, blank=True, unique=True)
     n_children = models.IntegerField(null=True, blank=True)
     size_t_shift = models.CharField(max_length=20, null=True, blank=True)
     name_t_shift = models.CharField(max_length=100, null=True, blank=True)
@@ -136,3 +137,4 @@ class Operator(models.Model):
                     self.license_back = processor.compress_image(self.license_back, prefix="license_back")
 
         super().save(*args, **kwargs)
+    

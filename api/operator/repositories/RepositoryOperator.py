@@ -27,7 +27,12 @@ class RepositoryOperator(IRepositoryOperator):
             return Operator.objects.active().get(person__id_number=document_number)
         except Operator.DoesNotExist:
             return None
-    
+    def get_by_code(self, code: str):
+        try:
+            return Operator.objects.active().get(code=code)
+        except Operator.DoesNotExist:
+            return None
+
     def update_name_t_shift(self, operator_id: int, new_name_t_shift: str):
         # Actualizar solo operadores activos
         Operator.objects.active().filter(id_operator=operator_id).update(name_t_shift=new_name_t_shift)

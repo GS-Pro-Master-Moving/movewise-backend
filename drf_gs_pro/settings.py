@@ -215,10 +215,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 USE_S3 = config('USE_S3', default=not DEBUG, cast=bool)
 
 if USE_S3:
-    # Configuración básica de S3/Spaces
-    from storages.backends.s3boto3 import S3Boto3Storage
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    print("DEFAULT_FILE_STORAGE =", DEFAULT_FILE_STORAGE)
 
     AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
@@ -228,6 +224,7 @@ if USE_S3:
     # Configuración regional para Digital Ocean Spaces
     AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default=None)
     AWS_S3_SIGNATURE_VERSION = config('AWS_S3_SIGNATURE_VERSION', default='s3v4')
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     
     # Configuración de cache y seguridad
     AWS_S3_OBJECT_PARAMETERS = {
