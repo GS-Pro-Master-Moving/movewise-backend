@@ -91,5 +91,19 @@ class ControllerTool(viewsets.ViewSet):
             status=status.HTTP_200_OK
         )
     
-    
-    
+    def listByJob(self, request, pk=None):
+        "ListToolsByJob"
+        company_id = getattr(request, 'company_id', None)
+        if not company_id:
+            return Response(
+                {"detail": "The company ID was not found in the request"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        tools = self.tool_service.get_job_tools(company_id, pk)
+        paginated_tools = self.paginator.paginate_queryset(tools, request)
+        serialized_data = ToolSerializer(paginated_tools, many=True).data
+        #add id 
+        response = self.paginator.get_paginated_response(serialized_data)
+        response.data['current_company_id'] = company_id
+        return response

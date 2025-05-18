@@ -12,7 +12,9 @@ class ServicesTool:
             company_id=company_id,
             state=True
         ).all()
-    
+    def get_job_tools(self, company_id, job_id):
+        return self.repository.get_job_tools(company_id, job_id)
+        
     def create_tool(self, data, company_id):
         """
         Create a new tool associated with a company.
