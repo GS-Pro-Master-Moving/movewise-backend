@@ -26,6 +26,8 @@ from api.user.controllers.PasswordResetConfirm import PasswordResetConfirmView
 from api.order.controllers.ControllerStates import OrderStatesController
 from api.person.controllers.ControllerPerson import ControllerPerson
 from api.customerFactory.controllers.ControllerCustomerFactory import CustomerFactoryController
+from api.user.controllers.UserDetailUpdate import UserDetailUpdate
+from api.user.controllers.UserDetailUpdate import AdminUserDetailUpdate
 #custom errors
 from api.common import error_handlers
 from anymail.webhooks import sendinblue
@@ -35,6 +37,11 @@ urlpatterns = [
     path('register/', UserRegister.as_view(), name='user-register'),
     path('registerWithCompany/', CompanyViewSet.as_view({'post':'RegisterUserWithCompany'}), name='user-register-with-company'),
     path('login/', UserLogin.as_view(), name='user-login'),
+    path('profile/', UserDetailUpdate.as_view(), name='user-profile'),
+    path('profile/<int:pk>/', UserDetailUpdate.as_view(), name='user-profile-by-id'),
+    
+    # Ruta para administradores
+    path('admin/', AdminUserDetailUpdate.as_view(), name='admin-profile'),
 
     #recover password
     # path('anymail/sendinblue/tracking/', sendinblue.tracking_webhook, name='sendinblue_tracking'),
@@ -71,7 +78,7 @@ urlpatterns = [
     
     # operators
     path('operator-code/<str:code>/', ControllerOperator.as_view({'get': 'getOperatorByCode'}), name='operator-get-by-code'),
-    path('operators/<int:document_number>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-document'),
+    path('operators/<str:document_number>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-document'),
     path('operators-by-id/<int:id_person>/', ControllerOperator.as_view({'get': 'getOperatorById'}), name='operator-get-by-number-id'),
     path('operators/', ControllerOperator.as_view({'post': 'create', 'get': 'list'}), name='operator-list-create'),
     path('operators/<int:operator_id>/patch/<str:field_name>/',ControllerOperator.as_view({'patch': 'patch_field'}), name='operator-patch-field'),
