@@ -1279,6 +1279,7 @@ class ControllerAssign(viewsets.ViewSet):
                 # Since Operator inherits from Person, all Person fields are directly accessible on operator
                 operator_info = {
                     # Operator-specific fields
+                    "id_assign": assignment.id,
                     "id": operator.id_operator,
                     "number_licence": operator.number_licence,
                     "code": operator.code,
