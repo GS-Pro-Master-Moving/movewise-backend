@@ -75,7 +75,7 @@ urlpatterns = [
     #CustomerFactory
     path('customer-factories/', CustomerFactoryController.as_view({'get': 'list','post': 'create'}), name='customer-factory-list'),
     path('customer-factories/<int:pk>/', CustomerFactoryController.as_view({'get': 'retrieve','patch': 'partial_update','delete': 'destroy'}), name='customer-factory-detai'),
-    
+    path('customer-factory/<int:pk>/delete/', CustomerFactoryController.as_view({'patch':'setStateFalse'}), name='customer-delete'),
     # operators
     path('operators/create/',ControllerOperator.as_view({'post': 'create_operator_person'}), name='operator-create-person'),
     path('operator-code/<str:code>/', ControllerOperator.as_view({'get': 'getOperatorByCode'}), name='operator-get-by-code'),
@@ -133,7 +133,7 @@ urlpatterns = [
     path('tools/create/', ControllerTool.as_view({'post': 'create'}), name='tool-create'),
     # Eliminar (desactivar) una herramienta por ID
     path('tools/<int:pk>/delete/', ControllerTool.as_view({'patch': 'delete'}), name='tool-delete'),
-    
+    path('toolsByJob/<int:pk>/', ControllerTool.as_view({'get':'listByJob'}), name='tools-by_job' ),
     # Companies
     path('companies/', CompanyViewSet.as_view({
         'get': 'list',

@@ -46,3 +46,10 @@ class CustomerFactoryController(viewsets.ViewSet):
         if deleted is None:
             return Response({"error":"Customer factory not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response({"error":"Customer Factory deleted succesfully"}, status=status.HTTP_200_OK)
+
+    @extend_schema(responses={204: OpenApiResponse(description="No Content")})
+    def setStateFalse(self, request, pk=None):
+        deleted = self.service.setStateFalse(pk)
+        if deleted is None:
+            return Response({"error":"Customer factory not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error":"Customer Factory deleted succesfully"}, status=status.HTTP_200_OK)
