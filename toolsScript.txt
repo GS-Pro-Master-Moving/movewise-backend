@@ -1,65 +1,65 @@
 INSERT INTO api_tool (name, id_job, id_company, state_tool)
 VALUES
-('metal nail', 3, 4, TRUE),
-('Hammer', 3, 4, TRUE),
-('4 wheeler', 3, 4, TRUE),
-('Hand truck', 3, 4, TRUE),
-('Home protection', 3, 4, TRUE),
-('Commercial bins', 3, 4, TRUE)
+('metal nail', 7, 1, TRUE),
+('Hammer', 7, 1, TRUE),
+('4 wheeler', 7, 1, TRUE),
+('Hand truck', 7, 1, TRUE),
+('Home protection', 7, 1, TRUE),
+('Commercial bins', 7, 1, TRUE)
 ;
 
 INSERT INTO api_tool (name, id_job, id_company, state_tool)
 VALUES
-('Tape gun', 1, 4, TRUE),
-('1.5', 1, 4, TRUE),
-('3.0', 1, 4, TRUE),
-('4.5', 1, 4, TRUE),
-('Dish', 1, 4, TRUE),
-('Mirror', 1, 4, TRUE),
-('Wardrobe', 1, 4, TRUE),
-('Bars', 1, 4, TRUE),
-('Mattress bags', 1, 4, TRUE),
-('Tape', 1, 4, TRUE),
-('Inventories', 1, 4, TRUE),
-('Stickers', 1, 4, TRUE),
-('Seals', 1, 4, TRUE),
-('Brown paper', 1, 4, TRUE),
-('White paper', 1, 4, TRUE),
-('Shiki wrap', 1, 4, TRUE),
-('Tv box', 1, 4, TRUE)
+('Tape gun', 5, 1, TRUE),
+('1.5', 5, 1, TRUE),
+('3.0', 5, 1, TRUE),
+('4.5', 5, 1, TRUE),
+('Dish', 5, 1, TRUE),
+('Mirror', 5, 1, TRUE),
+('Wardrobe', 5, 1, TRUE),
+('Bars', 5, 1, TRUE),
+('Mattress bags', 5, 1, TRUE),
+('Tape', 5, 1, TRUE),
+('Inventories', 5, 1, TRUE),
+('Stickers', 5, 1, TRUE),
+('Seals', 5, 1, TRUE),
+('Brown paper', 5, 1, TRUE),
+('White paper', 5, 1, TRUE),
+('Shiki wrap', 5, 1, TRUE),
+('Tv box', 5, 1, TRUE)
 ;
 
 INSERT INTO api_tool (name, id_job, id_company, state_tool)
 VALUES
-('White paper', 2, 4, TRUE),
-('Brown paper', 2, 4, TRUE),
-('Tape', 2, 4, TRUE),
-('Shiki wrap', 2, 4, TRUE),
-('1.5', 2, 4, TRUE),
-('2.0', 2, 4, TRUE),
-('4.5', 2, 4, TRUE),
-('Wardrobe(flat)', 2, 4, TRUE),
-('Dish pack', 2, 4, TRUE),
-('Mirror', 2, 4, TRUE),
-('Tv box', 2, 4, TRUE),
-('Mattress bags', 2, 4, TRUE),
-('Small nails', 2, 4, TRUE),
-('Seals night value and crates', 2, 4, TRUE),
-('Inventory sheets', 2, 4, TRUE),
-('Stickers', 2, 4, TRUE),
-('Hand-truck', 2, 4, TRUE),
-('4 wheeler', 2, 4, TRUE),
-('Bag for house protection', 2, 4, TRUE)
+('White paper', 6, 1, TRUE),
+('Brown paper', 6, 1, TRUE),
+('Tape', 6, 1, TRUE),
+('Shiki wrap', 6, 1, TRUE),
+('1.5', 6, 1, TRUE),
+('2.0', 6, 1, TRUE),
+('4.5', 6, 1, TRUE),
+('Wardrobe(flat)', 6, 1, TRUE),
+('Dish pack', 6, 1, TRUE),
+('Mirror', 6, 1, TRUE),
+('Tv box', 6, 1, TRUE),
+('Mattress bags', 6, 1, TRUE),
+('Small nails', 6, 1, TRUE),
+('Seals night value and crates', 6, 1, TRUE),
+('Inventory sheets', 6, 1, TRUE),
+('Stickers', 6, 1, TRUE),
+('Hand-truck', 6, 1, TRUE),
+('4 wheeler', 6, 1, TRUE),
+('Bag for house protection', 6, 1, TRUE)
 ;
 
 INSERT INTO api_tool (name, id_job, id_company, state_tool)
 VALUES
-('Blankets', 4, 4, TRUE),
-('Rubber bands - Tape', 4, 4, TRUE),
-('4 wheeler', 4, 4, TRUE),
-('Hand truck', 4, 4, TRUE),
-('Mirrors', 4, 4, TRUE),
-('Extra boxes', 4, 4, TRUE),
-('Shiki wrap', 4, 4, TRUE),
-('Home protection', 4, 4, TRUE)
+('Blankets', 8, 1, TRUE),
+('Rubber bands - Tape', 8, 1, TRUE),
+('4 wheeler', 8, 1, TRUE),
+('Hand truck', 8, 1, TRUE),
+('Mirrors', 8, 1, TRUE),
+('Extra boxes', 8, 1, TRUE),
+('Shiki wrap', 8, 1, TRUE),
+('Home protection', 8, 1, TRUE)
 ;

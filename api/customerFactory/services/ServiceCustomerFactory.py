@@ -22,3 +22,6 @@ class ServicesCustomerFactory:
         if not entity:
             return None
         return self.repository.delete(entity)
+    
+    def setStateFalse(self, id):
+        return self.repository.setStateFalse(id)
