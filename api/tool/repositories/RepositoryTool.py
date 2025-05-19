@@ -9,4 +9,4 @@ class RepositoryTool:
             company_id=company_id,
             job_id=id_job,
             state=True
-        ).all()
+        ).order_by('id')
