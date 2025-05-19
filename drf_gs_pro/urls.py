@@ -75,7 +75,7 @@ urlpatterns = [
     #CustomerFactory
     path('customer-factories/', CustomerFactoryController.as_view({'get': 'list','post': 'create'}), name='customer-factory-list'),
     path('customer-factories/<int:pk>/', CustomerFactoryController.as_view({'get': 'retrieve','patch': 'partial_update','delete': 'destroy'}), name='customer-factory-detai'),
-    
+    path('customer-factory/<int:pk>/delete/', CustomerFactoryController.as_view({'patch':'setStateFalse'}), name='customer-delete'),
     # operators
     path('operators/create/',ControllerOperator.as_view({'post': 'create_operator_person'}), name='operator-create-person'),
     path('operator-code/<str:code>/', ControllerOperator.as_view({'get': 'getOperatorByCode'}), name='operator-get-by-code'),
