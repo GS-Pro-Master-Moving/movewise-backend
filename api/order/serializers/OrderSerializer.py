@@ -19,7 +19,10 @@ class OrderSerializer(serializers.ModelSerializer):
     - Recibe dispatch_ticket en Base64 dentro del JSON.
     - Devuelve evidence y dispatch_ticket como URLs (local o S3).
     """
-    
+    #add fields to send name in job and customer
+    job_name = serializers.CharField(source='job.name', read_only=True)
+    customer_factory_name = serializers.CharField(source='customer_factory.name', read_only=True)
+
     person = PersonCreateFromOrderSerializer(required=False)
     evidence = serializers.SerializerMethodField()
     dispatch_ticket = Base64ImageField(
@@ -34,7 +37,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             "key", "key_ref", "date", "distance", "expense", "income",
             "weight", "status", "payStatus", "evidence", "dispatch_ticket", "dispatch_ticket_url",
-            "state_usa", "person", "job", "customer_factory"
+            "state_usa", "person", "job","job_name", "customer_factory", "customer_factory_name"
         ]
 
         extra_kwargs = {
