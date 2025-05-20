@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from api.company.models.Company import Company
+from api.company.serializers.companyCreate_serializer import CompanyCreate_serializer
 from api.company.serializers.company_serializer import CompanySerializer
 from api.user.serializers.UserSerializer import UserSerializer
 from django.db import transaction
@@ -68,7 +69,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
                     )
 
                 # Register the company
-                company_serializer = CompanySerializer(data=company_data)
+                company_serializer = CompanyCreate_serializer(data=company_data)
                 if company_serializer.is_valid():
                     company = company_serializer.save()
                 else:
@@ -76,6 +77,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
                         {"detail": "Invalid company data", "errors": company_serializer.errors}
                     )
 
+                
                 # Add company_id to the person data
                 if 'person' in user_data:
                     user_data['person']['id_company'] = company.id  # Link the person to the company
