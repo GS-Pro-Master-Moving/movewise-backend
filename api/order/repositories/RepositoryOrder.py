@@ -62,6 +62,9 @@ class RepositoryOrder(IRepositoryOrder):
     def get_all_orders(self, company_id):
         return Order.objects.filter(id_company_id=company_id, status='pending')
     
+    def get_all_orders_report(self, company_id):
+        return Order.objects.filter(id_company_id=company_id)
+    
     @staticmethod
     def get_states():
         return StatesUSA.objects.all()
