@@ -23,3 +23,11 @@ class RepositoryTruck(IRepositoryTruck):
             return truck
         except Truck.DoesNotExist:
             return None
+
+    def get_by_number_truck(self, number_truck):
+        try:
+            return Truck.objects.get(
+                number_truck=number_truck,
+                status=True)
+        except Truck.DoesNotExist:
+            return None
