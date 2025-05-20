@@ -26,6 +26,10 @@ class ServicesOrder(IServicesOrder):
             raise ValidationError("Company context missing")
         return self.repository.get_all_orders(company_id)
 
+    def get_all_orders_report(self, company_id):
+        if not company_id:
+            raise ValidationError("Company context missing")
+        return self.repository.get_all_orders_report(company_id)
         
     def update_status(self, url, order):
         self.repository.update_status(url,order)
@@ -74,8 +78,10 @@ class ServicesOrder(IServicesOrder):
             try:
                 # Retrieve the order by its primary key
                 order = Order.objects.get(key=order_key)
-                customer_factory = order.customer_factory.id_factory
-                print(f'tratando de obtener custom factoyr: {customer_factory}')
+                if order.customer_factory:
+                    customer_factory = order.customer_factory.id_factory
+                else:
+                    customer_factory = None 
 
                 # Expense
                 expense = float(order.expense or 0)
