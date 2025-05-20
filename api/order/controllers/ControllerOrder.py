@@ -192,7 +192,7 @@ class ControllerOrder(viewsets.ViewSet):
             company_id = request.company_id
 
             # Obtener órdenes filtradas por empresa
-            orders = self.order_service.get_all_orders(company_id)
+            orders = self.order_service.get_all_orders_report(company_id)
 
             # Paginación
             paginator = PageNumberPagination()
@@ -424,7 +424,7 @@ class ControllerOrder(viewsets.ViewSet):
         try:
             company_id = request.company_id
             # Get all orders using the service
-            orders = self.order_service.get_all_orders(company_id)
+            orders = self.order_service.get_all_orders_report(company_id)
 
             # Paginate the queryset
             paginator = PageNumberPagination()
