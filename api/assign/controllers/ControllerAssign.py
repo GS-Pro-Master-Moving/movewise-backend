@@ -1155,7 +1155,7 @@ class ControllerAssign(viewsets.ViewSet):
         self.assign_service.delete_assign(pk)
         
         # Si la asignación se elimina correctamente, devolver una respuesta 204 No Content
-        return Response({"message": "Assign deleted"}, status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
     
     @extend_schema(
         summary="Get assignment audit history",

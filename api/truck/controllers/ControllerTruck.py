@@ -218,3 +218,32 @@ class ControllerTruck(viewsets.ViewSet):
                 "messUser": "Truck not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
+            
+    
+    @extend_schema(
+        summary="Get truck by number_truck(placa)",
+        description="Retrieves a truck by its number.",
+        responses={
+            200: OpenApiResponse(
+                response=SerializerTruck,   
+                description="Truck retrieved successfully"
+            ),
+            404: OpenApiResponse(
+                description="Truck not found",
+                examples=[
+                    OpenApiExample(
+                        "Not Found",
+                        value={"error": "Truck not found"}
+                    )
+                ]
+            )
+        }
+    )
+    def get_truck_by_number(self, request, number_truck):
+        truck = self.truck_service.get_by_number_truck(number_truck)
+        if truck:
+            return Response(SerializerTruck(truck).data, status=status.HTTP_200_OK)
+        return Response(
+            {"error": "Truck not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )

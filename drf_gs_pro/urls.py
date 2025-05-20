@@ -110,6 +110,7 @@ urlpatterns = [
     path('trucks/<int:pk>/', ControllerTruck.as_view({'patch': 'update_status'}), name='truck-update-status'),
     path('trucks/<int:pk>/update/', ControllerTruck.as_view({'put': 'update_truck'}), name='truck-update'),
     path('trucks/<int:pk>/delete/', ControllerTruck.as_view({'delete': 'delete_truck'}), name='truck-delete'),
+    path('trucks/by-number/<str:number_truck>/', ControllerTruck.as_view({'get': 'get_truck_by_number'}), name='truck-by-number'),
     # Cost Fuel
     path('costfuel-by-id/<int:pk>/', ControllerCostFuel.as_view({'get': 'retrieve'}), name='costfuel-get-by-id'),    
     path('costfuels/', ControllerCostFuel.as_view({'get': 'list', 'post': 'create'}), name='costfuel-list-create'),

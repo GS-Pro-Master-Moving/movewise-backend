@@ -37,3 +37,6 @@ class ServicesTruck(IServicesTruck):
     def update_status(self, id_truck: int, status: bool) -> Optional[Truck]:
         """Activates or deactivates a truck."""
         return self.repository.update_status(id_truck, status)
+    
+    def get_by_number_truck(self, number_truck):
+            return self.repository.get_by_number_truck(number_truck)
