@@ -1280,6 +1280,7 @@ class ControllerAssign(viewsets.ViewSet):
                 operator_info = {
                     # Operator-specific fields
                     "id_assign": assignment.id,
+                    "assigned_at":assignment.assigned_at,
                     "id": operator.id_operator,
                     "number_licence": operator.number_licence,
                     "code": operator.code,
