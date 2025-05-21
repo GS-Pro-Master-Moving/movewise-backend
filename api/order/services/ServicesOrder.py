@@ -20,7 +20,12 @@ from django.conf import settings
 class ServicesOrder(IServicesOrder):
     def __init__(self):
         self.repository = RepositoryOrder()
-
+    
+    def get_all_orders_any_status(self, company_id):
+        if not company_id:
+            raise ValidationError("Company context missing")
+        return self.repository.get_all_orders_any_status(company_id)
+    
     def get_all_orders(self, company_id):
         if not company_id:
             raise ValidationError("Company context missing")

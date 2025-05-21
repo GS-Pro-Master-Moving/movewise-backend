@@ -82,7 +82,42 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error calculating summary cost",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
-            
+    
+    @extend_schema(
+        summary="List all orders with all status",
+        description="Returns a list of all orders.",
+        responses={200: OrderSerializer(many=True)}
+    )
+    def list_all_status(self, request):
+        try:
+            company_id = request.company_id
+            #obtener todas las ordenes sin importar el status
+            orders = self.order_service.get_all_orders_any_status(company_id)
+
+            paginator = PageNumberPagination()
+            paginated = paginator.paginate_queryset(orders, request)
+            serialized = OrderSerializer(paginated, many=True, context={'request':request})
+
+            return Response({
+                    "status": "success",
+                    "messDev": f"Orders listed successfully. Current company id: {company_id}",
+                    "messUser": "Orders listed successfully",
+                    "current_company_id": company_id,
+                    "data": paginator.get_paginated_response(serialized.data).data
+                }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching orders: {e}",
+                "messUser": "Error in listing orders",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+    @extend_schema(
+        summary="List all orders ",
+        description="Returns a list of all orders.",
+        responses={200: OrderSerializer(many=True)}
+    )
     def list_all(self, request):
         try:
             company_id = request.company_id
@@ -108,11 +143,7 @@ class ControllerOrder(viewsets.ViewSet):
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
         
-    @extend_schema(
-    summary="List all orders with their assigned operators",
-    description="Returns a list of all orders with detailed information about assigned operators.",
-    responses={200: OrderSerializer(many=True)}
-    )
+    
     @extend_schema(
     summary="List all orders with their assigned operators and cost summary",
     description="Returns a list of all orders with detailed information about assigned operators and cost summary.",
@@ -209,7 +240,6 @@ class ControllerOrder(viewsets.ViewSet):
                 # Eliminar campos innecesarios
                 order_data.pop('expense', None)
                 order_data.pop('income', None)
-                order_data.pop('payStatus', None)
 
                 # Buscar fuel entries de la orden
                 key = order_data.get('key')
@@ -425,7 +455,7 @@ class ControllerOrder(viewsets.ViewSet):
             company_id = request.company_id
             # Get all orders using the service
             orders = self.order_service.get_all_orders_report(company_id)
-
+            
             # Paginate the queryset
             paginator = PageNumberPagination()
             paginated_orders = paginator.paginate_queryset(orders, request)
@@ -434,12 +464,23 @@ class ControllerOrder(viewsets.ViewSet):
             orders_summary = []
             for order in paginated_orders:
                 # Extract the required fields
+                customer_name = (
+                    order.customer_factory.name if order.customer_factory and order.customer_factory.name else None
+                )
+                customer_id = (
+                    order.customer_factory.id_factory if order.customer_factory and order.customer_factory.id_factory else None
+                )
+
                 order_data = {
                     "key": order.key,
                     "key_ref": order.key_ref,
                     "client": order.person.first_name + " " + order.person.last_name,
                     "date": order.date,
                     "state": order.state_usa,
+                    "status": order.status,
+                    "customer_name": customer_name,
+                    "customer_factory_id": customer_id,
+                    "payStatus": order.payStatus
                 }
 
                 # Calculate the summary for the order using the service

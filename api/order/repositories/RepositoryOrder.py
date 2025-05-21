@@ -59,6 +59,10 @@ class RepositoryOrder(IRepositoryOrder):
         return order
     
     # @staticmethod
+    #retornar todas las ordenes de una company sin importar el status
+    def get_all_orders_any_status(self, company_id):
+        return Order.objects.filter(id_company_id=company_id)
+
     def get_all_orders(self, company_id):
         return Order.objects.filter(id_company_id=company_id, status='pending')
     

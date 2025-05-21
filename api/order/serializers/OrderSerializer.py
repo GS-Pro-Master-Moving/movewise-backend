@@ -37,7 +37,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             "key", "key_ref", "date", "distance", "expense", "income",
             "weight", "status", "payStatus", "evidence", "dispatch_ticket", "dispatch_ticket_url",
-            "state_usa", "person", "job","job_name", "customer_factory", "customer_factory_name"
+            "state_usa", "person", "job","job_name", "customer_factory", "customer_factory_name", "payStatus"
         ]
 
         extra_kwargs = {
