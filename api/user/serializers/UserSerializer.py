@@ -14,7 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         person_data = validated_data.pop('person')
-        user_name = validated_data.pop('user_name')
+        # user_name = validated_data.pop('user_name')
         password = validated_data.pop('password')
 
         # Obtener la instancia de Company desde person_data
