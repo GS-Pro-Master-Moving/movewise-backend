@@ -125,20 +125,15 @@ class ControllerOperator(viewsets.ViewSet):
         try:
             company_id = request.company_id
             
-            # Validar company_id
             if not company_id:
                 return Response(
                     {"error": "Company context missing"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-
-            # Obtener queryset
             operators = self.service.get_freelance_operators(company_id)
             
-            # Paginar
             page = self.paginator.paginate_queryset(operators, request)
             
-            # Si la página solicitada no existe
             if not page:
                 return Response(
                     {
@@ -148,10 +143,8 @@ class ControllerOperator(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Serializar
             serializer = SerializerOperator(page, many=True, context={'request': request})
             
-            # Construir respuesta
             response_data = self.paginator.get_paginated_response(serializer.data).data
             response_data['current_company_id'] = company_id
             response_data['message'] = "Operadores freelance obtenidos exitosamente"
