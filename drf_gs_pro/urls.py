@@ -57,6 +57,7 @@ urlpatterns = [
     # orders
     path('orders-with-costFuel/', ControllerOrder.as_view({'get':'list_with_fuel'}), name="orders-with-costFuel"),
     # path('orders-states/', ControllerOrder.as_view({'get': 'get_states'}), name='order-get-states'),
+    path('orders-all-status/', ControllerOrder.as_view({'get':'list_all_status' }), name='order-create'),
     path('orders/', ControllerOrder.as_view({'post': 'create','get':'list_all' }), name='order-create'),
     path('orders/<str:pk>/evidence/', ControllerOrder.as_view({'patch': 'update_evidence'}), name='order-update-evidence'),
     path('orders/<str:pk>/', ControllerOrder.as_view({'patch': 'partial_update'}), name='order-update'),
