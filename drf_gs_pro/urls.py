@@ -68,6 +68,9 @@ urlpatterns = [
     path('orders-with-operators-and-summary/', ControllerOrder.as_view({'get': 'list_orders_with_operators_and_summary'}), name='orders-with-operators-and-summary'),
     path('summary-list/', ControllerOrder.as_view({'get': 'summary_orders_list'}), name='order-summary-list'),
     path('order/list_pending/', ControllerOrder.as_view({'get': 'list_pending_orders'}), name='order-list-pending'),
+    #new url to workhouse
+    path('workhouse/', ControllerOrder.as_view({'post': 'create_workhouse', 'get': 'list_workhouse_orders'}), name='workhouse-create-list'),
+    
     path('person/<int:person_id>/', ControllerPerson.as_view({'get':'retrieve'}), name="get-person"),
     # jobs
     path('jobs/', JobController.as_view({'get': 'list','post': 'create'}), name='job-list'),
@@ -86,6 +89,8 @@ urlpatterns = [
     path('operators/<int:operator_id>/patch/<str:field_name>/',ControllerOperator.as_view({'patch': 'patch_field'}), name='operator-patch-field'),
     path('operators/<int:pk>/delete/', ControllerOperator.as_view({'delete': 'delete'}), name='operator-delete'),
     path('operators/update/<int:id_operator>/', ControllerOperator.as_view({'patch': 'update_operator_person'}), name='operator-update-person'),
+    #get freelance op
+    path('list-operators-freelance/', ControllerOperator.as_view({'get': 'list_freelance_operators'}), name='operator-list-freelance'),
     # assigns
     path('assigns/list-report/', ControllerAssign.as_view({'get': 'list'}), name='assign-report'),
     path('list-assign-operator/', ControllerAssign.as_view({'get': 'list_assign_operator'}), name='assign-operator'),

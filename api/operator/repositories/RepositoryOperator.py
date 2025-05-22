@@ -14,6 +14,12 @@ class RepositoryOperator(IRepositoryOperator):
         # Filtrar solo operadores activos de la compañía especificada
         return Operator.objects.active().filter(person__id_company=company_id)
     
+    def get_freelance_operators(self, company_id):
+        return Operator.objects.select_related('person')\
+                            .filter(person__id_company=company_id, 
+                                    status='freelance')\
+                            .order_by('-id_operator')  
+    
     def get_by_id(self, operator_id: int):
         # Obtener un operador activo por ID
         try:

@@ -12,6 +12,7 @@ from api.costFuel.services.ServicesCostFuel import ServicesCostFuel
 from api.assign.serializers.SerializerAssign import AssignOperatorSerializer
 from api.truck.serializers.SerializerTruck import SerializerTruck
 from api.assign.models.Assign import Assign
+from api.customerFactory.models.CustomerFactory import CustomerFactory
 from django.shortcuts import get_object_or_404
 import os
 from django.core.files.storage import default_storage
@@ -153,3 +154,98 @@ class ServicesOrder(IServicesOrder):
         """
         return self.repository.delete_order_with_status(order_key)
     
+    #servicios nuevos para workhouse
+
+    def create_workhouse_order(self, data, request):
+        """
+        Creates a workhouse order with auto-generated key_ref and workhouse job type.
+        
+        Args:
+        - data: Order data from request (debe incluir person_id)
+        - request: HTTP request object containing company context
+        
+        Returns:
+        - Created Order instance
+        
+        Raises:
+        - ValueError: Si falta person_id, la persona no existe o no pertenece a la compañía
+        """
+        if not hasattr(request, 'company_id') or not request.company_id:
+            raise ValueError("Company context missing")
+        
+        try:
+            from api.company.models.Company import Company
+            from api.person.models import Person 
+            
+            # Get company
+            company = Company.objects.get(pk=request.company_id)
+            
+            # Find or create workhouse job
+            workhouse_job, created = Job.objects.get_or_create(
+                name='workhouse',
+                defaults={'description': 'Workhouse job type'}
+            )
+            
+            # Generate auto-incremental key_ref para workhouse
+            next_wh_number = self.repository.get_next_workhouse_number()
+            key_ref = f"WH-{next_wh_number:05d}"  # Formato: WH-00001, WH-00002, etc.
+            
+            # Obtener person_id del request
+            person_id = data.pop("person_id", None)
+            if not person_id:
+                raise ValueError("person_id is required for creating a workhouse order")
+             
+            # Obtener customer_factory_id si existe
+            customer_factory_id = data.pop("customer_factory", None)  # Asume que el request envía "customer_factory" con el ID
+            customer_factory = None
+            if customer_factory_id:
+                customer_factory = CustomerFactory.objects.get(
+                    id_factory=customer_factory_id, 
+                )
+
+            # Validar que la persona existe y pertenece a la compañía
+            try:
+                person = Person.objects.get(id_person=person_id, id_company=company)
+            except Person.DoesNotExist:
+                raise ValueError("Person not found or does not belong to the company")
+            
+            # Crear orden
+            order_data = {
+                'id_company': company,
+                'person': person,
+                'job': workhouse_job,
+                'key_ref': key_ref,
+                'customer_factory': customer_factory,
+                **data
+            }
+            
+            # Asegurar que el job sea workhouse (sobrescribe si viene en data)
+            order_data['job'] = workhouse_job
+            
+            return self.repository.create_workhouse_order(order_data)
+            
+        except Job.DoesNotExist:
+            raise ValueError("Workhouse job type could not be created")
+        except Company.DoesNotExist:
+            raise ValueError("Company not found")
+        except Exception as e:
+            raise ValueError(f"Error creating workhouse order: {str(e)}")
+    def get_all_workhouse_orders(self, company_id):
+        """
+        Get all workhouse orders for a company.
+        
+        Workhouse orders are identified by:
+        - job.name = 'workhouse' OR
+        - key_ref starting with 'WH-'
+        
+        Args:
+        - company_id: ID of the company
+        
+        Returns:
+        - QuerySet of workhouse orders
+        """
+        if not company_id:
+            raise ValidationError("Company context missing")
+        
+        return self.repository.get_all_workhouse_orders(company_id)
+        
