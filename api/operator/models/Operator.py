@@ -26,6 +26,7 @@ class Operator(models.Model):
     STATUS_CHOICES = (
         ('active', 'Active'),
         ('inactive', 'Inactive'),
+        ('freelance', 'Freelance')
     )
 
     id_operator = models.AutoField(primary_key=True)
