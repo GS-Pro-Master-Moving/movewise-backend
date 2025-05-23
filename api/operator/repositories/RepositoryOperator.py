@@ -16,9 +16,21 @@ class RepositoryOperator(IRepositoryOperator):
     
     def get_freelance_operators(self, company_id):
         return Operator.objects.select_related('person')\
-                            .filter(person__id_company=company_id, 
-                                    status='freelance')\
-                            .order_by('-id_operator')  
+            .filter(
+                person__id_company=company_id,
+                status__in=['freelance', 'active']
+            )\
+            .order_by('-id_operator')
+    
+    def get_freelance_by_code(self, company_id, code):
+        return Operator.objects.select_related('person')\
+            .filter(
+                person__id_company=company_id,
+                code=code,
+                status__in=['freelance', 'active']
+            )\
+            .first()
+
     
     def get_by_id(self, operator_id: int):
         # Obtener un operador activo por ID
