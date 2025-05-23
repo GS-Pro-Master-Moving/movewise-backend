@@ -158,6 +158,43 @@ class ControllerOperator(viewsets.ViewSet):
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+    def retrieve_freelance_by_code(self, request):
+        try:
+            company_id = request.company_id
+            code = request.query_params.get('code')
+            
+            if not code:
+                return Response(
+                    {"error": "El parámetro 'code' es requerido"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            operator = self.service.get_freelance_operator_by_code(company_id, code)
+            
+            if not operator:
+                return Response(
+                    {"error": "Operador freelance no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            serializer = SerializerOperator(operator, context={'request': request})
+            
+            return Response({
+                "data": serializer.data,
+                "message": "Operador freelance obtenido con éxito",
+                "company_id": company_id
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            # Loggear error aquí
+            return Response(
+                {"error": "Error interno del servidor"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @extend_schema(
         summary="Create an operator (with Person, Sons y archivos)",

@@ -24,6 +24,14 @@ class ServiceOperator(IServiceOperator):
         
         return self.repository.get_freelance_operators(company_id)
     
+    def get_freelance_operator_by_code(self, company_id: int, code: str):
+        if not company_id:
+            raise ValueError("Se requiere el contexto de la compañía")
+        if not code:
+            raise ValueError("El código del operador es requerido")
+            
+        return self.repository.get_freelance_by_code(company_id, code)
+    
     def get_operator_by_id(self, operator_id: int):
         return self.repository.get_by_id(operator_id)
     
