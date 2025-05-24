@@ -59,6 +59,10 @@ class RepositoryOrder(IRepositoryOrder):
         return order
     
     # @staticmethod
+    #retornar todas las ordenes de una company sin importar el status
+    def get_all_orders_any_status(self, company_id):
+        return Order.objects.filter(id_company_id=company_id)
+
     def get_all_orders(self, company_id):
         return Order.objects.filter(id_company_id=company_id, status='pending')
     
@@ -81,3 +85,63 @@ class RepositoryOrder(IRepositoryOrder):
                 return f"Order could not be deleted. status: {order.status}"
         except Order.DoesNotExist:
             return f"Order does not exist."
+        
+    #metodos nuevos para workhouse
+
+    def create_workhouse_order(self, data):
+        """
+        Creates a workhouse order in the database.
+        
+        Args:
+        - data: Dictionary containing order data
+        
+        Returns:
+        - Created Order instance
+        """
+        return Order.objects.create(**data)
+
+    def get_next_workhouse_number(self):
+        """
+        Gets the next sequential number for workhouse key_ref.
+        
+        Returns:
+        - Integer representing the next workhouse number
+        """
+        # Get the latest workhouse order by key_ref
+        latest_workhouse = Order.objects.filter(
+            key_ref__startswith='WH-'
+        ).order_by('-key_ref').first()
+        
+        if latest_workhouse:
+            # Extract number from key_ref (e.g., 'WH-00001' -> 1)
+            try:
+                current_number = int(latest_workhouse.key_ref.split('-')[1])
+                return current_number + 1
+            except (IndexError, ValueError):
+                # If there's an issue parsing, start from 1
+                return 1
+        else:
+            # No workhouse orders exist yet
+            return 1
+
+    def get_all_workhouse_orders(self, company_id):
+        """
+        Get all workhouse orders for a specific company.
+        
+        Workhouse orders are identified by:
+        - job.name = 'workhouse' OR
+        - key_ref starting with 'WH-'
+        
+        Args:
+        - company_id: ID of the company
+        
+        Returns:
+        - QuerySet of workhouse orders
+        """
+        from django.db.models import Q
+        
+        return Order.objects.filter(
+            id_company_id=company_id
+        ).filter(
+            Q(job__name='workhouse') | Q(key_ref__startswith='WH-')
+        ).distinct().order_by('-date')

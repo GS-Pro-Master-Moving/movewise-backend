@@ -12,10 +12,30 @@ from api.operator.services.ServiceOperator import ServiceOperator
 from api.person.models.Person import Person
 
 
-class CustomPagination(pagination.PageNumberPagination):
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import NotFound
+
+class CustomPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
+    invalid_page_message = "Página inválida"
+
+    def paginate_queryset(self, queryset, request, view=None):
+        try:
+            return super().paginate_queryset(queryset, request, view)
+        except NotFound:
+            # Capturamos el error de página inválida
+            return None
+
+    def get_paginated_response(self, data):
+        response = super().get_paginated_response(data)
+        # Eliminamos la URL next si no hay más resultados
+        if not self.get_next_link():
+            response.data.pop('next', None)
+        if not self.get_previous_link():
+            response.data.pop('previous', None)
+        return response
 
 
 class ControllerOperator(viewsets.ViewSet):
@@ -90,7 +110,91 @@ class ControllerOperator(viewsets.ViewSet):
                 "messUser": "Error fetching operators",
                 "data": None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 
+    @extend_schema(
+    summary="List freelance operators with pagination",
+    description="List operators with status='freelance' paginated.",
+    responses={200: SerializerOperator(many=True)},
+    parameters=[
+        OpenApiParameter(name='page', type=int, location=OpenApiParameter.QUERY, description='Page number'),
+        OpenApiParameter(name='page_size', type=int, location=OpenApiParameter.QUERY, description='Items per page'),
+    ]
+    )
+    def list_freelance_operators(self, request):
+        try:
+            company_id = request.company_id
+            
+            if not company_id:
+                return Response(
+                    {"error": "Company context missing"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            operators = self.service.get_freelance_operators(company_id)
+            
+            page = self.paginator.paginate_queryset(operators, request)
+            
+            if not page:
+                return Response(
+                    {
+                        "error": "No existe la página solicitada",
+                        "available_pages": self.paginator.page.paginator.num_pages if hasattr(self.paginator, 'page') else 0
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            serializer = SerializerOperator(page, many=True, context={'request': request})
+            
+            response_data = self.paginator.get_paginated_response(serializer.data).data
+            response_data['current_company_id'] = company_id
+            response_data['message'] = "Operadores freelance obtenidos exitosamente"
+            
+            return Response(response_data)
+
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": "Error interno del servidor"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+    def retrieve_freelance_by_code(self, request):
+        try:
+            company_id = request.company_id
+            code = request.query_params.get('code')
+            
+            if not code:
+                return Response(
+                    {"error": "El parámetro 'code' es requerido"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            operator = self.service.get_freelance_operator_by_code(company_id, code)
+            
+            if not operator:
+                return Response(
+                    {"error": "Operador freelance no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            serializer = SerializerOperator(operator, context={'request': request})
+            
+            return Response({
+                "data": serializer.data,
+                "message": "Operador freelance obtenido con éxito",
+                "company_id": company_id
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            # Loggear error aquí
+            return Response(
+                {"error": "Error interno del servidor"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @extend_schema(
         summary="Create an operator (with Person, Sons y archivos)",

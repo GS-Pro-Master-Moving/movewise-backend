@@ -82,7 +82,42 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error calculating summary cost",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
-            
+    
+    @extend_schema(
+        summary="List all orders with all status",
+        description="Returns a list of all orders.",
+        responses={200: OrderSerializer(many=True)}
+    )
+    def list_all_status(self, request):
+        try:
+            company_id = request.company_id
+            #obtener todas las ordenes sin importar el status
+            orders = self.order_service.get_all_orders_any_status(company_id)
+
+            paginator = PageNumberPagination()
+            paginated = paginator.paginate_queryset(orders, request)
+            serialized = OrderSerializer(paginated, many=True, context={'request':request})
+
+            return Response({
+                    "status": "success",
+                    "messDev": f"Orders listed successfully. Current company id: {company_id}",
+                    "messUser": "Orders listed successfully",
+                    "current_company_id": company_id,
+                    "data": paginator.get_paginated_response(serialized.data).data
+                }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching orders: {e}",
+                "messUser": "Error in listing orders",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+    @extend_schema(
+        summary="List all orders ",
+        description="Returns a list of all orders.",
+        responses={200: OrderSerializer(many=True)}
+    )
     def list_all(self, request):
         try:
             company_id = request.company_id
@@ -108,11 +143,7 @@ class ControllerOrder(viewsets.ViewSet):
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
         
-    @extend_schema(
-    summary="List all orders with their assigned operators",
-    description="Returns a list of all orders with detailed information about assigned operators.",
-    responses={200: OrderSerializer(many=True)}
-    )
+    
     @extend_schema(
     summary="List all orders with their assigned operators and cost summary",
     description="Returns a list of all orders with detailed information about assigned operators and cost summary.",
@@ -209,7 +240,6 @@ class ControllerOrder(viewsets.ViewSet):
                 # Eliminar campos innecesarios
                 order_data.pop('expense', None)
                 order_data.pop('income', None)
-                order_data.pop('payStatus', None)
 
                 # Buscar fuel entries de la orden
                 key = order_data.get('key')
@@ -425,7 +455,7 @@ class ControllerOrder(viewsets.ViewSet):
             company_id = request.company_id
             # Get all orders using the service
             orders = self.order_service.get_all_orders_report(company_id)
-
+            
             # Paginate the queryset
             paginator = PageNumberPagination()
             paginated_orders = paginator.paginate_queryset(orders, request)
@@ -434,12 +464,23 @@ class ControllerOrder(viewsets.ViewSet):
             orders_summary = []
             for order in paginated_orders:
                 # Extract the required fields
+                customer_name = (
+                    order.customer_factory.name if order.customer_factory and order.customer_factory.name else None
+                )
+                customer_id = (
+                    order.customer_factory.id_factory if order.customer_factory and order.customer_factory.id_factory else None
+                )
+
                 order_data = {
                     "key": order.key,
                     "key_ref": order.key_ref,
                     "client": order.person.first_name + " " + order.person.last_name,
                     "date": order.date,
                     "state": order.state_usa,
+                    "status": order.status,
+                    "customer_name": customer_name,
+                    "customer_factory_id": customer_id,
+                    "payStatus": order.payStatus
                 }
 
                 # Calculate the summary for the order using the service
@@ -658,3 +699,96 @@ class ControllerOrder(viewsets.ViewSet):
                 "data": None
             }
             return JsonResponse(error_response, status=400)
+    
+    #nuevos metodos para workhouse
+
+    @extend_schema(
+        summary="Create a new workhouse order",
+        description="Creates a workhouse order with auto-generated WH key_ref and workhouse job type.",
+        request=OrderSerializer,
+        responses={201: OrderSerializer, 400: {"error": "Invalid data"}}
+    )
+    def create_workhouse(self, request):
+        """
+        Create a new workhouse order.
+        
+        Parámetros requeridos en request.data:
+        - person_id: ID de una persona existente en la compañía
+        - Otros campos del order según necesidad
+        
+        Returns:
+        - 201 Created: Orden creada exitosamente
+        - 400 Bad Request: Si falta person_id, la persona no existe, o datos inválidos
+        """
+        try:
+            # Validar que se incluye person_id
+            if "person_id" not in request.data:
+                raise ValueError("person_id is required")
+                
+            # Crear orden usando el servicio
+            order = self.order_service.create_workhouse_order(request.data, request)
+            logger.info(f"Workhouse order created successfully: {order.key}")
+            
+            # Serializar respuesta
+            serializer = OrderSerializer(order, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except ValueError as e:
+            logger.error(f"Workhouse creation error: {str(e)}")
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.exception(f"Critical error during workhouse creation: {str(e)}")
+            return Response(
+                {"error": f"Error creating workhouse order: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="List all workhouse orders",
+        description="Returns a paginated list of all workhouse orders (identified by job name 'workhouse' or key_ref starting with 'WH-').",
+        responses={200: OrderSerializer(many=True)}
+    )
+    def list_workhouse_orders(self, request):
+        """
+        List all workhouse orders.
+        
+        Workhouse orders are identified by:
+        - job.name = 'workhouse' OR
+        - key_ref starting with 'WH-'
+        
+        Returns:
+        - 200 OK: Paginated list of workhouse orders.
+        - 400 Bad Request: If an error occurs.
+        """
+        try:
+            company_id = request.company_id
+            
+            # Get all workhouse orders using the service
+            workhouse_orders = self.order_service.get_all_workhouse_orders(company_id)
+            
+            # Paginate the queryset
+            paginator = PageNumberPagination()
+            paginated_orders = paginator.paginate_queryset(workhouse_orders, request)
+            
+            # Serialize the paginated data
+            serialized_orders = OrderSerializer(paginated_orders, many=True, context={'request': request})
+            
+            return Response({
+                "status": "success",
+                "messDev": f"Workhouse orders listed successfully. Current company id: {company_id}",
+                "messUser": "Workhouse orders listed successfully",
+                "current_company_id": company_id,
+                "data": paginator.get_paginated_response(serialized_orders.data).data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error fetching workhouse orders: {str(e)}")
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching workhouse orders: {str(e)}",
+                "messUser": "Error fetching workhouse orders",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)

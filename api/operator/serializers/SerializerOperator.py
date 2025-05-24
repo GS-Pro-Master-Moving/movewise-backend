@@ -56,7 +56,7 @@ class SerializerOperator(serializers.ModelSerializer):
     # Campos embebidos de Person
     first_name   = serializers.CharField(source='person.first_name',  required=True)
     last_name    = serializers.CharField(source='person.last_name',   required=True)
-    birth_date   = serializers.DateField(source='person.birth_date',  required=True)
+    birth_date   = serializers.DateField(source='person.birth_date',  required=False)
     type_id      = serializers.CharField(source='person.type_id',     required=True)
     id_number    = serializers.CharField(source='person.id_number', required=True)
     address      = serializers.CharField(source='person.address',     required=True)
