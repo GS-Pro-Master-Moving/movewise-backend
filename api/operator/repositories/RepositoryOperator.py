@@ -33,9 +33,9 @@ class RepositoryOperator(IRepositoryOperator):
 
     
     def get_by_id(self, operator_id: int):
-        # Obtener un operador activo por ID
+    # Obtener un operador cuyo estado NO sea 'inactive'
         try:
-            return Operator.objects.active().get(id_operator=operator_id)
+            return Operator.objects.exclude(status='inactive').get(id_operator=operator_id)
         except Operator.DoesNotExist:
             return None
     
