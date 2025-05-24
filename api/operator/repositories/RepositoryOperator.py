@@ -18,7 +18,7 @@ class RepositoryOperator(IRepositoryOperator):
         return Operator.objects.select_related('person')\
             .filter(
                 person__id_company=company_id,
-                status__in=['freelance', 'active']
+                status__in=['freelance']
             )\
             .order_by('-id_operator')
     

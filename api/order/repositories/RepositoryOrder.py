@@ -3,6 +3,7 @@ from api.order.models.Order import Order
 from api.person.models import Person
 from api.job.models import Job
 from api.order.models.Order import StatesUSA
+from django.db.models import Max 
 
 class RepositoryOrder(IRepositoryOrder):
     @staticmethod
@@ -86,43 +87,35 @@ class RepositoryOrder(IRepositoryOrder):
         except Order.DoesNotExist:
             return f"Order does not exist."
         
-    #metodos nuevos para workhouse
-
-    def create_workhouse_order(self, data):
+    def get_next_workhouse_number(self, company_id):
         """
-        Creates a workhouse order in the database.
+        Generates the next workhouse order number for a company.
+        Returns an integer that will be formatted as WH-XXXX
+        """
+        from django.db.models import Max
+        import re
         
-        Args:
-        - data: Dictionary containing order data
-        
-        Returns:
-        - Created Order instance
-        """
-        return Order.objects.create(**data)
-
-    def get_next_workhouse_number(self):
-        """
-        Gets the next sequential number for workhouse key_ref.
-        
-        Returns:
-        - Integer representing the next workhouse number
-        """
-        # Get the latest workhouse order by key_ref
-        latest_workhouse = Order.objects.filter(
+        # Get the last workhouse order number
+        last_order = Order.objects.filter(
+            id_company_id=company_id,
             key_ref__startswith='WH-'
-        ).order_by('-key_ref').first()
+        ).aggregate(Max('key_ref'))['key_ref__max']
         
-        if latest_workhouse:
-            # Extract number from key_ref (e.g., 'WH-00001' -> 1)
+        if last_order:
             try:
-                current_number = int(latest_workhouse.key_ref.split('-')[1])
-                return current_number + 1
-            except (IndexError, ValueError):
-                # If there's an issue parsing, start from 1
+                # Extract number from WH-XXXX format
+                match = re.search(r'WH-(\d+)', last_order)
+                if match:
+                    return int(match.group(1)) + 1
+                else:
+                    return 1
+            except (ValueError, AttributeError):
                 return 1
-        else:
-            # No workhouse orders exist yet
-            return 1
+        
+        return 1
+
+    def create_workhouse_order(self, validated_data):
+        return Order.objects.create(**validated_data)
 
     def get_all_workhouse_orders(self, company_id):
         """

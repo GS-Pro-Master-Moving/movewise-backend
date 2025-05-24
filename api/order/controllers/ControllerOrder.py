@@ -48,6 +48,19 @@ class ControllerOrder(viewsets.ViewSet):
         super().__init__(**kwargs)
         self.order_service = ServicesOrder()  
         self.workcost_service = ServicesWorkCost()
+
+    def handle_error(self, exc):
+        """Manejador centralizado de errores"""
+        if isinstance(exc, ValidationError):
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        elif isinstance(exc, PermissionDenied):
+            return Response({"error": str(exc)}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            logger.exception("Internal server error")
+            return Response(
+                {"error": "Internal server error"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     def SumaryCost(self, request, pk=None):
         """
@@ -700,52 +713,49 @@ class ControllerOrder(viewsets.ViewSet):
             }
             return JsonResponse(error_response, status=400)
     
-    #nuevos metodos para workhouse
 
-    @extend_schema(
-        summary="Create a new workhouse order",
-        description="Creates a workhouse order with auto-generated WH key_ref and workhouse job type.",
-        request=OrderSerializer,
-        responses={201: OrderSerializer, 400: {"error": "Invalid data"}}
-    )
     def create_workhouse(self, request):
         """
         Create a new workhouse order.
         
-        Parámetros requeridos en request.data:
-        - person_id: ID de una persona existente en la compañía
-        - Otros campos del order según necesidad
+        Expected body:
+        {
+            "date": "2025-05-24",
+            "status": "Pending",  # opcional, default: "Pending"
+            "person_id": 7,       # requerido
+            "customer_factory": 2, # opcional
+            "dispatch_ticket": "data:image/jpeg;base64,...", # opcional
+            "distance": 100,      # opcional
+            "expense": 500.00,    # opcional
+            "income": 1000.00,    # opcional
+            "weight": 2500        # opcional
+        }
         
-        Returns:
-        - 201 Created: Orden creada exitosamente
-        - 400 Bad Request: Si falta person_id, la persona no existe, o datos inválidos
+        Notes:
+        - job is automatically set to 'workhouse' job type
+        - key_ref is automatically generated as WH-XXXX
         """
+        logger.info("=== STARTING WORKHOUSE ORDER CREATION ===")
+        logger.debug(f"Request data: {request.data}")
+        
         try:
-            # Validar que se incluye person_id
-            if "person_id" not in request.data:
-                raise ValueError("person_id is required")
-                
-            # Crear orden usando el servicio
             order = self.order_service.create_workhouse_order(request.data, request)
-            logger.info(f"Workhouse order created successfully: {order.key}")
-            
-            # Serializar respuesta
             serializer = OrderSerializer(order, context={'request': request})
+            
+            logger.info(f"Workhouse order created successfully: {order.key}")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
-        except ValueError as e:
-            logger.error(f"Workhouse creation error: {str(e)}")
-            return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        except ValidationError as e:
+            logger.error(f"Validation error in workhouse order: {str(e)}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
         except Exception as e:
-            logger.exception(f"Critical error during workhouse creation: {str(e)}")
+            logger.exception(f"Critical error during workhouse order creation: {str(e)}")
             return Response(
                 {"error": f"Error creating workhouse order: {str(e)}"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
+        
     @extend_schema(
         summary="List all workhouse orders",
         description="Returns a paginated list of all workhouse orders (identified by job name 'workhouse' or key_ref starting with 'WH-').",
