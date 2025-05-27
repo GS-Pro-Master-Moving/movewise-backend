@@ -8,7 +8,7 @@ class IServicesOrder:
         Updates the status of an order recieving a evidence URL.
         """
         pass
-    def get_all_orders(self):
+    def get_all_pending_orders(self):
         """
         Retrieves all orders.
         """

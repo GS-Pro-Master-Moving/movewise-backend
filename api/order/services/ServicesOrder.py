@@ -27,10 +27,10 @@ class ServicesOrder(IServicesOrder):
             raise ValidationError("Company context missing")
         return self.repository.get_all_orders_any_status(company_id)
     
-    def get_all_orders(self, company_id):
+    def get_all_pending_orders(self, company_id):
         if not company_id:
             raise ValidationError("Company context missing")
-        return self.repository.get_all_orders(company_id)
+        return self.repository.get_all_pending_orders(company_id)
 
     def get_all_orders_report(self, company_id):
         if not company_id:
@@ -186,9 +186,12 @@ class ServicesOrder(IServicesOrder):
         return self.repository.get_all_orders_any_status(company_id)
     
     def get_all_orders(self, company_id):
+        return self.repository.get_all_orders(company_id)
+    
+    def get_all_pending_orders(self, company_id):
         if not company_id:
             raise ValidationError("Company context missing")
-        return self.repository.get_all_orders(company_id)
+        return self.repository.get_all_pending_orders(company_id)
 
     def get_all_orders_report(self, company_id):
         if not company_id:

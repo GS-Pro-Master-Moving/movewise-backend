@@ -65,6 +65,9 @@ class RepositoryOrder(IRepositoryOrder):
         return Order.objects.filter(id_company_id=company_id)
 
     def get_all_orders(self, company_id):
+        return Order.objects.filter(id_company_id=company_id)
+    
+    def get_all_pending_orders(self, company_id):
         return Order.objects.filter(id_company_id=company_id, status='pending')
     
     def get_all_orders_report(self, company_id):
