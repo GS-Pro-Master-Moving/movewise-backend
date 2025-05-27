@@ -134,7 +134,7 @@ class ControllerOrder(viewsets.ViewSet):
     def list_all(self, request):
         try:
             company_id = request.company_id
-            orders = self.order_service.get_all_orders(company_id)
+            orders = self.order_service.get_all_pending_orders(company_id)
 
             paginator = PageNumberPagination()
             paginated = paginator.paginate_queryset(orders, request)
@@ -172,7 +172,7 @@ class ControllerOrder(viewsets.ViewSet):
         """
         try:
             company_id = request.company_id
-            orders = self.order_service.get_all_orders(company_id)
+            orders = self.order_service.get_all_pending_orders(company_id)
 
             # Paginate the queryset
             paginator = PageNumberPagination()
@@ -624,7 +624,7 @@ class ControllerOrder(viewsets.ViewSet):
         try:
             company_id = request.company_id
             # Get all orders using the service
-            orders = self.order_service.get_all_orders(company_id)
+            orders = self.order_service.get_all_pending_orders(company_id)
 
             # Filter the orders to get only those with status "Pending"
             pending_orders = [order for order in orders if order.status == "Pending"]
