@@ -8,7 +8,9 @@ from django.db.models.query import QuerySet
 from api.utils.image_processor import ImageProcessor
 from storages.backends.s3boto3 import S3Boto3Storage
 from api.utils.s3utils import upload_user_photo
+import uuid 
 
+import hashlib
 import logging
 
 logger = logging.getLogger(__name__)
@@ -69,30 +71,57 @@ class User(AbstractBaseUser):
     
     def soft_delete(self):
         "Marks the user as inactive using their associated persona."
+
+        if self.photo:
+            self.photo.delete(save=False)  # Elimina el archivo físico
+            self.photo = None  # Limpia la referencia
+
         if self.person:
             self.person.soft_delete()
+        
+        self.save()
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
-        proccessor  = ImageProcessor()
+        processor = ImageProcessor()
+        old_photo = None
 
-        if is_new:
-            #for new instances, compress
-            if self.photo:
-                logger.debug(f'compressing new user photo')
-                self.photo = proccessor.compress_image(self.photo, prefix='user_photo')
-        else:
+        # Obtener instancia anterior si existe
+        if not is_new:
             try:
                 old_instance = User.all_objects.get(pk=self.pk)
-
-                if self.photo and (not old_instance.photo or self.photo.name != old_instance.photo.name):
-                    logger.debug(f"Compressing updated user photo")
-                    self.photo = proccessor.compress_image(self.photo, prefix="user_photo")
-                    
+                old_photo = old_instance.photo
             except User.DoesNotExist:
-                logger.debug(f'could not find user with ID')
-                if self.photo:
-                    self.photo = proccessor.compress_image(self.photo, prefix='user_photo')
+                pass
+
+        # Procesar nueva foto si existe
+        if self.photo:
+            try:
+                # Generar hash del contenido para nombre único
+                content = self.photo.read()
+                self.photo.seek(0)  # Rebobinar el archivo
+                content_hash = hashlib.md5(content).hexdigest()
+                ext = self.photo.name.split('.')[-1].lower()
+                new_name = f"admin/photos/{content_hash[:10]}_{uuid.uuid4().hex[:8]}.{ext}"
+                
+                # Solo procesar si es diferente a la anterior
+                if not old_photo or new_name != old_photo.name:
+                    self.photo.name = new_name
+                    self.photo = processor.compress_image(self.photo, prefix='user_photo')
+                    logger.debug(f"{'Nueva' if is_new else 'Actualizada'} foto procesada: {new_name}")
+                    
+            except Exception as e:
+                logger.error(f"Error procesando foto: {str(e)}")
+                raise
+
+        # Eliminar foto anterior si fue reemplazada
+        if old_photo and self.photo != old_photo:
+            try:
+                logger.debug(f"Eliminando foto anterior: {old_photo.name}")
+                old_photo.delete(save=False)
+            except Exception as e:
+                logger.error(f"Error eliminando foto anterior: {str(e)}")
+
         super().save(*args, **kwargs)
 
     @property

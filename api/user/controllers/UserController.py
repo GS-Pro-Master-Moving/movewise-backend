@@ -4,6 +4,7 @@ from rest_framework import status
 from api.company.serializers.company_serializer import CompanySerializer
 from api.company.services.ServicesCompany import ServicesCompany
 from api.person.serializers.PersonSerializer import PersonSerializer
+from django.db.models import Q
 
 from api.user.serializers.UserSerializer import UserSerializer
 from api.user.serializers.LoginSerializer import LoginSerializer
@@ -13,6 +14,8 @@ from api.user.authentication import JWTAuthentication
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db import transaction
+from api.person.models.Person import Person
+
 class UserRegister(APIView):
     permission_classes = [AllowAny]  
     authentication_classes = []
@@ -58,13 +61,28 @@ class UserRegister(APIView):
         ]
     )
     def post(self, request):
-        # The data should include "person" as a dictionary inside "user"
-        user_serializer = UserSerializer(data=request.data)
-        if user_serializer.is_valid():
-            user = user_serializer.save()
-            return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
-        return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                user = serializer.save()
+                response_data = {
+                    "message": "Registro exitoso",
+                    "data": UserSerializer(user).data
+                }
+
+                # Detectar reactivación
+                if Person.all_objects.filter(
+                    Q(email=user.person.email) | Q(id_number=user.person.id_number),
+                    status='inactive'
+                ).exists():
+                    response_data["message"] = "Cuenta reactivada exitosamente"
+
+                return Response(response_data, status=status.HTTP_201_CREATED)
+                
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 class UserLogin(APIView):
     permission_classes = [AllowAny] 
