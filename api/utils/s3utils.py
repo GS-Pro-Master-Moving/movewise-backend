@@ -47,6 +47,19 @@ def upload_operator_photo(instance, filename):
         ext = filename.split('.')[-1]
         unique_name = f"{uuid.uuid4()}.{ext}"
         return os.path.join('operators', 'photos', unique_name)
+    
+def upload_user_photo(instance, filename):
+    """Sube fotos de administraores a S3 o almacenamiento local"""
+    if settings.USE_S3:
+        logger.debug("Subiendo foto a S3/DO Spaces")
+        return get_s3_file_path(instance, filename, 'admin/photos')
+    else:
+        logger.debug("Subiendo foto a almacenamiento local")
+        local_folder = os.path.join(settings.MEDIA_ROOT, 'admin', 'photos')
+        os.makedirs(local_folder, exist_ok=True)
+        ext = filename.split('.')[-1]
+        unique_name = f"{uuid.uuid4()}.{ext}"
+        return os.path.join('admin', 'photos', unique_name)
 
 def upload_operator_license_front(instance, filename):
     """Sube frente de licencia a S3 o local"""

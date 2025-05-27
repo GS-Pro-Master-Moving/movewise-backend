@@ -17,7 +17,7 @@ class ServiceOperator(IServiceOperator):
     # service.py
     def get_all_operators(self, company_id) -> List[Operator]:
         return self.repository.get_all(company_id)
-
+    
     def get_freelance_operators(self, company_id):
         if not company_id:
             raise ValueError("Company context missing")
