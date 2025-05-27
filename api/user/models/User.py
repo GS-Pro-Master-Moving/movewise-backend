@@ -85,17 +85,38 @@ class User(AbstractBaseUser):
         is_new = self._state.adding
         processor = ImageProcessor()
         old_photo = None
+        photo_changed = False
+
+        # Verificar si se están actualizando campos específicos
+        update_fields = kwargs.get('update_fields', None)
+        should_process_photo = (is_new or 
+                            update_fields is None or 
+                            (update_fields and 'photo' in update_fields))
 
         # Obtener instancia anterior si existe
         if not is_new:
             try:
                 old_instance = User.all_objects.get(pk=self.pk)
                 old_photo = old_instance.photo
+                
+                # Verificar si la foto realmente cambió
+                if should_process_photo:
+                    # Comparar por contenido o por existencia
+                    if self.photo and old_photo:
+                        # Si ambas existen, comparar nombres o contenido
+                        photo_changed = (self.photo.name != old_photo.name)
+                    elif self.photo != old_photo:
+                        # Una existe y la otra no
+                        photo_changed = True
+                        
             except User.DoesNotExist:
                 pass
+        else:
+            # Es nuevo, procesar si tiene foto
+            photo_changed = bool(self.photo) and should_process_photo
 
-        # Procesar nueva foto si existe
-        if self.photo:
+        # SOLO procesar foto si cambió Y si debemos procesarla
+        if photo_changed and self.photo:
             try:
                 # Generar hash del contenido para nombre único
                 content = self.photo.read()
@@ -104,18 +125,16 @@ class User(AbstractBaseUser):
                 ext = self.photo.name.split('.')[-1].lower()
                 new_name = f"admin/photos/{content_hash[:10]}_{uuid.uuid4().hex[:8]}.{ext}"
                 
-                # Solo procesar si es diferente a la anterior
-                if not old_photo or new_name != old_photo.name:
-                    self.photo.name = new_name
-                    self.photo = processor.compress_image(self.photo, prefix='user_photo')
-                    logger.debug(f"{'Nueva' if is_new else 'Actualizada'} foto procesada: {new_name}")
+                self.photo.name = new_name
+                self.photo = processor.compress_image(self.photo, prefix='user_photo')
+                logger.debug(f"{'Nueva' if is_new else 'Actualizada'} foto procesada: {new_name}")
                     
             except Exception as e:
                 logger.error(f"Error procesando foto: {str(e)}")
                 raise
 
-        # Eliminar foto anterior si fue reemplazada
-        if old_photo and self.photo != old_photo:
+        # Eliminar foto anterior SOLO si fue reemplazada (no si solo se actualizó otro campo)
+        if photo_changed and old_photo and self.photo != old_photo:
             try:
                 logger.debug(f"Eliminando foto anterior: {old_photo.name}")
                 old_photo.delete(save=False)
@@ -123,7 +142,6 @@ class User(AbstractBaseUser):
                 logger.error(f"Error eliminando foto anterior: {str(e)}")
 
         super().save(*args, **kwargs)
-
     @property
     def is_authenticated(self):
         return True

@@ -8,6 +8,7 @@ from drf_extra_fields.fields import Base64ImageField
 from django.db import IntegrityError
 import hashlib
 import logging
+from django.core.files.storage import default_storage
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,21 @@ class UserSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},
             'user_name': {'validators': []} 
         }
+
+    def get_photo(self, obj):
+        if obj.photo:
+            try:
+                # Verificar existencia real en S3
+                if default_storage.exists(obj.photo.name):
+                    return self.context['request'].build_absolute_uri(obj.photo.url)
+                # Si no existe, limpiar referencia
+                obj.photo = None
+                obj.save(update_fields=['photo'])
+                return None
+            except Exception as e:
+                print(f"Error verificando foto: {str(e)}")
+                return None
+        return None
 
     def validate_user_name(self, value):
         # Verificar username en usuarios activos
