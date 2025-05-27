@@ -4,7 +4,7 @@ import uuid
 import logging
 from django.conf import settings
 from django.utils import timezone
-
+import hashlib
 logger = logging.getLogger(__name__)
 
 # =====================================================================
@@ -47,6 +47,31 @@ def upload_operator_photo(instance, filename):
         ext = filename.split('.')[-1]
         unique_name = f"{uuid.uuid4()}.{ext}"
         return os.path.join('operators', 'photos', unique_name)
+    
+def upload_user_photo(instance, filename):
+    """Sube fotos usando hash del contenido para evitar duplicados"""
+    # Generar hash del contenido si está disponible
+    content_hash = "default"
+    if instance.photo:
+        try:
+            content = instance.photo.read()
+            content_hash = hashlib.md5(content).hexdigest()
+            instance.photo.seek(0)  # Rebobinar el archivo
+        except Exception as e:
+            logger.error(f"Error generando hash: {str(e)}")
+            content_hash = uuid.uuid4().hex
+    
+    ext = filename.split('.')[-1].lower()
+    unique_name = f"{content_hash[:10]}_{uuid.uuid4().hex[:8]}.{ext}"
+
+    if settings.USE_S3:
+        logger.debug("Subiendo foto a S3/DO Spaces")
+        return get_s3_file_path(instance, unique_name, 'admin/photos')
+    else:
+        logger.debug("Subiendo foto a almacenamiento local")
+        local_folder = os.path.join(settings.MEDIA_ROOT, 'admin', 'photos')
+        os.makedirs(local_folder, exist_ok=True)
+        return os.path.join('admin', 'photos', unique_name)
 
 def upload_operator_license_front(instance, filename):
     """Sube frente de licencia a S3 o local"""

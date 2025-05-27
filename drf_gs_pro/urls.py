@@ -13,7 +13,7 @@ from api.tool.controllers.ControllerTool import ControllerTool
 from api.truck.controllers.ControllerTruck import ControllerTruck  
 from api.assign_tool.controllers.ControllerAssignTool import ControllerAssignTool
 
-from api.user.controllers.UserController import UserRegister, UserLogin
+from api.user.controllers.UserController import UserRegister, UserLogin, UserSoftDelete, UserReactivate
 from api.company.controllers.company_controller import CompanyViewSet
 from api.payment.controllers.ControllerPayment import ControllerPayment
 from api.workCost.controllers.ControllerWorkCost import ControllerWorkCost
@@ -39,6 +39,10 @@ urlpatterns = [
     path('login/', UserLogin.as_view(), name='user-login'),
     path('profile/', UserDetailUpdate.as_view(), name='user-profile'),
     path('profile/<int:pk>/', UserDetailUpdate.as_view(), name='user-profile-by-id'),
+
+
+    path('admin-delete/<int:pk>/', UserSoftDelete.as_view(), name='user-soft-delete'),
+    path('admin-reactivate/<int:pk>/', UserReactivate.as_view(), name='user-reactivate'),
     
     # Ruta para administradores
     path('admin/', AdminUserDetailUpdate.as_view(), name='admin-profile'),
@@ -89,6 +93,7 @@ urlpatterns = [
     path('operators/<int:operator_id>/patch/<str:field_name>/',ControllerOperator.as_view({'patch': 'patch_field'}), name='operator-patch-field'),
     path('operators/<int:pk>/delete/', ControllerOperator.as_view({'delete': 'delete'}), name='operator-delete'),
     path('operators/update/<int:id_operator>/', ControllerOperator.as_view({'patch': 'update_operator_person'}), name='operator-update-person'),
+    
     #get freelance op
     path('list-operators-freelance/', ControllerOperator.as_view({'get': 'list_freelance_operators'}), name='operator-list-freelance'),
     path('freelance/by-code/', ControllerOperator.as_view({'get': 'retrieve_freelance_by_code'}), name='freelance-by-code'),

@@ -10,6 +10,14 @@ from rest_framework.permissions import IsAuthenticated
 from api.user.authentication import JWTAuthentication
 from django.contrib.auth.hashers import make_password
 from django.db.models import Q
+import uuid
+from django.core.files.base import ContentFile
+import base64
+from rest_framework.parsers import JSONParser
+from django.core.files.storage import default_storage
+from rest_framework.exceptions import APIException
+import binascii
+from api.utils.s3utils import upload_user_photo
 
 class UserDetailUpdate(APIView):
     """
@@ -18,7 +26,8 @@ class UserDetailUpdate(APIView):
     """
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    
+    parser_classes = [JSONParser]
+
     @extend_schema(
         summary="Get user details",
         description="Retrieves detailed information about a user including their person data.",
@@ -50,7 +59,6 @@ class UserDetailUpdate(APIView):
     )
     def get(self, request, pk=None):
         try:
-            # Get the user by primary key or use the authenticated user if no pk is provided
             if pk:
                 user = User.objects.get(person__id_person=pk)
             else:
@@ -58,14 +66,21 @@ class UserDetailUpdate(APIView):
                 
             if not user:
                 return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-                
-            return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
             
+            # Limpieza de foto fantasma
+            if user.photo:
+                try:
+                    if not default_storage.exists(user.photo.name):
+                        user.photo = None
+                        user.save(update_fields=['photo'])
+                except Exception as e:
+                    print(f"Error en limpieza de foto: {str(e)}")
+                    
+            return Response(UserSerializer(user, context={'request': request}).data, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
     @extend_schema(
         summary="Partial update user information",
         description="""
@@ -112,7 +127,8 @@ class UserDetailUpdate(APIView):
     @transaction.atomic
     def patch(self, request, pk=None):
         try:
-            # Get the user by primary key or use the authenticated user if no pk is provided
+            # Obtener usuario
+            user = None
             if pk:
                 user = User.objects.get(person__id_person=pk)
             else:
@@ -120,88 +136,134 @@ class UserDetailUpdate(APIView):
                 
             if not user:
                 return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-            
-            # Get the existing data
+
+            # 1. Verificación y limpieza inicial de foto fantasma
+            if user.photo:
+                try:
+                    if not default_storage.exists(user.photo.name):
+                        user.photo = None
+                        user.save(update_fields=['photo'])
+                except Exception as e:
+                    print(f"Error en verificación inicial de foto: {str(e)}")
+                    # No detenemos el proceso, solo registramos el error
+
+            # 2. Procesar campos del usuario
             user_data = {}
-            person_data = {}
-            email_changed = False
-            
-            # Extract user fields to update
+            update_user_fields = []
+            has_photo_update = False
+
+            # User name
             if 'user_name' in request.data:
                 user_data['user_name'] = request.data.get('user_name')
-                
-            # Handle password update specially to ensure it's properly hashed
+                update_user_fields.append('user_name')
+
+            # Password
             if 'password' in request.data and request.data.get('password'):
                 password = request.data.get('password')
-                # Only hash if it's not already hashed
                 if not password.startswith('pbkdf2_sha256$'):
                     user_data['password'] = make_password(password)
                 else:
                     user_data['password'] = password
+                update_user_fields.append('password')
+
+            # Photo handling
+            if 'photo' in request.data:
+                photo_data = request.data['photo']
+                
+                if photo_data is None or photo_data == '':
+                    user.photo = None
+                elif isinstance(photo_data, str) and photo_data.startswith('data:image'):
+                    try:
+                        format_part, data_part = photo_data.split(';base64,')
+                        ext = format_part.split('/')[-1].split('+')[0]
+                        decoded_file = base64.b64decode(data_part)
+                        
+                        # Solo crear el ContentFile y asignarlo - el modelo hace el resto
+                        user.photo = ContentFile(decoded_file, name=f"temp.{ext}")
+                        
+                    except Exception as e:
+                        return Response({"error": "Invalid image data"}, status=400)
+                
+                update_user_fields.append('photo')
+            # Actualizar campos de usuario
+            if user_data:
+                for key, value in user_data.items():
+                    setattr(user, key, value)
             
-            # Extract person fields to update
-            if 'person' in request.data and isinstance(request.data.get('person'), dict):
+            # Guardar cambios de usuario si existen
+            if update_user_fields or has_photo_update:
+                user.save(update_fields=list(set(update_user_fields)))
+
+            # 3. Procesar campos de persona
+            person_data = {}
+            email_changed = False
+            update_person_fields = []
+            
+            if 'person' in request.data and isinstance(request.data['person'], dict):
+                person = user.person
                 person_fields = [
                     'first_name', 'last_name', 'birth_date', 'phone', 
                     'address', 'id_number', 'type_id', 'email'
                 ]
+                
                 for field in person_fields:
-                    if field in request.data.get('person'):
-                        # Check if email is changing
-                        if field == 'email':
-                            new_email = request.data.get('person').get('email')
-                            if new_email != user.person.email:
-                                # Check if new email already exists
-                                if Person.objects.filter(email=new_email).exclude(id_person=user.person.id_person).exists():
+                    if field in request.data['person']:
+                        new_value = request.data['person'][field]
+                        current_value = getattr(person, field)
+                        
+                        if new_value != current_value:
+                            # Validar email único
+                            if field == 'email':
+                                if Person.objects.filter(email=new_value).exclude(id_person=person.id_person).exists():
                                     return Response(
-                                        {"error": "Email already registered to another user"}, 
+                                        {"error": "Email already in use"}, 
                                         status=status.HTTP_409_CONFLICT
                                     )
                                 email_changed = True
-                        
-                        # Check if id_number is changing and if it's unique
-                        if field == 'id_number':
-                            new_id_number = request.data.get('person').get('id_number')
-                            if new_id_number and new_id_number != user.person.id_number:
-                                # Check if new id_number already exists
-                                if Person.objects.filter(id_number=new_id_number).exclude(id_person=user.person.id_person).exists():
+                            
+                            # Validar id_number único
+                            if field == 'id_number':
+                                if Person.objects.filter(id_number=new_value).exclude(id_person=person.id_person).exists():
                                     return Response(
-                                        {"error": "ID number already registered to another user"}, 
+                                        {"error": "ID number already in use"}, 
                                         status=status.HTTP_409_CONFLICT
                                     )
-                        
-                        person_data[field] = request.data.get('person').get(field)
+                            
+                            setattr(person, field, new_value)
+                            update_person_fields.append(field)
+
+                # Guardar cambios de persona si existen
+                if update_person_fields:
+                    person.save(update_fields=update_person_fields)
+
+            # 4. Verificación final de integridad de foto
+            try:
+                if user.photo and not default_storage.exists(user.photo.name):
+                    user.photo = None
+                    user.save(update_fields=['photo'])
+            except Exception as e:
+                print(f"Error en verificación final de foto: {str(e)}")
+
+            # 5. Preparar respuesta
+            user.refresh_from_db()  # Asegurar datos actualizados
+            response_data = UserSerializer(user, context={'request': request}).data
             
-            # Update user if there are user fields to update
-            if user_data:
-                # Update user fields directly
-                for key, value in user_data.items():
-                    setattr(user, key, value)
-                user.save()
-            
-            # Update person if there are person fields to update
-            if person_data:
-                person = user.person
-                for key, value in person_data.items():
-                    setattr(person, key, value)
-                person.save()
-            
-            response_data = UserSerializer(user).data
-            
-            # If email changed, indicate that session should be invalidated
             if email_changed:
                 response_data["session_invalidated"] = True
                 response_data["message"] = "Email updated. Please login again with your new credentials."
-                
-            # Return updated user data
+
             return Response(response_data, status=status.HTTP_200_OK)
-            
+
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
+            transaction.set_rollback(True)
+            error_message = str(e)
+            # Filtrar mensajes sensibles
+            if "password" in error_message.lower():
+                error_message = "Error processing request"
+            return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+        
 class AdminUserDetailUpdate(APIView):
     """
     Controller for retrieving and updating admin user details.
