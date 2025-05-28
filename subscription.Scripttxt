@@ -4,8 +4,8 @@ VALUES (1, 'Plan GS', 0, 1);
 INSERT INTO api_subscription (id_subscription, id_plan, start_date, end_date, status)
 VALUES (1, 1, '2025-05-18', '2026-06-18', 'active');
 
-UPDATE api_company SET subscription_id=1 WHERE id=4;
+UPDATE api_company SET subscription_id=1 WHERE id=1;
 
 insert into api_company (license_number,name,address,zip_code,created_at,subscription_id) values ('87-2840518','GS PRO MASTERMOVING', '1545 glandwater','34744','2025-05-13',1);
 insert into api_job (name,id_company,ACTIVE) values ('PACK', 1,1), ('PACK AND LOAD',1,1), ('DELIVERY',1,1), ('LOOSE',1,1);
-insert into api_customerfactory (name) values ('GS PRO MASTER MOVING'), ('BEKINS'),('COLEMAN'),('HARRISON');
+insert into api_customerfactory (name,ACTIVE) values ('GS PRO MASTER MOVING',1), ('BEKINS',1),('COLEMAN',1),('HARRISON',1);

@@ -22,7 +22,7 @@ class IRepositoryOrder:
     """
     Get all orders.
     """
-    def get_all_orders(self, company_id):
+    def get_all_pending_orders(self, company_id):
         """
         Return all orders belonging to company_id.
         """
