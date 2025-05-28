@@ -109,9 +109,37 @@ class ControllerAssign(viewsets.ViewSet):
         try:
 
             company_id    = request.company_id
+            number_week = request.query_params.get('number_week')
+            year = request.query_params.get('year')
+            page_size = request.query_params.get('page_size', 10)
+            # Validar y convertir parámetros
+            if not year:
+                year = datetime.now().year
+            else:
+                year = int(year)
+            if number_week:
+                number_week = int(number_week)
+                if number_week < 1 or number_week > 53:
+                    return Response({
+                        "status": "error",
+                        "messDev": "Invalid week number.",
+                        "messUser": "El número de semana debe estar entre 1 y 53.",
+                        "data": None
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                # Calcular fechas de la semana ISO
+                start_date = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
+                end_date = start_date + timedelta(days=6)
+            else:
+                start_date = end_date = None
+            
             orders = self.order_service.get_all_orders(company_id)
+            if start_date and end_date:
+                orders = orders.filter(date__range=(start_date.date(), end_date.date()))
+            
             print(f'ordenes: {orders}')
+            # Paginación
             paginator = self.paginator
+            paginator.page_size = int(page_size)
             page = paginator.paginate_queryset(orders, request, view=self)
 
             resultados = []
