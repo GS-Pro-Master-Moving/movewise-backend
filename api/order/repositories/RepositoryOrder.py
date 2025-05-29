@@ -4,6 +4,8 @@ from api.person.models import Person
 from api.job.models import Job
 from api.order.models.Order import StatesUSA
 from django.db.models import Max 
+import datetime
+from django.db.models import Q
 
 class RepositoryOrder(IRepositoryOrder):
     @staticmethod
@@ -60,9 +62,31 @@ class RepositoryOrder(IRepositoryOrder):
         return order
     
     # @staticmethod
-    #retornar todas las ordenes de una company sin importar el status
-    def get_all_orders_any_status(self, company_id):
-        return Order.objects.filter(id_company_id=company_id)
+    def get_all_orders_any_status(self, company_id, date_filter=None, status_filter=None, search_filter=None):
+    # Consulta base
+        queryset = Order.objects.filter(id_company_id=company_id)
+        
+        if date_filter:
+            try:
+                # Convertir string a fecha
+                filter_date = datetime.datetime.strptime(date_filter, '%Y-%m-%d').date()
+                queryset = queryset.filter(date=filter_date)
+            except ValueError:
+                # Si la fecha no es válida, ignorar el filtro
+                pass
+        
+        if status_filter:
+            # Normalizar el status para comparación case-insensitive
+            queryset = queryset.filter(status__iexact=status_filter)
+        
+        if search_filter:
+            search_q = Q(key_ref__icontains=search_filter) | \
+                    Q(person__first_name__icontains=search_filter) | \
+                    Q(person__last_name__icontains=search_filter)
+            queryset = queryset.filter(search_q)
+        
+        # Ordenar por fecha descendente para mostrar más recientes primero
+        return queryset.order_by('-date', '-key')
 
     def get_all_orders(self, company_id):
         return Order.objects.filter(id_company_id=company_id)

@@ -104,20 +104,31 @@ class ControllerOrder(viewsets.ViewSet):
     def list_all_status(self, request):
         try:
             company_id = request.company_id
-            #obtener todas las ordenes sin importar el status
-            orders = self.order_service.get_all_orders_any_status(company_id)
+            
+            # Extraer parámetros de filtro opcionales
+            date_filter = request.GET.get('date', None)
+            status_filter = request.GET.get('status', None)
+            search_filter = request.GET.get('search', None)
+            
+            # Obtener órdenes con filtros opcionales
+            orders = self.order_service.get_all_orders_any_status(
+                company_id=company_id,
+                date_filter=date_filter,
+                status_filter=status_filter,
+                search_filter=search_filter
+            )
 
             paginator = PageNumberPagination()
             paginated = paginator.paginate_queryset(orders, request)
-            serialized = OrderSerializer(paginated, many=True, context={'request':request})
+            serialized = OrderSerializer(paginated, many=True, context={'request': request})
 
             return Response({
-                    "status": "success",
-                    "messDev": f"Orders listed successfully. Current company id: {company_id}",
-                    "messUser": "Orders listed successfully",
-                    "current_company_id": company_id,
-                    "data": paginator.get_paginated_response(serialized.data).data
-                }, status=status.HTTP_200_OK)
+                "status": "success",
+                "messDev": f"Orders listed successfully. Current company id: {company_id}. Filters applied: date={date_filter}, status={status_filter}, search={search_filter}",
+                "messUser": "Orders listed successfully",
+                "current_company_id": company_id,
+                "data": paginator.get_paginated_response(serialized.data).data
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({
@@ -126,6 +137,7 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error in listing orders",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
+    
     @extend_schema(
         summary="List all orders ",
         description="Returns a list of all orders.",
