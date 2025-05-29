@@ -318,7 +318,7 @@ class ControllerOrder(viewsets.ViewSet):
     def update_status(self, request, pk=None):
         order = get_object_or_404(Order, key=pk)
         
-        # Validate if the order is already completed
+        # Validar si la orden ya está completada
         if order.status == 'finished':
             return Response(
                 {"error": "This order is already finalized. It cannot be modified."},
@@ -335,21 +335,19 @@ class ControllerOrder(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Validar evidencia
-        if 'evidence' not in request.FILES:
-            return Response(
-                {"error": "The 'evidence' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Verificar si se proporcionó evidencia
+        evidence_file = request.FILES.get('evidence', None)
         
-        # Eliminar archivo antiguo
-        if order.evidence:
-            order.evidence.delete(save=False)
+        # Solo actualizar evidencia si se proporciona un nuevo archivo
+        if evidence_file:
+            # Eliminar archivo antiguo si existe
+            if order.evidence:
+                order.evidence.delete(save=False)
+            order.evidence = evidence_file
 
-        # Actualizar evidencia y estado
-        order.evidence = request.FILES['evidence']
+        # Actualizar estado
         order.status = status_param
-        order.save()  # Guarda ambos campos (evidence y status)
+        order.save()
 
         # Serializar con contexto request
         serializer = OrderSerializer(order, context={'request': request})
