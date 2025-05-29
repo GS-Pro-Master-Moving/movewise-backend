@@ -26,6 +26,10 @@ from django.shortcuts import get_object_or_404
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes, authentication_classes
+from api.utils.s3utils import upload_evidence_file
+from api.utils.image_processor import ImageProcessor
+
+
 # Configuración de logging
 logger = logging.getLogger(__name__)
 
@@ -334,22 +338,32 @@ class ControllerOrder(viewsets.ViewSet):
                 {"error": f"Invalid state. Valid states are: {', '.join(valid_statuses)}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # Validar evidencia
-        if 'evidence' not in request.FILES:
-            return Response(
-                {"error": "The 'evidence' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         
-        # Eliminar archivo antiguo
-        if order.evidence:
-            order.evidence.delete(save=False)
-
-        # Actualizar evidencia y estado
-        order.evidence = request.FILES['evidence']
+        # Solo procesar evidence si se envía
+        if 'evidence' in request.FILES:
+            evidence_file = request.FILES['evidence']
+            
+            # Eliminar archivo antiguo
+            if order.evidence:
+                order.evidence.delete(save=False)
+            
+            # Procesar la imagen manualmente
+            processor = ImageProcessor()
+            compressed_image = processor.compress_image(
+                evidence_file, 
+                quality=75,
+                prefix="evidence"
+            )
+            
+            # Generar la ruta usando tu función
+            file_path = upload_evidence_file(order, evidence_file.name)
+            
+            # Asignar el archivo procesado con la ruta correcta
+            order.evidence.save(file_path, compressed_image, save=False)
+        
+        # Actualizar estado
         order.status = status_param
-        order.save()  # Guarda ambos campos (evidence y status)
+        order.save()
 
         # Serializar con contexto request
         serializer = OrderSerializer(order, context={'request': request})
