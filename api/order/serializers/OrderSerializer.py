@@ -49,10 +49,11 @@ class OrderSerializer(serializers.ModelSerializer):
             return None
             
         if settings.USE_S3:
-            return f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/{obj.evidence.name}"
+            # Agregar /media/ en la construcción de la URL
+            return f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/media/{obj.evidence.name}"
         
         request = self.context.get('request')
-        return request.build_absolute_uri(obj.evidence.url) if request else obj.evidence.url  
+        return request.build_absolute_uri(obj.evidence.url) if request else obj.evidence.url
     
     def validate_dispatch_ticket(self, value):
         """

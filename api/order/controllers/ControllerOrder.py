@@ -26,6 +26,10 @@ from django.shortcuts import get_object_or_404
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes, authentication_classes
+from api.utils.s3utils import upload_evidence_file
+from api.utils.image_processor import ImageProcessor
+
+
 # Configuración de logging
 logger = logging.getLogger(__name__)
 
@@ -318,7 +322,7 @@ class ControllerOrder(viewsets.ViewSet):
     def update_status(self, request, pk=None):
         order = get_object_or_404(Order, key=pk)
         
-        # Validar si la orden ya está completada
+        # Validate if the order is already completed
         if order.status == 'finished':
             return Response(
                 {"error": "This order is already finalized. It cannot be modified."},
@@ -334,17 +338,29 @@ class ControllerOrder(viewsets.ViewSet):
                 {"error": f"Invalid state. Valid states are: {', '.join(valid_statuses)}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # Verificar si se proporcionó evidencia
-        evidence_file = request.FILES.get('evidence', None)
         
-        # Solo actualizar evidencia si se proporciona un nuevo archivo
-        if evidence_file:
-            # Eliminar archivo antiguo si existe
+        # Solo procesar evidence si se envía
+        if 'evidence' in request.FILES:
+            evidence_file = request.FILES['evidence']
+            
+            # Eliminar archivo antiguo
             if order.evidence:
                 order.evidence.delete(save=False)
-            order.evidence = evidence_file
-
+            
+            # Procesar la imagen manualmente
+            processor = ImageProcessor()
+            compressed_image = processor.compress_image(
+                evidence_file, 
+                quality=75,
+                prefix="evidence"
+            )
+            
+            # Generar la ruta usando tu función
+            file_path = upload_evidence_file(order, evidence_file.name)
+            
+            # Asignar el archivo procesado con la ruta correcta
+            order.evidence.save(file_path, compressed_image, save=False)
+        
         # Actualizar estado
         order.status = status_param
         order.save()
