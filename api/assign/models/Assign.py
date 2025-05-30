@@ -38,6 +38,7 @@ class Assign(models.Model):
     assigned_at = models.DateField(null=True, blank=True)
     rol = models.CharField(max_length=100, null=True, blank=True)
     additional_costs = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
+    
     class Meta:
         db_table = 'api_assign'
         #unique_together = ('operator', 'order', 'truck')
@@ -54,7 +55,8 @@ class Assign(models.Model):
         is_new = self._state.adding
 
         if is_new:
-            self.assigned_at = self.assigned_at or timezone.now()
+            # Usar timezone.now().date() para obtener solo la fecha
+            self.assigned_at = self.assigned_at or timezone.now().date()
             # Primero guardamos la nueva asignación
             super().save(*args, **kwargs)
         else:
@@ -85,6 +87,20 @@ class Assign(models.Model):
 
                 # Solo creamos un registro si algo cambió
                 if any(old_values[field] != new_values[field] for field in old_values):
+                    # Convertir dates a datetime para el audit
+                    old_assigned_at_dt = None
+                    new_assigned_at_dt = None
+                    
+                    if old_values['assigned_at']:
+                        old_assigned_at_dt = timezone.make_aware(
+                            timezone.datetime.combine(old_values['assigned_at'], timezone.datetime.min.time())
+                        )
+                    
+                    if new_values['assigned_at']:
+                        new_assigned_at_dt = timezone.make_aware(
+                            timezone.datetime.combine(new_values['assigned_at'], timezone.datetime.min.time())
+                        )
+                    
                     AssignAudit.objects.create(
                         assign=self,
                         old_operator=old_values['operator'],
@@ -95,8 +111,8 @@ class Assign(models.Model):
                         new_truck=new_values['truck'],
                         old_payment=old_values['payment'],
                         new_payment=new_values['payment'],
-                        old_assigned_at=old_values['assigned_at'],
-                        new_assigned_at=new_values['assigned_at'],
+                        old_assigned_at=old_assigned_at_dt,
+                        new_assigned_at=new_assigned_at_dt,
                         old_rol=old_values['rol'],
                         new_rol=new_values['rol']
                     )
@@ -109,6 +125,13 @@ def assign_pre_delete(sender, instance, **kwargs):
     """
     Signal handler to create an audit record before assign deletion
     """
+    # Convertir date a datetime para el audit
+    old_assigned_at_dt = None
+    if instance.assigned_at:
+        old_assigned_at_dt = timezone.make_aware(
+            timezone.datetime.combine(instance.assigned_at, timezone.datetime.min.time())
+        )
+    
     AssignAudit.objects.create(
         assign=instance,
         old_operator=instance.operator,
@@ -119,7 +142,7 @@ def assign_pre_delete(sender, instance, **kwargs):
         new_truck=None,
         old_payment=instance.payment,
         new_payment=None,
-        old_assigned_at=instance.assigned_at,
+        old_assigned_at=old_assigned_at_dt,
         new_assigned_at=None,
         old_rol=instance.rol,
         new_rol=None

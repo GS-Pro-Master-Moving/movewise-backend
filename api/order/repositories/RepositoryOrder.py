@@ -63,13 +63,14 @@ class RepositoryOrder(IRepositoryOrder):
     
     # @staticmethod
     def get_all_orders_any_status(self, company_id, date_filter=None, status_filter=None, search_filter=None):
-    # Consulta base
+        # Consulta base
         queryset = Order.objects.filter(id_company_id=company_id)
         
         if date_filter:
             try:
-                # Convertir string a fecha
-                filter_date = datetime.datetime.strptime(date_filter, '%Y-%m-%d').date()
+                # Convertir string a fecha usando datetime y luego extraer solo la fecha
+                from datetime import datetime
+                filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
                 queryset = queryset.filter(date=filter_date)
             except ValueError:
                 # Si la fecha no es válida, ignorar el filtro
@@ -87,7 +88,7 @@ class RepositoryOrder(IRepositoryOrder):
         
         # Ordenar por fecha descendente para mostrar más recientes primero
         return queryset.order_by('-date', '-key')
-
+    
     def get_all_orders(self, company_id):
         return Order.objects.filter(id_company_id=company_id)
     
