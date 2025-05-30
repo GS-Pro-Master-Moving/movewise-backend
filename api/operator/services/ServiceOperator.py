@@ -56,3 +56,51 @@ class ServiceOperator(IServiceOperator):
         Realiza un soft delete del operador cambiando su estado a 'inactive'
         """
         return self.repository.soft_delete(operator_id)
+        
+    def generate_freelance_code(self, company_id: int) -> str:
+        """
+        Genera un código único para un freelancer en el formato FRL-0001, FRL-0002, etc.
+        """
+        # Obtener el último código de freelancer para esta compañía
+        last_freelance = Operator.objects.filter(
+            person__id_company=company_id,
+            code__startswith='FRL-'
+        ).order_by('-code').first()
+        
+        if not last_freelance or not last_freelance.code:
+            return "FRL-0001"
+            
+        try:
+            # Extraer el número del último código y sumar 1
+            last_number = int(last_freelance.code.split('-')[1])
+            next_number = last_number + 1
+            return f"FRL-{next_number:04d}"
+        except (IndexError, ValueError):
+            # En caso de error en el formato, empezar desde 1
+            return "FRL-0001"
+            
+    def create_freelance_operator(self, validated_data, person_data, company_id):
+        """
+        Crea un nuevo operador freelance con código generado automáticamente
+        """
+        from django.db import transaction
+        from api.person.models.Person import Person
+        from api.operator.models.Operator import Operator
+        
+        with transaction.atomic():
+            # Crear la persona primero
+            person = Person.objects.create(**person_data, id_company_id=company_id)
+            
+            # Generar código único para el freelancer
+            code = self.generate_freelance_code(company_id)
+            
+            # Crear el operador con status='freelance' y el código generado
+            operator_data = {
+                **validated_data,
+                'person': person,
+                'code': code,
+                'status': 'freelance'
+            }
+            
+            operator = Operator.objects.create(**operator_data)
+            return operator

@@ -20,8 +20,10 @@ class RepositoryAssign():
             truck=truck,
             order=order,
             additional_costs=additional_costs,
-            rol=rol
+            rol=rol,
+            assigned_at=order.date  # Usar la fecha de la orden como fecha de asignación
         )
+
     @staticmethod
     def create_bulk(assignments):
         try:

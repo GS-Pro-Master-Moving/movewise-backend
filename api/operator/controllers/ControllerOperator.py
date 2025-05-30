@@ -231,6 +231,72 @@ class ControllerOperator(viewsets.ViewSet):
             "status": status.HTTP_400_BAD_REQUEST
         }
         return Response(error_message, status=status.HTTP_400_BAD_REQUEST)
+        
+    @extend_schema(
+        summary="Create a freelance operator with auto-generated code",
+        description="Creates a new freelance operator with an auto-generated code in the format FRL-0001, FRL-0002, etc.",
+        request={
+            'multipart/form-data': SerializerOperator
+        },
+        responses={201: SerializerOperator, 400: {"errors": "Bad request"}},
+    )
+    def create_freelance_person(self, request):
+        """
+        Crea un nuevo operador freelance con un código generado automáticamente en el formato FRL-0001, FRL-0002, etc.
+        No se requiere enviar el campo 'code' en la solicitud.
+        """
+        # Hacer una copia mutable de request.data
+        from django.http import QueryDict
+        import json
+        
+        data = request.data.copy()
+        if hasattr(data, '_mutable') and not data._mutable:
+            data._mutable = True
+        
+        # Obtener el ID de la compañía del request
+        company_id = getattr(request, 'company_id', None)
+        if not company_id:
+            return Response({
+                "message": "Company context is required",
+                "status": status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Generar el código único para el freelancer
+        code = self.service.generate_freelance_code(company_id)
+        
+        # Asegurarse de que el código se envíe en los datos
+        data['code'] = code
+        
+        # Establecer el estado como freelance
+        data['status'] = 'freelance'
+        
+        # Si los datos vienen como JSON, necesitamos asegurarnos de que se procesen correctamente
+        if request.content_type == 'application/json':
+            # Si es JSON, actualizamos el campo 'code' en los datos validados
+            try:
+                json_data = json.loads(request.body.decode('utf-8'))
+                if isinstance(json_data, dict):
+                    json_data['code'] = code
+                    json_data['status'] = 'freelance'
+                    request._full_data = json_data
+            except (json.JSONDecodeError, AttributeError):
+                pass
+        
+        # Crear una copia mutable del request con los datos actualizados
+        request_copy = request
+        request_copy.data._mutable = True
+        request_copy.data['code'] = code
+        request_copy.data['status'] = 'freelance'
+        
+        # Llamar al método create original con los datos actualizados
+        response = self.create(request_copy)
+        
+        # Si la creación fue exitosa, actualizar el código en la respuesta
+        if response.status_code == status.HTTP_201_CREATED and hasattr(response, 'data'):
+            response.data['code'] = code
+            
+        return response
+    
     # temporaly alias
     def create_operator_person(self, request):
         return self.create(request)
