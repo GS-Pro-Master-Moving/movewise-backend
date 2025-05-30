@@ -12,13 +12,21 @@ from django.db.models import Sum
 
 class AssignOperatorSerializer(serializers.ModelSerializer):
     id_assign  = serializers.IntegerField(source='id')
-    date       = serializers.DateTimeField(source='assigned_at')
+    date       = serializers.SerializerMethodField()
     code       = serializers.CharField(source='operator.code')
-    salary     = serializers.DecimalField(source='operator.salary', max_digits=10, decimal_places=2,coerce_to_string=False)
+    salary     = serializers.DecimalField(source='operator.salary', max_digits=10, decimal_places=2, coerce_to_string=False)
     first_name = serializers.CharField(source='operator.person.first_name')
     last_name  = serializers.CharField(source='operator.person.last_name')
     bonus      = serializers.DecimalField(source='payment.bonus', max_digits=10, decimal_places=2, allow_null=True)
-    role       = serializers.CharField(source='rol',allow_null=True) 
+    role       = serializers.CharField(source='rol', allow_null=True) 
+    
+    def get_date(self, obj):
+        if obj.assigned_at:
+            if hasattr(obj.assigned_at, 'strftime'):
+                return obj.assigned_at.strftime('%Y-%m-%d')
+            return str(obj.assigned_at)
+        return None
+    
     class Meta:
         model  = Assign
         fields = (
