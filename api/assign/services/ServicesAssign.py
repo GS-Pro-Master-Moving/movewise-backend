@@ -50,7 +50,16 @@ class ServicesAssign:
                     if not operator or not order:
                         raise ValueError("Invalid operator or order in the provided data")
 
-                    assignments.append(Assign(operator=operator, order=order, truck=truck, rol=item.get("rol")))
+                    # Crear la asignación con la fecha de la orden
+                    assign = Assign(
+                        operator=operator, 
+                        order=order, 
+                        truck=truck, 
+                        rol=item.get("rol"),
+                        assigned_at=order.date  # Establecer la fecha de la orden como fecha de asignación
+                    )
+                    assignments.append(assign)
+                
                 success, error = self.repository.create_bulk(assignments)
 
                 if not success:

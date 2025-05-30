@@ -86,6 +86,7 @@ urlpatterns = [
     path('customer-factory/<int:pk>/delete/', CustomerFactoryController.as_view({'patch':'setStateFalse'}), name='customer-delete'),
     # operators
     path('operators/create/',ControllerOperator.as_view({'post': 'create_operator_person'}), name='operator-create-person'),
+    path('operators/create-freelance/',ControllerOperator.as_view({'post': 'create_freelance_person'}), name='operator-create-freelance'),
     path('operator-code/<str:code>/', ControllerOperator.as_view({'get': 'getOperatorByCode'}), name='operator-get-by-code'),
     path('operators/<str:document_number>/', ControllerOperator.as_view({'get': 'getOperatorByNumberId'}), name='operator-get-by-document'),
     path('operators-by-id/<int:id_person>/', ControllerOperator.as_view({'get': 'getOperatorById'}), name='operator-get-by-number-id'),
