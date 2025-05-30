@@ -107,16 +107,17 @@ class ControllerAssign(viewsets.ViewSet):
         workhosts (additional costs), summaryList and summaryCost.
         """
         try:
-
-            company_id    = request.company_id
+            company_id = request.company_id
             number_week = request.query_params.get('number_week')
             year = request.query_params.get('year')
             page_size = request.query_params.get('page_size', 10)
+            
             # Validar y convertir parámetros
             if not year:
                 year = datetime.now().year
             else:
                 year = int(year)
+                
             if number_week:
                 number_week = int(number_week)
                 if number_week < 1 or number_week > 53:
@@ -126,17 +127,21 @@ class ControllerAssign(viewsets.ViewSet):
                         "messUser": "El número de semana debe estar entre 1 y 53.",
                         "data": None
                     }, status=status.HTTP_400_BAD_REQUEST)
-                # Calcular fechas de la semana ISO
-                start_date = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
+                
+                # Calcular fechas de la semana ISO - convertir directamente a date
+                start_datetime = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
+                start_date = start_datetime.date()
                 end_date = start_date + timedelta(days=6)
             else:
                 start_date = end_date = None
             
-            orders = self.order_service.get_all_orders(company_id)
+            # Get orders with proper ordering to avoid pagination warning
+            orders = self.order_service.get_all_orders(company_id).order_by('-date', '-key')
             if start_date and end_date:
-                orders = orders.filter(date__range=(start_date.date(), end_date.date()))
+                orders = orders.filter(date__range=(start_date, end_date))
             
             print(f'ordenes: {orders}')
+            
             # Paginación
             paginator = self.paginator
             paginator.page_size = int(page_size)
@@ -144,7 +149,13 @@ class ControllerAssign(viewsets.ViewSet):
 
             resultados = []
             for order in page:
-                order_data = OrderSerializer(order).data
+                # Serialize the order with request context
+                order_data = OrderSerializer(order, context={'request': request}).data
+                
+                # Ensure date is serialized as string
+                if 'date' in order_data and order_data['date']:
+                    if hasattr(order_data['date'], 'strftime'):
+                        order_data['date'] = order_data['date'].strftime('%Y-%m-%d')
 
                 assigns = (
                     Assign.objects
@@ -152,7 +163,13 @@ class ControllerAssign(viewsets.ViewSet):
                         .select_related('operator__person', 'truck', 'payment')
                 )
 
-                order_data['operators'] = AssignOperatorSerializer(assigns, many=True).data
+                # Serialize operators and handle date fields
+                operators_data = AssignOperatorSerializer(assigns, many=True).data
+                for op in operators_data:
+                    if 'assigned_at' in op and op['assigned_at']:
+                        if hasattr(op['assigned_at'], 'strftime'):
+                            op['assigned_at'] = op['assigned_at'].strftime('%Y-%m-%d')
+                order_data['operators'] = operators_data
 
                 seen = set()
                 vehicles = []
@@ -195,7 +212,6 @@ class ControllerAssign(viewsets.ViewSet):
                 "messUser": "An unexpected error occurred while retrieving assignments.",
                 "data":     None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
     @extend_schema(
         summary="Create multiple assignments",
         description="Creates multiple assignments at once using the provided data.",
@@ -564,7 +580,7 @@ class ControllerAssign(viewsets.ViewSet):
                     start_date = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
                     end_date   = start_date + timedelta(days=6)
 
-                    qs = qs.filter(assigned_at__date__range=(start_date.date(), end_date.date()))
+                    qs = qs.filter(assigned_at__range=(start_date, end_date + timedelta(days=1)))
                     week_info = {
                         "week_number": number_week,
                         "year": year,
