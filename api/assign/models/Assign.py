@@ -35,7 +35,7 @@ class Assign(models.Model):
         null=True,
         blank=True
     )
-    assigned_at = models.DateTimeField(auto_now_add=True)
+    assigned_at = models.DateField(null=True, blank=True)
     rol = models.CharField(max_length=100, null=True, blank=True)
     additional_costs = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
     class Meta:
