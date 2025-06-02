@@ -738,6 +738,7 @@ class ControllerAssign(viewsets.ViewSet):
             ).first()
             
             if existing_assign:
+                print(f"Assignment already exists: {existing_assign}")
                 return Response({
                     "status": "error",
                     "messDev": "Assignment already exists",
@@ -767,6 +768,7 @@ class ControllerAssign(viewsets.ViewSet):
                 }, status=status.HTTP_201_CREATED)
                 
             except ValueError as e:
+                print(f"Error creating assignment: {e}")
                 return Response({
                     "status": "error",
                     "messDev": str(e),
@@ -861,6 +863,7 @@ class ControllerAssign(viewsets.ViewSet):
                     created_assigns.append(assign)
 
                 if conflicts:
+                    
                     return Response({
                         "status": "partial_success",
                         "messDev": f"Created {len(created_assigns)} assignments, {len(conflicts)} conflicts",

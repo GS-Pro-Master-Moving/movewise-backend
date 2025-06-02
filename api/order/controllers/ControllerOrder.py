@@ -360,7 +360,17 @@ class ControllerOrder(viewsets.ViewSet):
             
             # Asignar el archivo procesado con la ruta correcta
             order.evidence.save(file_path, compressed_image, save=False)
-        
+            
+        # Actualizar payStatus si viene en el request
+        if "payStatus" in request.data:
+            try:
+                order.payStatus = int(request.data["payStatus"])
+            except (ValueError, TypeError):
+                return Response(
+                    {"error": "payStatus must be an integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         # Actualizar estado
         order.status = status_param
         order.save()
