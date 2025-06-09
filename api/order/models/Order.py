@@ -83,10 +83,10 @@ class Order(models.Model):
     evidence = models.ImageField(upload_to=upload_evidence_file,storage=S3Boto3Storage(), null=True, blank=True, max_length=255)
 
     state_usa = models.CharField(
-        max_length=2,
-        choices=StatesUSA.choices,
+        max_length=255, 
         null=True,
-        blank=True
+        blank=True,
+        verbose_name="location (Country, State, City)"
     )
 
     id_company = models.ForeignKey(

@@ -28,6 +28,7 @@ from api.person.controllers.ControllerPerson import ControllerPerson
 from api.customerFactory.controllers.ControllerCustomerFactory import CustomerFactoryController
 from api.user.controllers.UserDetailUpdate import UserDetailUpdate
 from api.user.controllers.UserDetailUpdate import AdminUserDetailUpdate
+from api.order.controllers.ControllerOrderLocations import OrderLocationController
 #custom errors
 from api.common import error_handlers
 from anymail.webhooks import sendinblue
@@ -57,6 +58,8 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'), 
     #order states no auth
+    path('orders-locations/', OrderLocationController.as_view(), name='order-locations'),
+    
     path('orders-states/',OrderStatesController.as_view(),name='order-get-states'),
     # orders
     path('orders-with-costFuel/', ControllerOrder.as_view({'get':'list_with_fuel'}), name="orders-with-costFuel"),
