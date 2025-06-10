@@ -114,6 +114,7 @@ class ControllerOrder(viewsets.ViewSet):
             status_filter = request.GET.get('status', None)
             search_filter = request.GET.get('search', None)
             
+            print(f"fecha recibida: {date_filter}")
             # Obtener órdenes con filtros opcionales
             orders = self.order_service.get_all_orders_any_status(
                 company_id=company_id,
@@ -390,7 +391,7 @@ class ControllerOrder(viewsets.ViewSet):
         # logger.info("=== STARTING ORDER CREATION ===")
         # logger.debug(f"Request headers: {request.headers}")
         # logger.debug(f"Request data: {request.data}")
-        
+        print(f"create order: fecha: {request.data}")
         serializer = OrderSerializer(
             data=request.data,
             context={'request': request}
