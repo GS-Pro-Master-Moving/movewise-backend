@@ -520,7 +520,8 @@ class ControllerOrder(viewsets.ViewSet):
                     "status": order.status,
                     "customer_name": customer_name,
                     "customer_factory_id": customer_id,
-                    "payStatus": order.payStatus
+                    "payStatus": order.payStatus,
+                    "income": order.income
                 }
 
                 # Calculate the summary for the order using the service
