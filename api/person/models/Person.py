@@ -27,7 +27,7 @@ class Person(models.Model):
     first_name = models.CharField(max_length=100, null=True, blank=True)
     last_name = models.CharField(max_length=100, null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
-    phone = models.BigIntegerField(null=True, blank=True)
+    phone = models.CharField(max_length=100,null=True, blank=True)
     address = models.CharField(max_length=100, null=True, blank=True)
     id_number = models.CharField(null=True, blank=True, unique=True, max_length=50)
     type_id = models.CharField(max_length=100, null=True, blank=True)
