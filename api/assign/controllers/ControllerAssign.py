@@ -564,9 +564,11 @@ class ControllerAssign(viewsets.ViewSet):
             # — Build queryset filtered by company_id ABOUT operator → person →
             qs = Assign.objects.select_related(
                 'operator__person',
-                'payment'
+                'payment',
+                'order'
             ).filter(
-                operator__person__id_company_id=company_id
+                operator__person__id_company_id=company_id,
+                order__status__in=['pending', 'finished']
             )
 
             # — Filter by week if requested —
@@ -610,40 +612,24 @@ class ControllerAssign(viewsets.ViewSet):
                 
                 results.append(serialized_data)
                 
-            # — Paginación manual de los resultados —
-            paginator = self.paginator
-            page = paginator.paginate_queryset(results, request, view=self)
-            
             # — If there is no data, respond empty but with company_id —
-            if not page:
+            if not results:
                 return Response({
                     "status":     "success",
                     "messDev":    "No assignments found for the given week.",
                     "messUser":   "There are no assignments for the selected week.",
                     "data":       [],
                     "week_info":  week_info or None,
-                    "pagination": {
-                        "count":     0,
-                        "next":      None,
-                        "previous":  None,
-                        "page_size": paginator.page_size,
-                    },
                     "current_company_id": company_id
                 }, status=status.HTTP_200_OK)
 
-            # — Response with data and company_id —
+            # — Response with all data and company_id —
             return Response({
                 "status":     "success",
                 "messDev":    "Assignments retrieved successfully",
                 "messUser":   "Assignments list fetched.",
-                "data":       page,
+                "data":       results,
                 "week_info":  week_info or None,
-                "pagination": {
-                    "count":     paginator.page.paginator.count if hasattr(paginator, 'page') else len(results),
-                    "next":      paginator.get_next_link(),
-                    "previous":  paginator.get_previous_link(),
-                    "page_size": paginator.page_size,
-                },
                 "current_company_id": company_id
             }, status=status.HTTP_200_OK)
 
