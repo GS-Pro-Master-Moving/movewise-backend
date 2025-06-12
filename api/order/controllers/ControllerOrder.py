@@ -28,7 +28,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes, authentication_classes
 from api.utils.s3utils import upload_evidence_file
 from api.utils.image_processor import ImageProcessor
-
+from datetime import datetime, timedelta
 
 # Configuración de logging
 logger = logging.getLogger(__name__)
@@ -828,5 +828,90 @@ class ControllerOrder(viewsets.ViewSet):
                 "status": "error",
                 "messDev": f"Error fetching workhouse orders: {str(e)}",
                 "messUser": "Error fetching workhouse orders",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+
+
+    def summary_orders_list_financial(self, request):
+        """
+        Retrieves a paginated list of orders with a summary of costs, paginated by week.
+        """
+        try:
+            company_id = request.company_id
+            number_week = request.query_params.get('number_week')
+            year = request.query_params.get('year')
+            page_size = request.query_params.get('page_size', 10)
+
+            # Validar y convertir parámetros
+            if not year:
+                year = datetime.now().year
+            else:
+                year = int(year)
+
+            if number_week:
+                number_week = int(number_week)
+                if number_week < 1 or number_week > 53:
+                    return Response({
+                        "status": "error",
+                        "messDev": "Invalid week number.",
+                        "messUser": "El número de semana debe estar entre 1 y 53.",
+                        "data": None
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                # Calcular fechas de la semana ISO
+                start_datetime = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
+                start_date = start_datetime.date()
+                end_date = start_date + timedelta(days=6)
+            else:
+                start_date = end_date = None
+
+            # Get all orders using the service
+            orders = self.order_service.get_all_orders_report(company_id)
+
+            # Filtrar por semana si corresponde
+            if start_date and end_date:
+                orders = orders.filter(date__range=(start_date, end_date))
+
+            # Paginate the queryset
+            paginator = PageNumberPagination()
+            paginator.page_size = int(page_size)
+            paginated_orders = paginator.paginate_queryset(orders, request)
+
+            # Prepare the response data
+            orders_summary = []
+            for order in paginated_orders:
+                customer_name = (
+                    order.customer_factory.name if order.customer_factory and order.customer_factory.name else None
+                )
+                customer_id = (
+                    order.customer_factory.id_factory if order.customer_factory and order.customer_factory.id_factory else None
+                )
+
+                order_data = {
+                    "key": order.key,
+                    "key_ref": order.key_ref,
+                    "client": order.person.first_name + " " + order.person.last_name,
+                    "date": order.date,
+                    "state": order.state_usa,
+                    "status": order.status,
+                    "customer_name": customer_name,
+                    "customer_factory_id": customer_id,
+                    "payStatus": order.payStatus,
+                    "income": order.income
+                }
+
+                # Calculate the summary for the order using the service
+                order_data["summary"] = self.order_service.calculate_summary(order.key)
+                orders_summary.append(order_data)
+
+            # Return the paginated response
+            return paginator.get_paginated_response(orders_summary)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching orders with summaries: {str(e)}",
+                "messUser": "Error fetching orders with summaries",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
