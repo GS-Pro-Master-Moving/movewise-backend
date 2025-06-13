@@ -131,7 +131,6 @@ class ServicesOrder(IServicesOrder):
             # Calculate the total cost
             total_cost = (
                 expense +
-                renting_cost +
                 total_fuel_cost +
                 total_work_cost +
                 driver_salaries +
