@@ -385,3 +385,15 @@ class ServicesOrder(IServicesOrder):
             raise ValidationError("Company context missing")
         
         return self.repository.get_all_workhouse_orders(company_id)
+    
+    
+    def pay_by_key_ref(self, key_ref, expense, income):
+        if expense <= 0 and income <= 0:
+            raise ValidationError("Expense and income must be greater than zero to update payments.")
+        # Validate that key_ref is provided
+        if not key_ref:
+            raise ValidationError("Key reference is required to update payments.")
+        # Validate that expense and income are provided
+        if expense is None or income is None:
+            raise ValidationError("Expense and income values are required to update payments.")
+        return self.repository.update_payments_by_key_ref(key_ref, expense, income)

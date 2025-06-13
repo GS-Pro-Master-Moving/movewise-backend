@@ -76,6 +76,7 @@ urlpatterns = [
     path('summary-list/', ControllerOrder.as_view({'get': 'summary_orders_list'}), name='order-summary-list'),
     path('summary-list-financial/', ControllerOrder.as_view({'get': 'summary_orders_list_financial'}), name='order-summary-list-financial'),
     path('order/list_pending/', ControllerOrder.as_view({'get': 'list_pending_orders'}), name='order-list-pending'),
+    path('orders-payByKey_ref/', ControllerOrder.as_view({'post': 'payByKey_ref'}), name='order-pay-by-key-ref'),
     #new url to workhouse
     path('workhouse/', ControllerOrder.as_view({'post': 'create_workhouse', 'get': 'list_workhouse_orders'}), name='workhouse-create-list'),
     

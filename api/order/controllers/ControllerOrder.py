@@ -915,3 +915,30 @@ class ControllerOrder(viewsets.ViewSet):
                 "messUser": "Error fetching orders with summaries",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+    def payByKey_ref(self, request):
+        key_ref = request.data.get('key_ref')
+        expense = request.data.get('expense')
+        income = request.data.get('income')
+
+        if not key_ref or expense is None or income is None:
+            return Response(
+                {"error": "key_ref, expense, and income are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            expense = float(expense)
+            income = float(income)
+        except ValueError:
+            return Response(
+                {"error": "expense and income must be numbers."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        orders = self.order_service.pay_by_key_ref(key_ref, expense, income)
+        if not orders:
+            return Response(
+                {"error": "No orders found with the given key_ref."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        return Response(OrderSerializer(orders, many=True).data, status=status.HTTP_200_OK)
