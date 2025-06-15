@@ -581,8 +581,12 @@ class ControllerAssign(viewsets.ViewSet):
 
                     start_date = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
                     end_date   = start_date + timedelta(days=6)
+                    
+                    # FIX: Usar datetime para incluir todo el día final sin extenderse al siguiente
+                    start_datetime = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                    end_datetime = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-                    qs = qs.filter(assigned_at__range=(start_date, end_date + timedelta(days=1)))
+                    qs = qs.filter(assigned_at__range=(start_datetime, end_datetime))
                     week_info = {
                         "week_number": number_week,
                         "year": year,
