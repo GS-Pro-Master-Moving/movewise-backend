@@ -62,7 +62,7 @@ class RepositoryOrder(IRepositoryOrder):
         return order
     
     # @staticmethod
-    def get_all_orders_any_status(self, company_id, date_filter=None, status_filter=None, search_filter=None):
+    def get_all_orders_any_status(self, company_id, date_filter=None, status_filter=None, search_filter=None, location_filter=None):
         # Consulta base
         queryset = Order.objects.filter(id_company_id=company_id)
         
@@ -85,6 +85,10 @@ class RepositoryOrder(IRepositoryOrder):
                     Q(person__first_name__icontains=search_filter) | \
                     Q(person__last_name__icontains=search_filter)
             queryset = queryset.filter(search_q)
+        
+        if location_filter:
+            # Filtrar por ubicación (state_usa)
+            queryset = queryset.filter(state_usa__icontains=location_filter)
         
         # Ordenar por fecha descendente para mostrar más recientes primero
         return queryset.order_by('-date', '-key')

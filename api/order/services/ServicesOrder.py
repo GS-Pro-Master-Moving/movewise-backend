@@ -24,15 +24,16 @@ class ServicesOrder(IServicesOrder):
     def __init__(self):
         self.repository = RepositoryOrder()
     
-    def get_all_orders_any_status(self, company_id, date_filter=None, status_filter=None, search_filter=None):
+    def get_all_orders_any_status(self, company_id, date_filter=None, status_filter=None, search_filter=None, location_filter=None):
         if not company_id:
             raise ValidationError("Company context missing")
-        
+    
         return self.repository.get_all_orders_any_status(
             company_id=company_id,
             date_filter=date_filter,
             status_filter=status_filter,
-            search_filter=search_filter
+            search_filter=search_filter,
+            location_filter=location_filter
         )
     
     def get_all_orders(self, company_id):
