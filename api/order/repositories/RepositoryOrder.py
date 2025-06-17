@@ -171,3 +171,30 @@ class RepositoryOrder(IRepositoryOrder):
         ).filter(
             Q(job__name='workhouse') | Q(key_ref__startswith='WH-')
         ).distinct().order_by('-date')
+        
+    def update_payments_by_key_ref(self, key_ref, expense, income):
+        orders = Order.objects.filter(key_ref=key_ref)
+        count = orders.count()
+        if count == 0:
+            return None
+        expense_per_order = expense / count
+        income_per_order = income / count
+        updated_orders = []
+        for order in orders:
+            order.expense = expense_per_order
+            order.income = income_per_order
+            order.payStatus = 1
+            order.save(update_fields=['expense', 'income', 'payStatus'])
+            updated_orders.append(order)
+        return updated_orders
+    
+    def get_orders_by_key_ref(self, key_ref):
+        """
+        Get all orders by key_ref.
+
+        Args:
+        - key_ref: The key reference to filter orders
+        Returns:
+        - QuerySet of orders matching the key_ref
+        """
+        return Order.objects.filter(key_ref=key_ref).order_by('-date')
