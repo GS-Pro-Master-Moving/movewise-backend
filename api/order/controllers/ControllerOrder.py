@@ -105,6 +105,11 @@ class ControllerOrder(viewsets.ViewSet):
         description="Returns a list of all orders.",
         responses={200: OrderSerializer(many=True)}
     )
+    @extend_schema(
+    summary="List all orders with all status",
+    description="Returns a list of all orders.",
+    responses={200: OrderSerializer(many=True)}
+    )
     def list_all_status(self, request):
         try:
             company_id = request.company_id
@@ -113,14 +118,18 @@ class ControllerOrder(viewsets.ViewSet):
             date_filter = request.GET.get('date', None)
             status_filter = request.GET.get('status', None)
             search_filter = request.GET.get('search', None)
+            location_filter = request.GET.get('location', None)  # Nuevo filtro de ubicación
             
             print(f"fecha recibida: {date_filter}")
+            print(f"ubicacion recibida: {location_filter}")
+            
             # Obtener órdenes con filtros opcionales
             orders = self.order_service.get_all_orders_any_status(
                 company_id=company_id,
                 date_filter=date_filter,
                 status_filter=status_filter,
-                search_filter=search_filter
+                search_filter=search_filter,
+                location_filter=location_filter  # Pasar el nuevo filtro
             )
 
             paginator = PageNumberPagination()
@@ -129,7 +138,7 @@ class ControllerOrder(viewsets.ViewSet):
 
             return Response({
                 "status": "success",
-                "messDev": f"Orders listed successfully. Current company id: {company_id}. Filters applied: date={date_filter}, status={status_filter}, search={search_filter}",
+                "messDev": f"Orders listed successfully. Current company id: {company_id}. Filters applied: date={date_filter}, status={status_filter}, search={search_filter}, location={location_filter}",
                 "messUser": "Orders listed successfully",
                 "current_company_id": company_id,
                 "data": paginator.get_paginated_response(serialized.data).data
@@ -827,5 +836,49 @@ class ControllerOrder(viewsets.ViewSet):
                 "status": "error",
                 "messDev": f"Error fetching workhouse orders: {str(e)}",
                 "messUser": "Error fetching workhouse orders",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+    summary="Get unique registered locations by company",
+    description="Returns a list of unique state_usa locations for the current company.",
+    responses={200: "List of unique locations"}
+    )
+    def get_registered_locations(self, request):
+        """
+        Get unique registered locations (state_usa) for the current company.
+        
+        Returns:
+        - 200 OK: A list of unique state_usa values for the company.
+        - 400 Bad Request: If an error occurs.
+        """
+        try:
+            company_id = request.company_id
+            
+            # Get unique state_usa values for the company, excluding null/empty values
+            unique_locations = Order.objects.filter(
+                id_company=company_id,
+                state_usa__isnull=False
+            ).exclude(
+                state_usa__exact=''
+            ).values_list('state_usa', flat=True).distinct().order_by('state_usa')
+            
+            # Convert to list and return
+            locations_list = list(unique_locations)
+            
+            return Response({
+                "status": "success",
+                "messDev": f"Unique locations retrieved successfully. Company ID: {company_id}",
+                "messUser": "Locations retrieved successfully",
+                "current_company_id": company_id,
+                "data": locations_list
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error fetching registered locations: {str(e)}")
+            return Response({
+                "status": "error",
+                "messDev": f"Error fetching registered locations: {str(e)}",
+                "messUser": "Error fetching registered locations",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
