@@ -120,8 +120,8 @@ class ControllerOrder(viewsets.ViewSet):
             search_filter = request.GET.get('search', None)
             location_filter = request.GET.get('location', None)  # Nuevo filtro de ubicación
             
-            print(f"fecha recibida: {date_filter}")
-            print(f"ubicacion recibida: {location_filter}")
+            # print(f"fecha recibida: {date_filter}")
+            # print(f"ubicacion recibida: {location_filter}")
             
             # Obtener órdenes con filtros opcionales
             orders = self.order_service.get_all_orders_any_status(

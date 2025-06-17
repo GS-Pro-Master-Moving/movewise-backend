@@ -89,7 +89,6 @@ class RepositoryOrder(IRepositoryOrder):
         if location_filter:
             # Filtrar por ubicación (state_usa)
             queryset = queryset.filter(state_usa__icontains=location_filter)
-            print("location_filter", queryset)
         
         # Ordenar por fecha descendente para mostrar más recientes primero
         return queryset.order_by('-date', '-key')
