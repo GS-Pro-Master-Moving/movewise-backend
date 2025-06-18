@@ -88,7 +88,11 @@ class UserRegister(APIView):
                     if User.all_objects.filter(person=person).exists():
                         print("Ya existe un usuario para esta persona.")
                         return Response(
-                            {"error": "Ya existe un usuario para esta persona."},
+                            {
+                                "messUser": "user_already_exists",
+                                "messDev": "A user already exists for this person.",
+                                "data": None
+                            },
                             status=status.HTTP_400_BAD_REQUEST
                         )
 
@@ -100,7 +104,8 @@ class UserRegister(APIView):
                     )
                     print("Usuario creado para persona existente.")
                     response_data = {
-                        "message": "Usuario creado para persona ya existente",
+                        "messUser": "user_created_for_existing_person",
+                        "messDev": "User created for existing person.",
                         "data": UserSerializer(user).data
                     }
                     return Response(response_data, status=status.HTTP_201_CREATED)
@@ -109,16 +114,32 @@ class UserRegister(APIView):
                     user = serializer.save()
                     print("Usuario añadido con nueva persona.")
                     response_data = {
-                        "message": "Registro exitoso",
+                        "messUser": "registration_successful",
+                        "messDev": "User registered successfully.",
                         "data": UserSerializer(user).data
                     }
                     return Response(response_data, status=status.HTTP_201_CREATED)
 
             except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                print("Exception: ", str(e))
+                return Response(
+                    {
+                        "messUser": "registration_error",
+                        "messDev": str(e),
+                        "data": None
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         if(serializer.errors):
             print("Errores de validación:", serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {
+                "messUser": "invalid_data",
+                "messDev": serializer.errors,
+                "data": None
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
         
 class UserLogin(APIView):
     permission_classes = [AllowAny] 
