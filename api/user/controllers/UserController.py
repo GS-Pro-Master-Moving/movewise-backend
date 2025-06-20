@@ -6,6 +6,7 @@ from api.company.services.ServicesCompany import ServicesCompany
 from api.person.serializers.PersonSerializer import PersonSerializer
 from django.db.models import Q
 
+from api.user.serializers.UserRegisterSerializer import UserRegisterSerializer
 from api.user.serializers.UserSerializer import UserSerializer
 from api.user.serializers.LoginSerializer import LoginSerializer
 from api.user.serializers.LoginResponseSerializer import LoginResponseSerializer
@@ -61,28 +62,84 @@ class UserRegister(APIView):
         ]
     )
     def post(self, request):
-        serializer = UserSerializer(data=request.data)
+        print("Datos recibidos para registrar usuario:", request.data)
+        serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                user = serializer.save()
-                response_data = {
-                    "message": "Registro exitoso",
-                    "data": UserSerializer(user).data
-                }
+                person_data = serializer.validated_data.get('person')
+                email = person_data.get('email')
+                id_number = person_data.get('id_number')
 
-                # Detectar reactivación
-                if Person.all_objects.filter(
-                    Q(email=user.person.email) | Q(id_number=user.person.id_number),
-                    status='inactive'
-                ).exists():
-                    response_data["message"] = "Cuenta reactivada exitosamente"
+                # Buscar persona existente por email o id_number
+                person = None
+                if email or id_number:
+                    person = Person.all_objects.filter(
+                        Q(email=email) | Q(id_number=id_number)
+                    ).first()
 
-                return Response(response_data, status=status.HTTP_201_CREATED)
-                
+                if person:
+                    # Si ya existe, crear solo el usuario asociado
+                    user_name = serializer.validated_data.get('user_name')
+                    password = serializer.validated_data.get('password')
+                    id_company = person.id_company
+
+                    # Verifica que no exista ya un usuario para esa persona
+                    from api.user.models.User import User
+                    if User.all_objects.filter(person=person).exists():
+                        print("Ya existe un usuario para esta persona.")
+                        return Response(
+                            {
+                                "messUser": "user_already_exists",
+                                "messDev": "A user already exists for this person.",
+                                "data": None
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+
+                    user = User.objects.create_user(
+                        user_name=user_name,
+                        password=password,
+                        person=person,
+                        id_company=id_company
+                    )
+                    print("Usuario creado para persona existente.")
+                    response_data = {
+                        "messUser": "user_created_for_existing_person",
+                        "messDev": "User created for existing person.",
+                        "data": UserSerializer(user).data
+                    }
+                    return Response(response_data, status=status.HTTP_201_CREATED)
+                else:
+                    # Si no existe la persona, crea normalmente (usando el serializer)
+                    user = serializer.save()
+                    print("Usuario añadido con nueva persona.")
+                    response_data = {
+                        "messUser": "registration_successful",
+                        "messDev": "User registered successfully.",
+                        "data": UserSerializer(user).data
+                    }
+                    return Response(response_data, status=status.HTTP_201_CREATED)
+
             except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                print("Exception: ", str(e))
+                return Response(
+                    {
+                        "messUser": "registration_error",
+                        "messDev": str(e),
+                        "data": None
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        if(serializer.errors):
+            print("Errores de validación:", serializer.errors)
+        return Response(
+            {
+                "messUser": "invalid_data",
+                "messDev": serializer.errors,
+                "data": None
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
         
 class UserLogin(APIView):
     permission_classes = [AllowAny] 
