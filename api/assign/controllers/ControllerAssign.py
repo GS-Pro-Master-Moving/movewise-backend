@@ -536,14 +536,16 @@ class ControllerAssign(viewsets.ViewSet):
     )
     def list_assign_operator(self, request):
         """
-        GET /api/assign/operators/?number_week=15&year=2025
-        Returns paginated assignments filtered by ISO week number and year,
+        GET /api/assign/operators/?number_week=15&year=2025&status=pending&state_usa=CA
+        Returns paginated assignments filtered by ISO week number, year, order status, and state_usa,
         with week date range, **solo para operadores de la compañía actual**.
         """
         try:
             company_id    = request.company_id
             number_week   = request.query_params.get('number_week', None)
             year_param    = request.query_params.get('year', None)
+            status_filter = request.query_params.get('status', None)
+            state_usa_filter = request.query_params.get('location', None)
 
             # — Validate year —
             if year_param is not None:
@@ -561,6 +563,16 @@ class ControllerAssign(viewsets.ViewSet):
             else:
                 year = datetime.now().year
 
+            # — Validate status filter —
+            valid_statuses = ['pending', 'finished', 'cancelled','in progress']  # Ajusta según tus estados válidos
+            if status_filter and status_filter not in valid_statuses:
+                return Response({
+                    "status": "error",
+                    "messDev": f"Invalid status filter. Valid options: {', '.join(valid_statuses)}",
+                    "messUser": "The status filter provided is invalid.",
+                    "data": None
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # — Build queryset filtered by company_id ABOUT operator → person →
             qs = Assign.objects.select_related(
                 'operator__person',
@@ -570,6 +582,15 @@ class ControllerAssign(viewsets.ViewSet):
                 operator__person__id_company_id=company_id,
                 order__status__in=['pending', 'finished']
             )
+
+            # — Apply status filter if provided —
+            if status_filter:
+                qs = qs.filter(order__status=status_filter)
+
+            # — Apply state_usa filter if provided —
+            if state_usa_filter:
+                # Permitir búsqueda exacta o parcial (case-insensitive)
+                qs = qs.filter(order__state_usa__icontains=state_usa_filter)
 
             # — Filter by week if requested —
             week_info = {}
@@ -614,16 +635,29 @@ class ControllerAssign(viewsets.ViewSet):
                 serialized_data['id_operator'] = assign.operator_id  # Acceso directo al ID usando _id
                 serialized_data['id_payment'] = assign.payment_id if assign.payment_id else None  # Acceso directo al ID
                 
-                results.append(serialized_data)
+                # Agregar información de la orden para referencia
+                serialized_data['order_status'] = assign.order.status
+                serialized_data['order_state_usa'] = assign.order.state_usa
                 
+                results.append(serialized_data)
+
+            # — Preparar información de filtros aplicados —
+            filters_applied = {
+                "status": status_filter,
+                "location": state_usa_filter,
+                "number_week": number_week,
+                "year": year
+            }
+            
             # — If there is no data, respond empty but with company_id —
             if not results:
                 return Response({
                     "status":     "success",
-                    "messDev":    "No assignments found for the given week.",
-                    "messUser":   "There are no assignments for the selected week.",
+                    "messDev":    "No assignments found for the given filters.",
+                    "messUser":   "There are no assignments matching the selected criteria.",
                     "data":       [],
                     "week_info":  week_info or None,
+                    "filters_applied": filters_applied,
                     "current_company_id": company_id
                 }, status=status.HTTP_200_OK)
 
@@ -634,6 +668,7 @@ class ControllerAssign(viewsets.ViewSet):
                 "messUser":   "Assignments list fetched.",
                 "data":       results,
                 "week_info":  week_info or None,
+                "filters_applied": filters_applied,
                 "current_company_id": company_id
             }, status=status.HTTP_200_OK)
 

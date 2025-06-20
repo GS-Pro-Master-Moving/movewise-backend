@@ -59,8 +59,8 @@ class SerializerOperator(serializers.ModelSerializer):
     birth_date   = serializers.DateField(source='person.birth_date',  required=False)
     type_id      = serializers.CharField(source='person.type_id',     required=True)
     id_number    = serializers.CharField(source='person.id_number', required=True)
-    address      = serializers.CharField(source='person.address',     required=True)
-    phone        = serializers.CharField(source='person.phone',       required=True)
+    address      = serializers.CharField(source='person.address',     required=False)
+    phone        = serializers.CharField(source='person.phone',       required=False)
     email        = serializers.EmailField(source='person.email',      required=False, allow_null=True)
     id_company = serializers.IntegerField(
         source='person.id_company_id',
