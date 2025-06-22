@@ -6,7 +6,8 @@ from api.order.models.Order import StatesUSA
 from django.db.models import Max 
 import datetime
 from django.db.models import Q
-
+from django.db.models.functions import TruncDay
+from django.db.models import Count
 class RepositoryOrder(IRepositoryOrder):
     @staticmethod
     def create_order(data):
@@ -197,3 +198,16 @@ class RepositoryOrder(IRepositoryOrder):
         - QuerySet of orders matching the key_ref
         """
         return Order.objects.filter(key_ref=key_ref).order_by('-date')
+    
+    def count_orders_per_day_in_month(self, company_id, year, month):
+        """
+        Returns a list of dicts with 'date' and 'count' for each day with orders in the given month.
+        """
+        return (
+            Order.objects
+            .filter(id_company_id=company_id, date__year=year, date__month=month)
+            .annotate(day=TruncDay('date'))
+            .values('day')
+            .annotate(count=Count('key'))
+            .order_by('day')
+        )
