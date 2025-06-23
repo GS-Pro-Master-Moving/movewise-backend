@@ -77,6 +77,45 @@ class UserRegister(APIView):
                         Q(email=email) | Q(id_number=id_number)
                     ).first()
 
+                # Si el nombre de usuario ya existe muestra mensaje de error
+                if serializer.validated_data.get('user_name'):
+                    from api.user.models.User import User
+                    if User.all_objects.filter(user_name=serializer.validated_data.get('user_name')).exists():
+                        print("El nombre de usuario ya existe.")
+                        return Response(
+                            {
+                                "messUser": "username_already_exists",
+                                "messDev": "Username already exists.",
+                                "data": None
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                # Si el email ya esta registrado como usuario muestra mensaje de error
+                if email:
+                    from api.user.models.User import User
+                    if User.all_objects.filter(person__email=email).exists():
+                        print("El email ya está registrado.")
+                        return Response(
+                            {
+                                "messUser": "email_already_registered_for_user",
+                                "messDev": "Email already registered.",
+                                "data": None
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                # Si el id_number ya esta registrado para algun usuario muestra mensaje de error
+                if id_number:
+                    from api.user.models.User import User
+                    if User.all_objects.filter(person__id_number=id_number).exists():
+                        print("El número de identificación ya está registrado.")
+                        return Response(
+                            {
+                                "messUser": "id_number_already_registered_for_user",
+                                "messDev": "ID number already registered.",
+                                "data": None
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
                 if person:
                     # Si ya existe, crear solo el usuario asociado
                     user_name = serializer.validated_data.get('user_name')
