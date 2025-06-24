@@ -398,3 +398,7 @@ class ServicesOrder(IServicesOrder):
         if expense is None or income is None:
             raise ValidationError("Expense and income values are required to update payments.")
         return self.repository.update_payments_by_key_ref(key_ref, expense, income)
+
+    def count_orders_per_day_in_month(self, company_id, year, month):
+        return self.repository.count_orders_per_day_in_month(company_id, year, month)
+    

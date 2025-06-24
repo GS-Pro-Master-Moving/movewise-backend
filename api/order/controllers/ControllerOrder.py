@@ -995,3 +995,22 @@ class ControllerOrder(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         return Response(OrderSerializer(orders, many=True).data, status=status.HTTP_200_OK)
+    
+    def count_orders_per_day(self, request, year, month):
+        """
+        Returns the count of orders per day for a given month and year.
+        Path params: year, month
+        """
+        company_id = request.company_id
+        try:
+            year = int(year)
+            month = int(month)
+        except ValueError:
+            return Response(
+                {"messUser": "invalid_year_or_month", "messDev": "Year and month must be integers.", "data": None},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        counts = self.order_service.count_orders_per_day_in_month(company_id, year, month)
+        # Formatea la respuesta para solo mostrar día y count
+        data = [{"date": c["day"].strftime("%Y-%m-%d"), "count": c["count"]} for c in counts]
+        return Response({"messUser": "orders_count_per_day", "messDev": "Order counts per day retrieved successfully.", "data": data}, status=status.HTTP_200_OK)
