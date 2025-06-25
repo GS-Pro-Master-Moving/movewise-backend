@@ -23,6 +23,12 @@ class ServiceOperator(IServiceOperator):
             raise ValueError("Company context missing")
         
         return self.repository.get_freelance_operators(company_id)
+        
+    def get_active_and_freelance_operators(self, company_id):
+        if not company_id:
+            raise ValueError("Company context missing")
+            
+        return self.repository.get_active_and_freelance_operators(company_id)
     
     def get_freelance_operator_by_code(self, company_id: int, code: str):
         if not company_id:
