@@ -262,9 +262,9 @@ class UserLogin(APIView):
                 )
                 auth_obj = user  # Objeto User
             else:
-                # Autenticación operador (Person)
-                person, is_admin = ServicesUser().authenticate_by_id_number(
-                    serializer.validated_data['id_number']
+                # Autenticación operador (Person) por código
+                person, is_admin = ServicesUser().authenticate_by_code(
+                    serializer.validated_data['code']
                 )
                 auth_obj = person  # Objeto Person
 
