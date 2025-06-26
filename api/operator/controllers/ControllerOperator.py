@@ -158,6 +158,54 @@ class ControllerOperator(viewsets.ViewSet):
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+            
+    @extend_schema(
+        summary="List active and freelance operators with pagination",
+        description="List operators with status='active' or 'freelance' paginated.",
+        responses={200: SerializerOperator(many=True)},
+        parameters=[
+            OpenApiParameter(name='page', type=int, location=OpenApiParameter.QUERY, description='Page number'),
+            OpenApiParameter(name='page_size', type=int, location=OpenApiParameter.QUERY, description='Items per page'),
+        ]
+    )
+    def list_active_and_freelance_operators(self, request):
+        try:
+            company_id = request.company_id
+            
+            if not company_id:
+                return Response(
+                    {"error": "Company context missing"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            operators = self.service.get_active_and_freelance_operators(company_id)
+            
+            page = self.paginator.paginate_queryset(operators, request)
+            
+            if not page:
+                return Response(
+                    {
+                        "error": "No existe la página solicitada",
+                        "available_pages": self.paginator.page.paginator.num_pages if hasattr(self.paginator, 'page') else 0
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            serializer = SerializerOperator(page, many=True, context={'request': request})
+            
+            response_data = self.paginator.get_paginated_response(serializer.data).data
+            response_data['current_company_id'] = company_id
+            response_data['message'] = "Operadores activos y freelance obtenidos exitosamente"
+            
+            return Response(response_data)
+
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": "Error interno del servidor"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
     def retrieve_freelance_by_code(self, request):
         try:
