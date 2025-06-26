@@ -105,6 +105,7 @@ urlpatterns = [
     
     #get freelance op
     path('list-operators-freelance/', ControllerOperator.as_view({'get': 'list_freelance_operators'}), name='operator-list-freelance'),
+    path('list-operators-active-freelance/', ControllerOperator.as_view({'get': 'list_active_and_freelance_operators'}), name='operator-list-active-freelance'),
     path('freelance/by-code/', ControllerOperator.as_view({'get': 'retrieve_freelance_by_code'}), name='freelance-by-code'),
     # assigns
     path('assigns/list-report/', ControllerAssign.as_view({'get': 'list'}), name='assign-report'),
