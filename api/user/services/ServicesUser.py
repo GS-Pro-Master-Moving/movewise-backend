@@ -25,19 +25,19 @@ class ServicesUser:
             raise ValueError("Usuario no encontrado")
 
     @staticmethod
-    def authenticate_by_id_number(id_number: int):
+    def authenticate_by_code(code: str):
         try:
-            person = Person.objects.get(id_number=id_number)
+            # Buscar operador por su código
+            operator = Operator.objects.get(code=code)
             
-            # Verificar si es operador
-            try:
-                operator = Operator.objects.get(person=person)
-                return person, False  # Retorna Person y False (no es admin)
-            except Operator.DoesNotExist:
-                raise ValueError("Usuario no tiene permisos para acceder")
+            # Verificar que el operador esté activo
+            if operator.person.status != 'active':
+                raise ValueError("El operador no está activo")
+                
+            return operator.person, False  # Retorna Person y False (no es admin)
             
-        except Person.DoesNotExist:
-            raise ValueError("Número de identificación no registrado")
+        except Operator.DoesNotExist:
+            raise ValueError("Código de operador no válido")
 
     @staticmethod
     def create_user(person_data: dict, user_data: dict) -> User:
