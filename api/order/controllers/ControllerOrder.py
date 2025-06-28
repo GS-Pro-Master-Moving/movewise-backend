@@ -793,50 +793,78 @@ class ControllerOrder(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
+    
     @extend_schema(
         summary="List all workhouse orders",
-        description="Returns a paginated list of all workhouse orders (identified by job name 'workhouse' or key_ref starting with 'WH-').",
+        description="Returns a paginated list of all workhouse orders (identified by job name 'workhouse' or key_ref starting with 'WH-'). Supports filtering by ISO week and year.",
         responses={200: OrderSerializer(many=True)}
     )
     def list_workhouse_orders(self, request):
         """
-        List all workhouse orders.
-        
-        Workhouse orders are identified by:
-        - job.name = 'workhouse' OR
-        - key_ref starting with 'WH-'
-        
-        Returns:
-        - 200 OK: Paginated list of workhouse orders.
-        - 400 Bad Request: If an error occurs.
+        List all workhouse orders, optionally filtered by ISO week and year.
+        Query params:
+        - number_week: ISO week number (1-53)
+        - year: Year (default: current year)
+        - page_size: Results per page (optional)
         """
         try:
             company_id = request.company_id
-            
+            number_week = request.query_params.get('number_week')
+            year = request.query_params.get('year')
+            page_size = request.query_params.get('page_size', 10)
+
+            # Validar y convertir parámetros
+            if not year:
+                year = datetime.now().year
+            else:
+                year = int(year)
+
+            if number_week:
+                number_week = int(number_week)
+                if number_week < 1 or number_week > 53:
+                    return Response({
+                        "status": "error",
+                        "messDev": "Invalid week number.",
+                        "messUser": "invalid_week_number",
+                        "data": None
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                # Calcular fechas de la semana ISO
+                start_datetime = datetime.strptime(f'{year}-W{number_week}-1', "%G-W%V-%u")
+                start_date = start_datetime.date()
+                end_date = start_date + timedelta(days=6)
+            else:
+                start_date = end_date = None
+
             # Get all workhouse orders using the service
             workhouse_orders = self.order_service.get_all_workhouse_orders(company_id)
-            
+
+            # Filtrar por semana si corresponde
+            if start_date and end_date:
+                workhouse_orders = workhouse_orders.filter(date__range=(start_date, end_date))
+
             # Paginate the queryset
             paginator = PageNumberPagination()
+            paginator.page_size = int(page_size)
             paginated_orders = paginator.paginate_queryset(workhouse_orders, request)
-            
+
             # Serialize the paginated data
             serialized_orders = OrderSerializer(paginated_orders, many=True, context={'request': request})
-            
+
             return Response({
                 "status": "success",
                 "messDev": f"Workhouse orders listed successfully. Current company id: {company_id}",
-                "messUser": "Workhouse orders listed successfully",
+                "messUser": "workhouse_orders_listed_successfully",
                 "current_company_id": company_id,
                 "data": paginator.get_paginated_response(serialized_orders.data).data
             }, status=status.HTTP_200_OK)
-            
+
         except Exception as e:
             logger.error(f"Error fetching workhouse orders: {str(e)}")
             return Response({
                 "status": "error",
                 "messDev": f"Error fetching workhouse orders: {str(e)}",
-                "messUser": "Error fetching workhouse orders",
+                "messUser": "error_fetching_workhouse_orders",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
 
