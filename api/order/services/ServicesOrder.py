@@ -402,3 +402,20 @@ class ServicesOrder(IServicesOrder):
     def count_orders_per_day_in_month(self, company_id, year, month):
         return self.repository.count_orders_per_day_in_month(company_id, year, month)
     
+    def filter_by_location(self, company_id, country=None, state=None, city=None):
+        """
+        List orders by location (country, state, city).
+        
+        Args:
+        - company_id: ID of the company
+        - country: Optional country filter
+        - state: Optional state filter
+        - city: Optional city filter
+        
+        Returns:
+        - QuerySet of filtered orders
+        """
+        if not company_id:
+            raise ValidationError("Company context missing")
+        
+        return self.repository.filter_by_location(company_id, country, state, city)
