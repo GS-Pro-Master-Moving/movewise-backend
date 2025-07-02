@@ -1042,3 +1042,23 @@ class ControllerOrder(viewsets.ViewSet):
         # Formatea la respuesta para solo mostrar día y count
         data = [{"date": c["day"].strftime("%Y-%m-%d"), "count": c["count"]} for c in counts]
         return Response({"messUser": "orders_count_per_day", "messDev": "Order counts per day retrieved successfully.", "data": data}, status=status.HTTP_200_OK)
+    
+    
+    def list_by_location(self, request):
+        company_id = request.company_id
+        country = request.query_params.get('country')
+        state = request.query_params.get('state')
+        city = request.query_params.get('city')
+
+        orders = self.order_service.filter_by_location(company_id, country, state, city)
+        # Si usas el método SQL, orders será una lista de dicts, si usas ORM será un queryset
+        # Si usas ORM:
+        data = OrderSerializer(orders, many=True).data
+        # Si usas SQL:
+        # data = orders
+
+        return Response({
+            "messUser": "orders_filtered_by_location",
+            "messDev": "Orders filtered by country, state and city.",
+            "data": data
+        }, status=status.HTTP_200_OK)

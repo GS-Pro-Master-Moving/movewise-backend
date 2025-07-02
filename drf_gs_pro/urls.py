@@ -80,6 +80,7 @@ urlpatterns = [
     ##new url to workhouse
     path('orders-payByKey_ref/', ControllerOrder.as_view({'post': 'payByKey_ref'}), name='order-pay-by-key-ref'),
     path('orders-count-orders-per-day/<int:year>/<int:month>/', ControllerOrder.as_view({'get': 'count_orders_per_day'}), name='order-count-orders-per-day'),
+    path('orders-filter-by-location/', ControllerOrder.as_view({'get': 'list_by_location'}), name='orders-filter-by-location'),
     #new url to workhouse
     path('workhouse/', ControllerOrder.as_view({'post': 'create_workhouse', 'get': 'list_workhouse_orders'}), name='workhouse-create-list'),
     

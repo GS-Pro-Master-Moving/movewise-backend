@@ -27,3 +27,18 @@ class IRepositoryOrder:
         Return all orders belonging to company_id.
         """
         raise NotImplementedError
+
+    def filter_by_location(self, company_id, country=None, state=None, city=None):
+        """
+        Filter orders by location (country, state, city).
+        
+        Args:
+        - company_id: ID of the company
+        - country: Optional country filter
+        - state: Optional state filter
+        - city: Optional city filter
+        
+        Returns:
+        - QuerySet of filtered orders
+        """
+        raise NotImplementedError

@@ -211,3 +211,16 @@ class RepositoryOrder(IRepositoryOrder):
             .annotate(count=Count('key'))
             .order_by('day')
         )
+        
+    def filter_by_location(self, company_id, country=None, state=None, city=None):
+        """
+        Filtra órdenes por país, estado y ciudad usando el campo state_usa.
+        """
+        qs = Order.objects.filter(id_company_id=company_id)
+        if country:
+            qs = qs.filter(state_usa__istartswith=country)
+        if state:
+            qs = qs.filter(state_usa__icontains=f", {state}")
+        if city:
+            qs = qs.filter(state_usa__icontains=f", {city}")
+        return qs
