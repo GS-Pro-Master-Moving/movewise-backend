@@ -590,7 +590,12 @@ class ControllerAssign(viewsets.ViewSet):
             # — Apply state_usa filter if provided —
             if state_usa_filter:
                 # Permitir búsqueda exacta o parcial (case-insensitive)
-                qs = qs.filter(order__state_usa__icontains=state_usa_filter)
+                # Buscar con formato ( - - ) o ( , , )
+                qs = qs.filter(
+                    models.Q(order__state_usa__icontains=state_usa_filter) |
+                    models.Q(order__state_usa__icontains=state_usa_filter.replace(',', '-')) |
+                    models.Q(order__state_usa__icontains=state_usa_filter.replace('-', ','))
+                )
 
             # — Filter by week if requested —
             week_info = {}
