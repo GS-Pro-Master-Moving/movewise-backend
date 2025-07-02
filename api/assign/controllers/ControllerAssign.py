@@ -536,6 +536,9 @@ class ControllerAssign(viewsets.ViewSet):
         }
     )
     def list_assign_operator(self, request):
+        import re
+        from django.db.models import Q
+
         """
         GET /api/assign/operators/?number_week=15&year=2025&status=pending&state_usa=CA
         Returns paginated assignments filtered by ISO week number, year, order status, and state_usa,
@@ -584,26 +587,28 @@ class ControllerAssign(viewsets.ViewSet):
                 order__status__in=['pending', 'finished']
             )
 
-            # — Apply status filter if provided —
-            if status_filter:
-                qs = qs.filter(order__status=status_filter)
-
             # — Apply state_usa filter if provided —
             
             if state_usa_filter:
-                # Divide el string por coma, guion o más de un espacio
-                parts = [p.strip() for p in re.split(r',|-{1,}| +', state_usa_filter) if p.strip()]
+                # Solo separa por coma o guion, no por espacios
+                parts = [p.strip() for p in re.split(r',|-', state_usa_filter) if p.strip()]
                 country = parts[0] if len(parts) > 0 else None
                 state = parts[1] if len(parts) > 1 else None
                 city = parts[2] if len(parts) > 2 else None
 
-                # Aplica los filtros de manera acumulativa
-                if country:
-                    qs = qs.filter(order__state_usa__icontains=country)
-                if state:
-                    qs = qs.filter(order__state_usa__icontains=state)
-                if city:
-                    qs = qs.filter(order__state_usa__icontains=city)
+                if country and state and city:
+                    regex = rf'^{re.escape(country)}[,|\s|-]+{re.escape(state)}[,|\s|-]+{re.escape(city)}$'
+                    print("Regex usado (country, state, city):", regex)
+                    qs = qs.filter(order__state_usa__regex=regex)
+                elif country and state:
+                    regex = rf'^{re.escape(country)}[,|\s|-]+{re.escape(state)}([,|\s|-]+.*)?$'
+                    print("Regex usado (country, state):", regex)
+                    qs = qs.filter(order__state_usa__regex=regex)
+                elif country:
+                    regex = rf'^{re.escape(country)}([,|\s|-]+.*)?$'
+                    print("Regex usado (country):", regex)
+                    qs = qs.filter(order__state_usa__regex=regex)
+            
             # — Filter by week if requested —
             week_info = {}
             if number_week is not None:
