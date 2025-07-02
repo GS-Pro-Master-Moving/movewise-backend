@@ -18,7 +18,8 @@ class JobController(viewsets.ViewSet):
         responses={200: OpenApiResponse(response=SerializerJob(many=True))}
     )
     def list(self, request):
-        jobs = self.job_service.get_all_jobs()
+        company_id = getattr(request, 'company_id', None)
+        jobs = self.job_service.get_all_jobs(company_id=company_id)
         return Response(SerializerJob(jobs, many=True).data)
 
     @extend_schema(

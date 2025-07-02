@@ -11,8 +11,12 @@ class ServicesJob:
             return None
         return self.repository.set_inactive(id)
 
-    def get_all_jobs(self):
-        return self.repository.get_all_jobs()
+    def get_all_jobs(self, company_id=None):
+        from api.job.models.Job import Job
+        qs = Job.objects.filter(state=True)
+        if company_id:
+            qs = qs.filter(id_company=company_id)
+        return qs
 
     def get_job(self, id):
         return self.repository.get_job_by_id(id)
