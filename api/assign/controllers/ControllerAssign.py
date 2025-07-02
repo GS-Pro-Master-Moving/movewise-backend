@@ -22,6 +22,7 @@ from api.order.serializers.OrderSerializer import OrderSerializer
 from api.truck.serializers.SerializerTruck import SerializerTruck
 from api.workCost.serializers.SerializerWorkCost import WorkCostSerializer
 from api.workCost.models.WorkCost import WorkCost
+import re # Importing regex for validation
 class CustomPagination(pagination.PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
@@ -546,7 +547,7 @@ class ControllerAssign(viewsets.ViewSet):
             year_param    = request.query_params.get('year', None)
             status_filter = request.query_params.get('status', None)
             state_usa_filter = request.query_params.get('location', None)
-
+            print("Location:", state_usa_filter)
             # — Validate year —
             if year_param is not None:
                 try:
@@ -588,15 +589,21 @@ class ControllerAssign(viewsets.ViewSet):
                 qs = qs.filter(order__status=status_filter)
 
             # — Apply state_usa filter if provided —
+            
             if state_usa_filter:
-                # Permitir búsqueda exacta o parcial (case-insensitive)
-                # Buscar con formato ( - - ) o ( , , )
-                qs = qs.filter(
-                    models.Q(order__state_usa__icontains=state_usa_filter) |
-                    models.Q(order__state_usa__icontains=state_usa_filter.replace(',', '-')) |
-                    models.Q(order__state_usa__icontains=state_usa_filter.replace('-', ','))
-                )
+                # Divide el string por coma, guion o más de un espacio
+                parts = [p.strip() for p in re.split(r',|-{1,}| +', state_usa_filter) if p.strip()]
+                country = parts[0] if len(parts) > 0 else None
+                state = parts[1] if len(parts) > 1 else None
+                city = parts[2] if len(parts) > 2 else None
 
+                # Aplica los filtros de manera acumulativa
+                if country:
+                    qs = qs.filter(order__state_usa__icontains=country)
+                if state:
+                    qs = qs.filter(order__state_usa__icontains=state)
+                if city:
+                    qs = qs.filter(order__state_usa__icontains=city)
             # — Filter by week if requested —
             week_info = {}
             if number_week is not None:
