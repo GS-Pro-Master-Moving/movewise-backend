@@ -31,7 +31,7 @@ class Person(models.Model):
     address = models.CharField(max_length=100, null=True, blank=True)
     id_number = models.CharField(null=True, blank=True, max_length=50)
     type_id = models.CharField(max_length=100, null=True, blank=True)
-    email = models.EmailField(max_length=100, unique=True, null=True, blank=True)
+    email = models.EmailField(max_length=100, unique=False, null=True, blank=True)
     id_company = models.ForeignKey(Company, on_delete=models.CASCADE, db_column="id_company")
     #new status
     status = models.CharField(max_length=50,choices=STATUS_CHOICES,null=True,blank=True,default='active')
