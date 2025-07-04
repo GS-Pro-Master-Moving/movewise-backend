@@ -464,7 +464,14 @@ class ControllerOrder(viewsets.ViewSet):
             serializer.is_valid(raise_exception=True)
             updated_order = serializer.save()
             logger.info(f"Order updated successfully: {updated_order.key}")
-
+            # --- Sincronizar fechas de asignaciones si la fecha de la orden cambió ---
+            if 'date' in serializer.validated_data:
+                new_date = serializer.validated_data['date']
+                assigns = Assign.objects.filter(order=updated_order)
+                for assign in assigns:
+                    assign.assigned_at = new_date
+                    assign.save(update_fields=['assigned_at'])
+                    
             # serializer output
             out_data = OrderSerializer(updated_order, context={'request': request}).data
             return Response(out_data, status=status.HTTP_200_OK)
