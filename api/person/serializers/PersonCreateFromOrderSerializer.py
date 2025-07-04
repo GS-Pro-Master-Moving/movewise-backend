@@ -7,8 +7,14 @@ class PersonCreateFromOrderSerializer(serializers.ModelSerializer):
         model = Person
         fields = ["email", "first_name", "last_name", "phone", "address"]
         extra_kwargs = {
-            'email': {'validators': []},
+            'email': {
+                'validators': [],
+                'required': False,
+                'allow_null': True,
+                'allow_blank': True,
+            },
         }
+
     def create(self, validated_data):
         #get company_id from the request
         request = self.context.get('request')
@@ -21,15 +27,23 @@ class PersonCreateFromOrderSerializer(serializers.ModelSerializer):
         if not company_id:
             raise serializers.ValidationError("Company ID not found in request")
 
-        #search person just in the current company
-        person = Person.objects.filter(
-            email=validated_data["email"],
-            id_company=company_id
-        ).first()
+        # Normaliza el email
+        email = validated_data.get("email")
+        if email and email.strip().lower() == "unknown@gmail.com":
+            email = None
+        validated_data["email"] = email
+
+        # Busca persona solo si hay email
+        person = None
+        if email:
+            person = Person.objects.filter(
+                email=email,
+                id_company=company_id
+            ).first()
 
         if not person:
             person = Person.objects.create(
-                email=validated_data["email"],
+                email=email,
                 first_name=validated_data["first_name"],
                 last_name=validated_data["last_name"],
                 phone=validated_data["phone"],
