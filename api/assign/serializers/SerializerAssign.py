@@ -17,7 +17,7 @@ class AssignOperatorSerializer(serializers.ModelSerializer):
     salary     = serializers.DecimalField(source='operator.salary', max_digits=10, decimal_places=2, coerce_to_string=False)
     first_name = serializers.CharField(source='operator.person.first_name')
     last_name  = serializers.CharField(source='operator.person.last_name')
-    bonus      = serializers.DecimalField(source='payment.bonus', max_digits=10, decimal_places=2, allow_null=True)
+    bonus      = serializers.DecimalField(source='additional_costs', max_digits=10, decimal_places=2, allow_null=True)
     role       = serializers.CharField(source='rol', allow_null=True) 
     
     def get_date(self, obj):
